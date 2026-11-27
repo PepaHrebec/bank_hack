@@ -349,7 +349,9 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                 status_code=503,
             )
         try:
-            reply = await chat.run(db_path, person_id, messages, complete)
+            reply = await asyncio.wait_for(
+                chat.run(db_path, person_id, messages, complete), chat.DEADLINE
+            )
         except (chat.UpstreamError, asyncio.TimeoutError):
             return JSONResponse({"detail": "Geoff teď neodpovídá, zkus to prosím znovu."}, status_code=502)
         return {"reply": reply}

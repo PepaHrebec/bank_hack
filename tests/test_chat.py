@@ -161,3 +161,39 @@ def test_chat_upstream_error(db):
 
     r = client(db, fake).post("/api/chat", json={"messages": [MSG]})
     assert r.status_code == 502 and r.json()["detail"] == UPSTREAM
+
+
+def test_chat_deadline(db, monkeypatch):
+    monkeypatch.setattr(chat, "DEADLINE", 0.05)
+
+    async def slow(messages, tools):
+        await asyncio.sleep(1)
+
+    r = client(db, slow).post("/api/chat", json={"messages": [MSG]})
+    assert r.status_code == 502 and r.json()["detail"] == UPSTREAM
+
+
+@pytest.mark.parametrize("reply", [
+    {"role": "assistant", "content": ["x"]},
+    {"role": "assistant", "content": None, "tool_calls": "debts"},
+    {"role": "assistant", "content": None, "tool_calls": ["debts"]},
+    {"role": "assistant", "content": None, "tool_calls": [{"id": "1", "function": "debts"}]},
+])
+def test_chat_malformed_reply_is_502(db, reply):
+    async def fake(messages, tools):
+        return reply
+
+    r = client(db, fake).post("/api/chat", json={"messages": [MSG]})
+    assert r.status_code == 502 and r.json()["detail"] == UPSTREAM
+
+
+def test_run_arguments_as_dict(db):
+    n = []
+
+    async def complete(messages, tools):
+        n.append(1)
+        if len(n) == 1:
+            return tool_call("debts", {"x": 1})
+        return {"role": "assistant", "content": "ok"}
+
+    assert asyncio.run(chat.run(db, 1, [MSG], complete, TODAY)) == "ok"

@@ -16,6 +16,7 @@ MAX_ROUNDS = 5
 FALLBACK = "Na tohle teď nedokážu odpovědět."
 URL = "https://openrouter.ai/api/v1/chat/completions"
 TIMEOUT = 30
+DEADLINE = 60  # total seconds for one chat request, however many rounds it takes
 WEEKDAYS = ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "neděle"]
 
 SYSTEM_PROMPT = """\
@@ -44,15 +45,28 @@ async def run(db_path, person_id, messages, complete, today=None):
     convo = [{"role": "system", "content": system_prompt(person_id, today)}, *messages]
     for _ in range(MAX_ROUNDS):
         reply = await complete(convo, chat_tools.TOOLS)
+        if not isinstance(reply, dict):
+            raise UpstreamError("Unexpected reply shape")
         calls = reply.get("tool_calls")
         if not calls:
-            return reply.get("content") or FALLBACK
+            content = reply.get("content")
+            if content is not None and not isinstance(content, str):
+                raise UpstreamError("Unexpected content shape")
+            return content or FALLBACK
+        if not isinstance(calls, list) or not all(isinstance(c, dict) for c in calls):
+            raise UpstreamError("Unexpected tool_calls shape")
         convo.append(reply)
         for c in calls:
-            fn = c.get("function") or {}
-            try:
-                args = json.loads(fn.get("arguments") or "{}")
-            except ValueError:
+            fn = c.get("function")
+            if not isinstance(fn, dict):
+                raise UpstreamError("Unexpected tool call shape")
+            args = fn.get("arguments") or "{}"
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except ValueError:
+                    args = None
+            if not isinstance(args, dict):
                 result = {"error": "Neplatné argumenty nástroje"}
             else:
                 result = await asyncio.to_thread(
