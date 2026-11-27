@@ -2,7 +2,7 @@ import pytest
 
 from server import db as server_db
 from server.db import (
-    PaymentError, card_payment, day_change, get_balance, history, init_db, reset_db, send_payment,
+    PaymentError, add_income, card_payment, day_change, get_balance, history, init_db, reset_db, send_payment,
 )
 
 
@@ -228,3 +228,16 @@ def test_reset_clears_card_payments(db):
     reset_db(db)
     assert history(db, 1) == []
     assert balances(db) == [10000] * 4
+
+
+def test_income_raises_balance_and_shows_in_history(db):
+    i = add_income(db, 1, 42000, "Výplata")
+    assert get_balance(db, 1) == 52000
+    assert history(db, 1)[0] == {"kind": "income", **i}
+    assert day_change(db, 1) == 42000
+
+
+def test_reset_clears_income(db):
+    add_income(db, 1, 100, "Výplata")
+    reset_db(db)
+    assert history(db, 1) == [] and get_balance(db, 1) == 10000

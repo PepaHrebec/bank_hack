@@ -33,6 +33,7 @@
     request: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     qr: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></g><g fill="currentColor"><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/><rect x="18" y="14" width="3" height="2"/><rect x="14" y="19" width="2" height="2"/></g></svg>',
     card: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    arrowin: '<svg viewBox="0 0 24 24"><path d="M12 4v13M6 11.5l6 6 6-6M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
 
@@ -334,6 +335,14 @@
         const info = el("div", "tx-info");
         info.append(el("div", "tx-name", p.note ? `Karta · ${p.note}` : "Platba kartou"), el("div", "tx-meta", stamp(p.created_at)));
         row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
+        rows.push(row);
+        continue;
+      }
+      if (p.kind === "income") {
+        const row = el("div", "tx");
+        const info = el("div", "tx-info");
+        info.append(el("div", "tx-name", p.note || "Příchozí platba"), el("div", "tx-meta", stamp(p.created_at)));
+        row.append(icon("arrowin", "avatar card-avatar"), info, el("div", "tx-amount in", `+${czk(p.amount)}`));
         rows.push(row);
         continue;
       }

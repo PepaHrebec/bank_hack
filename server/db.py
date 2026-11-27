@@ -43,6 +43,12 @@ def init_db(path):
             " id INTEGER PRIMARY KEY AUTOINCREMENT, person INTEGER NOT NULL,"
             " amount INTEGER NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL)"
         )
+        # Income (e.g. salary) enters the account from outside the app, so it has no sender.
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS income ("
+            " id INTEGER PRIMARY KEY AUTOINCREMENT, person INTEGER NOT NULL,"
+            " amount INTEGER NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL)"
+        )
         # A request asks `payer` to send `amount` to `requester`. Requests created together
         # by Group Settle share a request_groups row.
         conn.execute(
@@ -108,6 +114,7 @@ def reset_db(path):
         conn.execute("DELETE FROM settle_groups")
         conn.execute("DELETE FROM payments")
         conn.execute("DELETE FROM card_payments")
+        conn.execute("DELETE FROM income")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
 
@@ -203,15 +210,33 @@ def card_payment(path, person, amount, note=""):
     return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
 
 
+def add_income(path, person, amount, note=""):
+    """Credit `person` with money from outside the app, e.g. a salary."""
+    _check_amount(amount)
+    if person not in PEOPLE:
+        raise PaymentError("Neznámá osoba")
+    note = (note or "").strip()
+    with _transaction(path) as conn:
+        conn.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (amount, person))
+        created_at = _now()
+        cur = conn.execute(
+            "INSERT INTO income (person, amount, note, created_at) VALUES (?, ?, ?, ?)",
+            (person, amount, note, created_at),
+        )
+    return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
+
+
 def history(path, person_id):
-    """Transfers and card payments of one person, newest first."""
+    """Transfers, card payments and income of one person, newest first."""
     with _connect(path) as conn:
         transfers = conn.execute(
             "SELECT * FROM payments WHERE sender = ? OR recipient = ?", (person_id, person_id)
         ).fetchall()
         cards = conn.execute("SELECT * FROM card_payments WHERE person = ?", (person_id,)).fetchall()
+        income = conn.execute("SELECT * FROM income WHERE person = ?", (person_id,)).fetchall()
     items = [{"kind": "transfer", **dict(r)} for r in transfers]
     items += [{"kind": "card", **dict(r)} for r in cards]
+    items += [{"kind": "income", **dict(r)} for r in income]
     items.sort(key=lambda i: (i["created_at"], i["id"]), reverse=True)
     return items
 
@@ -223,7 +248,7 @@ def day_change(path, person_id, day=None):
     for item in history(path, person_id):
         if item["created_at"][:10] != day:
             continue
-        incoming = item["kind"] == "transfer" and item["recipient"] == person_id
+        incoming = item["kind"] == "income" or (item["kind"] == "transfer" and item["recipient"] == person_id)
         change += item["amount"] if incoming else -item["amount"]
     return change
 
