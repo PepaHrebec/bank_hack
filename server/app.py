@@ -69,6 +69,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "to_pay": db.open_requests_for(db_path, person_id),
             "requested": db.requests_by(db_path, person_id),
             "groups": db.groups_for(db_path, person_id),
+            "recording": db.recording(db_path, person_id),
         }
 
     @app.post("/api/payments")
@@ -104,8 +105,30 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
         text = f"Platba kartou {payment['amount']} Kč" + (f" · {payment['note']}" if payment["note"] else "")
-        await orch.send(person_id, {"type": "card_payment", "payment": payment, "text": text})
+        event = {"type": "card_payment", "payment": payment, "text": text}
+        if await run_in_threadpool(db.recording, db_path, person_id):
+            event["text"] += " · přidáno do skupinové platby"
+            event["recording"] = True
+        await orch.send(person_id, event)
         return payment
+
+    @app.post("/api/recording/start")
+    async def recording_start():
+        try:
+            started = await run_in_threadpool(db.start_recording, db_path, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await orch.send(person_id, {"type": "recording_changed"})
+        return started
+
+    @app.post("/api/recording/stop")
+    async def recording_stop():
+        try:
+            result = await run_in_threadpool(db.stop_recording, db_path, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await orch.send(person_id, {"type": "recording_changed"})
+        return result
 
     me = db.PEOPLE[person_id]
 
@@ -206,7 +229,8 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             if expense is not None and not isinstance(expense, dict):
                 raise BadInput("Výdaj musí mít částku a popis")
             group = await run_in_threadpool(
-                db.create_group, db_path, person_id, body.get("name"), body.get("members"), expense
+                db.create_group, db_path, person_id, body.get("name"), body.get("members"), expense,
+                body.get("sources"),
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
@@ -225,7 +249,12 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
     async def add_expense(group_id: int, request: Request):
         try:
             body = await _json_object(request)
-            if "source" in body:
+            if "sources" in body:
+                # Several of my payments at once (e.g. a finished Group Payment): [{"kind", "id"}, ...]
+                expense = await run_in_threadpool(
+                    db.add_expenses_from_payments, db_path, group_id, person_id, body["sources"]
+                )
+            elif "source" in body:
                 # One of my payments picked from history: {"kind": "card" | "transfer", "id": int}
                 source = body["source"]
                 if not isinstance(source, dict) or type(source.get("id")) is not int:

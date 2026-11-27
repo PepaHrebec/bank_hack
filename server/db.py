@@ -95,6 +95,10 @@ def init_db(path):
             # An expense picked from history points at the payment it came from ("card" | "transfer").
             conn.execute("ALTER TABLE expenses ADD COLUMN source_kind TEXT")
             conn.execute("ALTER TABLE expenses ADD COLUMN source_id INTEGER")
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS recordings ("
+            " person INTEGER PRIMARY KEY, started_at TEXT NOT NULL)"
+        )
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
@@ -115,6 +119,7 @@ def reset_db(path):
         conn.execute("DELETE FROM payments")
         conn.execute("DELETE FROM card_payments")
         conn.execute("DELETE FROM income")
+        conn.execute("DELETE FROM recordings")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
 
@@ -208,6 +213,47 @@ def card_payment(path, person, amount, note=""):
             (person, amount, note, created_at),
         )
     return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
+
+
+def _recording(conn, person):
+    row = conn.execute("SELECT started_at FROM recordings WHERE person = ?", (person,)).fetchone()
+    if row is None:
+        return None
+    payments = [
+        dict(r) for r in conn.execute(
+            "SELECT * FROM card_payments WHERE person = ? AND created_at >= ? ORDER BY created_at, id",
+            (person, row["started_at"]),
+        )
+    ]
+    return {"started_at": row["started_at"], "payments": payments, "total": sum(p["amount"] for p in payments)}
+
+
+def start_recording(path, person):
+    """Start collecting `person`'s card payments (for a Group Payment)."""
+    if person not in PEOPLE:
+        raise PaymentError("Neznámá osoba")
+    with _transaction(path) as conn:
+        if conn.execute("SELECT 1 FROM recordings WHERE person = ?", (person,)).fetchone():
+            raise PaymentError("Skupinová platba už běží")
+        started_at = _now()
+        conn.execute("INSERT INTO recordings (person, started_at) VALUES (?, ?)", (person, started_at))
+    return {"started_at": started_at}
+
+
+def recording(path, person):
+    """The running recording with the card payments made since it started, or None."""
+    with _connect(path) as conn:
+        return _recording(conn, person)
+
+
+def stop_recording(path, person):
+    """End the recording and return what it collected."""
+    with _transaction(path) as conn:
+        result = _recording(conn, person)
+        if result is None:
+            raise PaymentError("Žádná skupinová platba neběží")
+        conn.execute("DELETE FROM recordings WHERE person = ?", (person,))
+    return result
 
 
 def add_income(path, person, amount, note=""):
@@ -435,10 +481,11 @@ def _group_dict(conn, g):
     }
 
 
-def create_group(path, creator, name, members, expense=None):
+def create_group(path, creator, name, members, expense=None, sources=None):
     """A new open group of `creator` plus `members` (ids of other people).
 
-    `expense` ({"amount", "description"}) is a first expense paid by `creator`."""
+    `expense` ({"amount", "description"}) is a first expense paid by `creator`.
+    `sources` ([{"kind", "id"}, ...]) are `creator`'s own payments added as expenses."""
     name = _text(name, GROUP_NAME_MAX, "Název skupiny")
     if not isinstance(members, list) or not members:
         raise PaymentError("Přidej alespoň jednu osobu")
@@ -452,6 +499,7 @@ def create_group(path, creator, name, members, expense=None):
             raise PaymentError("Výdaj musí mít částku a popis")
         _check_amount(expense.get("amount"))
         description = _text(expense.get("description"), EXPENSE_DESC_MAX, "Za co to bylo")
+    sources = _check_sources(sources)
     with _transaction(path) as conn:
         group_id = conn.execute(
             "INSERT INTO settle_groups (name, creator, created_at) VALUES (?, ?, ?)",
@@ -464,6 +512,8 @@ def create_group(path, creator, name, members, expense=None):
                 "INSERT INTO expenses (group_id, payer, amount, description, created_at) VALUES (?, ?, ?, ?, ?)",
                 (group_id, creator, expense["amount"], description, _now()),
             )
+        for source in sources:
+            _expense_from_payment(conn, group_id, creator, source["kind"], source["id"])
         g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone()
         return _group_dict(conn, g)
 
@@ -496,31 +546,63 @@ def add_expense(path, group_id, payer, amount, description):
         return _insert_expense(conn, group_id, payer, amount, description)
 
 
+def _check_sources(sources):
+    if sources is None:
+        return []
+    if not isinstance(sources, list) or not all(
+        isinstance(x, dict) and type(x.get("id")) is int for x in sources
+    ):
+        raise PaymentError("Vyber platbu ze své historie")
+    return sources
+
+
+def _expense_from_payment(conn, group_id, payer, kind, payment_id):
+    """Insert `payer`'s own payment as an expense of the group; the caller owns the transaction."""
+    if kind == "card":
+        row = conn.execute(
+            "SELECT amount, note FROM card_payments WHERE id = ? AND person = ?", (payment_id, payer)
+        ).fetchone()
+        default = "Platba kartou"
+    elif kind == "transfer":
+        row = conn.execute(
+            "SELECT amount, note, recipient FROM payments WHERE id = ? AND sender = ?", (payment_id, payer)
+        ).fetchone()
+        default = row and f"Platba pro {PEOPLE[row['recipient']]}"
+    else:
+        row = None
+    if row is None:
+        raise PaymentError("Platba nebyla nalezena")
+    if conn.execute(
+        "SELECT 1 FROM expenses WHERE group_id = ? AND source_kind = ? AND source_id = ?",
+        (group_id, kind, payment_id),
+    ).fetchone():
+        raise PaymentError("Tato platba už ve skupině je")
+    description = (row["note"] or default)[:EXPENSE_DESC_MAX]
+    return _insert_expense(conn, group_id, payer, row["amount"], description, kind, payment_id)
+
+
 def add_expense_from_payment(path, group_id, payer, kind, payment_id):
     """Add one of `payer`'s own outgoing payments (a card payment or a transfer they sent)."""
     with _transaction(path) as conn:
         _require_open(_group_row(conn, group_id, payer))
-        if kind == "card":
-            row = conn.execute(
-                "SELECT amount, note FROM card_payments WHERE id = ? AND person = ?", (payment_id, payer)
-            ).fetchone()
-            default = "Platba kartou"
-        elif kind == "transfer":
-            row = conn.execute(
-                "SELECT amount, note, recipient FROM payments WHERE id = ? AND sender = ?", (payment_id, payer)
-            ).fetchone()
-            default = row and f"Platba pro {PEOPLE[row['recipient']]}"
-        else:
-            row = None
-        if row is None:
-            raise PaymentError("Platba nebyla nalezena")
-        if conn.execute(
-            "SELECT 1 FROM expenses WHERE group_id = ? AND source_kind = ? AND source_id = ?",
-            (group_id, kind, payment_id),
-        ).fetchone():
-            raise PaymentError("Tato platba už ve skupině je")
-        description = (row["note"] or default)[:EXPENSE_DESC_MAX]
-        return _insert_expense(conn, group_id, payer, row["amount"], description, kind, payment_id)
+        return _expense_from_payment(conn, group_id, payer, kind, payment_id)
+
+
+def add_expenses_from_payments(path, group_id, payer, sources):
+    """Add several of `payer`'s payments at once. Ones already in the group are skipped, any other bad one aborts all."""
+    sources = _check_sources(sources)
+    added, skipped = [], 0
+    with _transaction(path) as conn:
+        _require_open(_group_row(conn, group_id, payer))
+        for source in sources:
+            if conn.execute(
+                "SELECT 1 FROM expenses WHERE group_id = ? AND source_kind = ? AND source_id = ?",
+                (group_id, source.get("kind"), source["id"]),
+            ).fetchone():
+                skipped += 1
+            else:
+                added.append(_expense_from_payment(conn, group_id, payer, source.get("kind"), source["id"]))
+    return {"added": added, "skipped": skipped}
 
 
 def delete_expense(path, group_id, expense_id, person):
