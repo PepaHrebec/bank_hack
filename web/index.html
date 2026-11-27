@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/phone.css">
   <link rel="stylesheet" href="/static/app.css">
   <link rel="stylesheet" href="/static/fillers.css">
+  <link rel="stylesheet" href="/static/whatsapp.css">
 </head>
 <body>
   <div class="phone">
@@ -27,7 +28,7 @@
         </div>
         <div class="dock">
           <button class="icon" type="button"><img src="/static/icons/safari.png" alt="Safari"></button>
-          <button class="icon" type="button"><img src="/static/icons/whatsapp.png" alt="WhatsApp"></button>
+          <button class="icon" type="button" data-opens="whatsapp"><img src="/static/icons/whatsapp.png" alt="WhatsApp"></button>
           <button class="icon" type="button" data-opens="spotify"><img src="/static/icons/spotify.png" alt="Spotify"></button>
           <button class="icon" type="button"><img src="/static/icons/instagram.png" alt="Instagram"></button>
         </div>
@@ -37,6 +38,8 @@
       <section id="tinder" class="app-window filler-app"></section>
       <section id="grindr" class="app-window filler-app" data-statusbar="light"></section>
       <section id="spotify" class="app-window filler-app" data-statusbar="light"></section>
+
+      <section id="whatsapp" class="app-window" data-statusbar="light"></section>
 
       <div class="banner-layer" id="banners"></div>
 
@@ -71,6 +74,7 @@
 
   <script src="/static/phone.js"></script>
   <script src="/static/fillers.js"></script>
+  <script src="/static/whatsapp.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
