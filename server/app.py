@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -352,7 +353,9 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             reply = await asyncio.wait_for(
                 chat.run(db_path, person_id, messages, complete), chat.DEADLINE
             )
-        except (chat.UpstreamError, asyncio.TimeoutError):
+        except (chat.UpstreamError, asyncio.TimeoutError) as e:
+            # The client only sees a generic message; the cause must be findable in the server log.
+            logging.getLogger(__name__).warning("Chat upstream failure: %s", str(e) or type(e).__name__)
             return JSONResponse({"detail": "Geoff teď neodpovídá, zkus to prosím znovu."}, status_code=502)
         return {"reply": reply}
 

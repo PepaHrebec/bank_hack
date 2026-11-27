@@ -2,6 +2,7 @@ import asyncio
 import json
 from datetime import date
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -75,6 +76,54 @@ def test_with_person_name_matching(db):
     assert all(n in err for n in ("Jirka", "Pepa", "Petr"))
     assert "error" in chat_tools.call(db, 1, "with_person", {"person": "Štěpán Pressl"}, TODAY)
     assert "error" in chat_tools.call(db, 1, "with_person", {"person": "Pepa", "days": "x"}, TODAY)
+
+
+def test_with_person_days_window_is_inclusive_of_today(db, monkeypatch):
+    # days=2 on 2026-01-02 covers Jan 1 and Jan 2 (matching last_30_days = 30 calendar days).
+    at(monkeypatch, "2025-12-31T10:00:00")
+    send_payment(db, 1, 3, 5, "old")
+    at(monkeypatch, "2026-01-01T10:00:00")
+    send_payment(db, 1, 3, 7, "edge")
+    r = chat_tools.call(db, 1, "with_person", {"person": "Pepa", "days": 2}, TODAY)
+    assert r["sent"] == 7
+
+
+def _patched_client(monkeypatch, handler):
+    real = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+
+
+def test_openrouter_from_env_request_and_reply(monkeypatch):
+    seen = {}
+
+    def handler(req):
+        seen["auth"], seen["body"] = req.headers["authorization"], json.loads(req.content)
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "Ahoj"}}]})
+
+    _patched_client(monkeypatch, handler)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("OPENROUTER_MODEL", "m")
+    complete = chat.openrouter_from_env()
+    assert asyncio.run(complete([{"role": "user", "content": "x"}], []))["content"] == "Ahoj"
+    assert seen["auth"] == "Bearer k"
+    assert seen["body"]["model"] == "m" and {"messages", "tools"} <= set(seen["body"])
+
+
+def test_openrouter_http_error_carries_status_and_body(monkeypatch):
+    _patched_client(monkeypatch, lambda req: httpx.Response(
+        404, json={"error": {"message": "No endpoints found that support tool use"}}))
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("OPENROUTER_MODEL", "m")
+    complete = chat.openrouter_from_env()
+    with pytest.raises(chat.UpstreamError) as e:
+        asyncio.run(complete([], []))
+    assert "404" in str(e.value) and "support tool use" in str(e.value)
+
+
+def test_openrouter_from_env_unconfigured(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_MODEL", "m")
+    assert chat.openrouter_from_env() is None
 
 
 def test_my_groups(db):
@@ -155,12 +204,13 @@ def test_chat_not_configured(db, monkeypatch):
     assert r.status_code == 503 and r.json()["detail"] == NOT_CONFIGURED
 
 
-def test_chat_upstream_error(db):
+def test_chat_upstream_error(db, caplog):
     async def fake(messages, tools):
         raise chat.UpstreamError("boom")
 
     r = client(db, fake).post("/api/chat", json={"messages": [MSG]})
     assert r.status_code == 502 and r.json()["detail"] == UPSTREAM
+    assert "boom" in caplog.text
 
 
 def test_chat_deadline(db, monkeypatch):

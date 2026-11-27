@@ -269,7 +269,7 @@ button {
 .chat-chips {
   display: flex;
   gap: 0.4em;
-  overflow-x: auto;
+  flex-wrap: wrap;
   flex: none;
 }
 

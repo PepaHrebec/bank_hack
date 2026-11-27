@@ -158,7 +158,7 @@ def with_person(db_path, person_id, person, today, days=30):
     other, error = _find_friend(person_id, person)
     if error:
         return error
-    since = (today - timedelta(days=days)).isoformat()
+    since = (today - timedelta(days=days - 1)).isoformat()
     transfers = [
         i for i in db.history(db_path, person_id)
         if i["kind"] == "transfer" and other in (i["sender"], i["recipient"]) and i["created_at"][:10] >= since

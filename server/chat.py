@@ -93,8 +93,11 @@ def openrouter_from_env():
                 )
             r.raise_for_status()
             message = r.json()["choices"][0]["message"]
+        except httpx.HTTPStatusError as e:
+            # OpenRouter explains misconfiguration (bad model, no tool support) in the body.
+            raise UpstreamError(f"HTTP {e.response.status_code}: {e.response.text[:300]}") from e
         except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as e:
-            raise UpstreamError(str(e)) from e
+            raise UpstreamError(str(e) or type(e).__name__) from e
         if not isinstance(message, dict):
             raise UpstreamError("Unexpected response shape")
         return message

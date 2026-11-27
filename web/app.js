@@ -48,6 +48,12 @@
   const stamp = (iso) => `${+iso.slice(8, 10)}.${+iso.slice(5, 7)}.${iso.slice(0, 4)} ${iso.slice(11, 16)}`;
   const nameOf = (id) => state.people.find((p) => p.id === id).name;
 
+  // fetch() rejects with a TypeError on a network failure; its message is English and browser-specific.
+  function errText(err, retry = true) {
+    if (err instanceof TypeError) return retry ? "Banku se nepodařilo zastihnout. Zkus to znovu." : "Banku se nepodařilo zastihnout.";
+    return err.message;
+  }
+
   function el(tag, cls, text) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -389,7 +395,11 @@
     }
   }
 
+  // Guards a double tap: the second Stop would toast "no recording" over the popup.
+  let toggling = false;
   async function toggleRecording() {
+    if (toggling) return;
+    toggling = true;
     try {
       if (!state.recording) {
         await postJson("/api/recording/start");
@@ -400,8 +410,10 @@
         showStopPopup(result);
       }
     } catch (err) {
-      Phone.notify({ title: "Geoff", body: err.message, color: "#d93636" });
+      Phone.notify({ title: "Geoff", body: errText(err, false), color: "#d93636" });
       load();
+    } finally {
+      toggling = false;
     }
   }
 
@@ -447,7 +459,7 @@
               Phone.openApp("app");
               openGroup(g.id);
             } catch (e) {
-              err.textContent = e.message;
+              err.textContent = errText(e);
               b.disabled = false;
             }
           });
@@ -679,7 +691,7 @@
       openGroup(g.id);
     } catch (err) {
       ui.ngMsg.className = "form-msg error";
-      ui.ngMsg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+      ui.ngMsg.textContent = errText(err);
     } finally {
       ui.ngBtn.disabled = false;
     }
@@ -800,7 +812,7 @@
       await postJson(`/api/groups/${openGroupId}/expenses`, { source: { kind: h.kind, id: h.id } });
       await load();
     } catch (err) {
-      msg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+      msg.textContent = errText(err);
       btn.disabled = false;
     }
   }
@@ -816,7 +828,7 @@
       await load();
     } catch (err) {
       msg.className = "form-msg error";
-      msg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+      msg.textContent = errText(err);
       btn.disabled = false;
     }
   }
@@ -833,7 +845,7 @@
       await load();
     } catch (err) {
       ui.exMsg.className = "form-msg error";
-      ui.exMsg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+      ui.exMsg.textContent = errText(err);
     } finally {
       ui.exBtn.disabled = false;
     }
@@ -856,7 +868,7 @@
       await load();
     } catch (err) {
       msg.className = "form-msg error";
-      msg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+      msg.textContent = errText(err);
       btn.disabled = false;
     }
   }
@@ -865,7 +877,7 @@
   function renderRequested() {
     const mine = state.requested || [];
     const blocks = [];
-    if (mine.length === 0) blocks.push(el("div", "empty topay-empty", "Zatím jsi nic nevyžádal(a)"));
+    if (mine.length === 0) blocks.push(el("div", "empty topay-empty", "Zatím žádné tvoje žádosti"));
     const individual = mine.filter((r) => !r.group);
     if (individual.length) {
       blocks.push(el("h3", "topay-section", "Jednotlivé"));
@@ -1050,7 +1062,7 @@
       demoMsg.textContent = "Zaplaceno";
     } catch (err) {
       demoMsg.className = "demo-msg error";
-      demoMsg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout." : err.message;
+      demoMsg.textContent = errText(err, false);
     } finally {
       btn.disabled = false;
     }
