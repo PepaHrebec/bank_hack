@@ -1,5 +1,0 @@
-- skupinový manager - kolik kdo co utratil během nějaké akce, výletu, apod.
-- srovnání s referenční skupinou (př. kolik utrácíš proti průměrného člověku z tvého segmentu)
-- možnost nastavení fix. procenta z každé platby směřující př. na spořák
-- podsložky na účtu - dovolená, novej noťas, daně, apod.
-- Jaká část interakce s bankou by měla odpadnout...
