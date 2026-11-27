@@ -9,6 +9,7 @@ import uvicorn
 from server.app import create_app
 from server.db import PEOPLE, init_db, reset_db
 from server.orchestrator import Orchestrator
+from server.seed import seed_db
 
 BASE_PORT = 3000
 
@@ -59,11 +60,17 @@ def main():
     parser.add_argument("--base-port", type=int, default=BASE_PORT,
                         help="person N is served on base-port + N (default: 3000)")
     parser.add_argument("--reset", action="store_true", help="restore starting balances and exit")
+    parser.add_argument("--seed", action="store_true",
+                        help="fill the database with Czech mock data and exit")
     args = parser.parse_args()
 
     if args.reset:
         reset_db(args.db)
         print("Database reset: every person has 10 000 CZK, no payments.")
+        return
+    if args.seed:
+        for person_id, count in seed_db(args.db).items():
+            print(f"{PEOPLE[person_id]}: {count} plateb")
         return
     init_db(args.db)
     shown_host = display_host(lan_ip() if args.host == "0.0.0.0" else args.host)
