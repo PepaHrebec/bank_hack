@@ -79,14 +79,14 @@ def test_start_twice_rejected(db):
 def test_create_group_with_sources(db):
     a = card_payment(db, 1, 100, "Pivo")
     b = card_payment(db, 1, 250, "")
-    g = create_group(db, 1, "Hospoda", [2], sources=[{"kind": "card", "id": a["id"]}, {"kind": "card", "id": b["id"]}])
+    g = create_group(db, 1, "Hospoda", [2], sources=[{"kind": "card", "id": a["id"]}, {"kind": "card", "id": b["id"]}], accepted=True)
     exp = [e for gr in server_db.groups_for(db, 1) if gr["id"] == g["id"] for e in gr["expenses"]]
     assert sorted((e["amount"], e["description"]) for e in exp) == [(100, "Pivo"), (250, "Platba kartou")]
     assert all(e["payer"] == 1 and e["source_kind"] == "card" for e in exp)
 
 
 def test_batch_skips_payments_already_in_group(db):
-    g = create_group(db, 1, "G", [2])
+    g = create_group(db, 1, "G", [2], accepted=True)
     a = card_payment(db, 1, 100, "A")
     b = card_payment(db, 1, 200, "B")
     add_expense_from_payment(db, g["id"], 1, "card", a["id"])
@@ -97,7 +97,7 @@ def test_batch_skips_payments_already_in_group(db):
 
 
 def test_batch_rejects_others_payment(db):
-    g = create_group(db, 1, "G", [2])
+    g = create_group(db, 1, "G", [2], accepted=True)
     mine = card_payment(db, 1, 100, "mine")
     theirs = card_payment(db, 2, 50, "theirs")
     with pytest.raises(PaymentError, match="Platba nebyla nalezena"):
@@ -137,6 +137,7 @@ def test_http_groups_with_sources(clients):
     c = clients[1].post("/api/card-payments", json={"amount": 70, "note": "A"}).json()
     d = clients[1].post("/api/card-payments", json={"amount": 80, "note": "B"}).json()
     g = clients[1].post("/api/groups", json={"name": "G", "members": [2], "sources": [{"kind": "card", "id": c["id"]}]}).json()
+    clients[2].post(f"/api/groups/{g['id']}/accept")
     r = clients[1].post(f"/api/groups/{g['id']}/expenses",
                         json={"sources": [{"kind": "card", "id": c["id"]}, {"kind": "card", "id": d["id"]}]})
     assert r.status_code == 200

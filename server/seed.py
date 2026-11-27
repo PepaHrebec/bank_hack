@@ -196,7 +196,8 @@ def seed_db(path, now=None, rng_seed=7):
     for requester, payer, amount, note in REQUESTS:
         db.create_request(path, requester, payer, amount, note)
     (creator, amount, description), *others = GROUP_EXPENSES
-    group = db.create_group(path, creator, GROUP_NAME, [1, 4], {"amount": amount, "description": description})
+    group = db.create_group(path, creator, GROUP_NAME, [1, 4], {"amount": amount, "description": description},
+                            accepted=True)
     for payer, amount, description in others:
         db.add_expense(path, group["id"], payer, amount, description)
 

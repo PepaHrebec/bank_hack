@@ -90,6 +90,10 @@ def init_db(path):
         if "settle_group_id" not in columns:
             # Requests created by approving a settle group point back to it.
             conn.execute("ALTER TABLE request_groups ADD COLUMN settle_group_id INTEGER")
+        columns = [c["name"] for c in conn.execute("PRAGMA table_info(settle_members)")]
+        if "status" not in columns:
+            # 'invited' until the person accepts; only 'accepted' people are in the group.
+            conn.execute("ALTER TABLE settle_members ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'")
         columns = [c["name"] for c in conn.execute("PRAGMA table_info(expenses)")]
         if "source_kind" not in columns:
             # An expense picked from history points at the payment it came from ("card" | "transfer").
@@ -457,7 +461,8 @@ def _text(value, max_len, what):
 def _group_row(conn, group_id, person):
     g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone()
     member = g and conn.execute(
-        "SELECT 1 FROM settle_members WHERE group_id = ? AND person = ?", (group_id, person)
+        "SELECT 1 FROM settle_members WHERE group_id = ? AND person = ? AND status = 'accepted'",
+        (group_id, person),
     ).fetchone()
     if not member:
         raise PaymentError("Skupina nebyla nalezena")
@@ -470,8 +475,9 @@ def _require_open(g):
 
 
 def _group_dict(conn, g):
-    members = [r["person"] for r in conn.execute(
-        "SELECT person FROM settle_members WHERE group_id = ? ORDER BY person", (g["id"],))]
+    members, invited = ([r["person"] for r in conn.execute(
+        "SELECT person FROM settle_members WHERE group_id = ? AND status = ? ORDER BY person",
+        (g["id"], status))] for status in ("accepted", "invited"))
     expenses = [dict(r) for r in conn.execute(
         "SELECT * FROM expenses WHERE group_id = ? ORDER BY id DESC", (g["id"],))]
     requests_sent = conn.execute(
@@ -482,14 +488,17 @@ def _group_dict(conn, g):
     return {
         **dict(g),
         "members": members,
+        "invited": invited,
         "expenses": expenses,
         "total": sum(e["amount"] for e in expenses),
         "requests_sent": requests_sent,
     }
 
 
-def create_group(path, creator, name, members, expense=None, sources=None):
+def create_group(path, creator, name, members, expense=None, sources=None, accepted=False):
     """A new open group of `creator` plus `members` (ids of other people).
+
+    Members are only invited until they accept, unless `accepted` is set.
 
     `expense` ({"amount", "description"}) is a first expense paid by `creator`.
     `sources` ([{"kind", "id"}, ...]) are `creator`'s own payments added as expenses."""
@@ -513,7 +522,11 @@ def create_group(path, creator, name, members, expense=None, sources=None):
             (name, creator, _now()),
         ).lastrowid
         for person in {creator, *members}:
-            conn.execute("INSERT INTO settle_members (group_id, person) VALUES (?, ?)", (group_id, person))
+            status = "accepted" if accepted or person == creator else "invited"
+            conn.execute(
+                "INSERT INTO settle_members (group_id, person, status) VALUES (?, ?, ?)",
+                (group_id, person, status),
+            )
         if expense is not None:
             conn.execute(
                 "INSERT INTO expenses (group_id, payer, amount, description, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -646,11 +659,14 @@ def approve_group(path, group_id, person, split=None):
                     raise PaymentError("Vyrovnání vrátilo platbu mimo skupinu")
                 _check_amount(amount)
                 requests.append(_insert_request(conn, payee, payer, amount, "", request_group))
+        cancelled_invites = info["invited"]
+        conn.execute("DELETE FROM settle_members WHERE group_id = ? AND status = 'invited'", (group_id,))
         conn.execute(
             "UPDATE settle_groups SET status = 'approved', approved_at = ? WHERE id = ?", (_now(), group_id)
         )
         info = _group_dict(conn, conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone())
     info["requests"] = requests
+    info["cancelled_invites"] = cancelled_invites
     return info
 
 
@@ -683,14 +699,54 @@ def delete_group(path, group_id, person):
 
 
 def groups_for(path, person):
-    """Every group `person` is in, newest first."""
+    """Every group `person` is in (has accepted), newest first."""
+    return _groups_with_status(path, person, "accepted")
+
+
+def group_invites_for(path, person):
+    """Open groups `person` has been invited to but not yet joined, newest first."""
+    return _groups_with_status(path, person, "invited")
+
+
+def _groups_with_status(path, person, status):
     with _connect(path) as conn:
         rows = conn.execute(
             "SELECT g.* FROM settle_groups g JOIN settle_members m ON m.group_id = g.id"
-            " WHERE m.person = ? ORDER BY g.id DESC",
-            (person,),
+            " WHERE m.person = ? AND m.status = ? AND (? = 'accepted' OR g.status = 'open')"
+            " ORDER BY g.id DESC",
+            (person, status, status),
         ).fetchall()
         return [_group_dict(conn, g) for g in rows]
+
+
+def _invite(conn, group_id, person):
+    g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone()
+    invited = g and g["status"] == "open" and conn.execute(
+        "SELECT 1 FROM settle_members WHERE group_id = ? AND person = ? AND status = 'invited'",
+        (group_id, person),
+    ).fetchone()
+    if not invited:
+        raise PaymentError("Pozvánka nebyla nalezena")
+    return g
+
+
+def accept_group_invite(path, group_id, person):
+    """`person` joins the group they were invited to."""
+    with _transaction(path) as conn:
+        g = _invite(conn, group_id, person)
+        conn.execute(
+            "UPDATE settle_members SET status = 'accepted' WHERE group_id = ? AND person = ?",
+            (group_id, person),
+        )
+        return _group_dict(conn, g)
+
+
+def decline_group_invite(path, group_id, person):
+    """`person` turns the invitation down; it disappears."""
+    with _transaction(path) as conn:
+        g = _invite(conn, group_id, person)
+        conn.execute("DELETE FROM settle_members WHERE group_id = ? AND person = ?", (group_id, person))
+        return {"id": group_id, "name": g["name"], "creator": g["creator"]}
 
 
 # ---- WhatsApp mock-up: one-to-one messages ----

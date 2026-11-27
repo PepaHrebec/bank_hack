@@ -145,7 +145,7 @@ def test_openrouter_from_env_unconfigured(monkeypatch):
 
 
 def test_my_groups(db):
-    g = create_group(db, 1, "Chata", [2, 3], expense={"amount": 300, "description": "nájem"})
+    g = create_group(db, 1, "Chata", [2, 3], expense={"amount": 300, "description": "nájem"}, accepted=True)
     approve_group(db, g["id"], 1)
     r = chat_tools.call(db, 2, "my_groups", {}, TODAY)["groups"]
     assert len(r) == 1 and r[0]["name"] == "Chata" and r[0]["status"] == "approved"

@@ -99,6 +99,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "to_pay": db.open_requests_for(db_path, person_id),
             "requested": db.requests_by(db_path, person_id),
             "groups": db.groups_for(db_path, person_id),
+            "group_invites": db.group_invites_for(db_path, person_id),
             "recording": db.recording(db_path, person_id),
             "chats": db.chats(db_path, person_id),
         }
@@ -250,6 +251,10 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         for p in group["members"]:
             await orch.send(p, {"type": "group_changed", "group_id": group["id"]})
 
+    def accepted_members(creator, group_id):
+        # The creator is always a member, so their view of the group lists everyone who joined.
+        return next(g["members"] for g in db.groups_for(db_path, creator) if g["id"] == group_id)
+
     def group_of(group_id):
         return next(g for g in db.groups_for(db_path, person_id) if g["id"] == group_id)
 
@@ -266,16 +271,34 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
-        for p in group["members"]:
-            if p != person_id:
-                await orch.send(p, {
-                    "type": "group_added",
-                    "group": group,
-                    "from": me,
-                    "text": f"{me} tě přidal(a) do skupiny {group['name']}",
-                })
+        for p in group["invited"]:
+            await orch.send(p, {
+                "type": "group_invite",
+                "group": group,
+                "from": me,
+                "text": f"{me} tě zve do skupiny {group['name']}",
+            })
         await orch.send(person_id, {"type": "group_changed", "group_id": group["id"]})
         return group
+
+    @app.post("/api/groups/{group_id}/accept")
+    async def accept_invite(group_id: int):
+        try:
+            group = await run_in_threadpool(db.accept_group_invite, db_path, group_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await group_changed(group)
+        return group
+
+    @app.post("/api/groups/{group_id}/decline")
+    async def decline_invite(group_id: int):
+        try:
+            done = await run_in_threadpool(db.decline_group_invite, db_path, group_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        for p in {*await run_in_threadpool(accepted_members, done["creator"], group_id), person_id}:
+            await orch.send(p, {"type": "group_changed", "group_id": group_id})
+        return done
 
     @app.post("/api/groups/{group_id}/expenses")
     async def add_expense(group_id: int, request: Request):
