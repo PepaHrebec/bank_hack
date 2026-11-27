@@ -48,7 +48,32 @@
     return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   }
 
-  function noteContent(n) {
+  // Buttons on a notification. `action` (one button) opens George and runs onClick there.
+  // `actions` are handled right in the notification: onClick may return a promise; its
+  // resolved text (e.g. "Paid ✓") replaces the buttons, a rejection shows its message.
+  function noteActions(n) {
+    if (n.actions) return n.actions;
+    return n.action ? [{ ...n.action, opensApp: true }] : [];
+  }
+
+  function runInline(n, a) {
+    n.pending = true;
+    n.error = null;
+    refreshNote(n);
+    Promise.resolve()
+      .then(() => a.onClick())
+      .then((result) => { n.result = result || "Done"; })
+      .catch((err) => { n.error = (err && err.message) || "Something went wrong"; })
+      .finally(() => { n.pending = false; refreshNote(n); });
+  }
+
+  // Re-render a notification wherever it is shown (pull-down list and, if still up, its banner).
+  function refreshNote(n) {
+    renderShadeList();
+    if (n.bannerEl && n.bannerEl.isConnected) n.bannerEl.replaceChildren(...noteContent(n, "now"));
+  }
+
+  function noteContent(n, timeText = n.time) {
     const icon = document.createElement("div");
     icon.className = "note-icon";
     icon.style.background = n.color;
@@ -63,30 +88,52 @@
     title.textContent = n.title;
     const time = document.createElement("span");
     time.className = "note-time";
-    time.textContent = n.time;
+    time.textContent = timeText;
     head.append(title, time);
     const body = document.createElement("div");
     body.className = "note-body";
     body.textContent = n.body;
     text.append(head, body);
-    if (n.action) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "note-action";
-      btn.textContent = n.action.label;
-      // The button is its own target: neither the banner's tap nor its drag may see it.
-      btn.addEventListener("pointerdown", (e) => e.stopPropagation());
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openApp(appEl);
-        try {
-          n.action.onClick();
-        } finally {
-          setOpen(false);
-          bannerLayer.replaceChildren();
-        }
-      });
-      text.append(btn);
+    const actions = noteActions(n);
+    if (n.result) {
+      const done = document.createElement("div");
+      done.className = "note-result";
+      done.textContent = n.result;
+      text.append(done);
+    } else if (actions.length) {
+      const row = document.createElement("div");
+      row.className = "note-actions";
+      for (const a of actions) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "note-action" + (a.secondary ? " secondary" : "");
+        btn.textContent = a.label;
+        btn.disabled = Boolean(n.pending);
+        // The button is its own target: neither the banner's tap nor its drag may see it.
+        btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (!a.opensApp) {
+            runInline(n, a);
+            return;
+          }
+          openApp(appEl);
+          try {
+            a.onClick();
+          } finally {
+            setOpen(false);
+            bannerLayer.replaceChildren();
+          }
+        });
+        row.append(btn);
+      }
+      text.append(row);
+      if (n.error) {
+        const err = document.createElement("div");
+        err.className = "note-error";
+        err.textContent = n.error;
+        text.append(err);
+      }
     }
 
     return [icon, text];
@@ -112,7 +159,8 @@
     bannerLayer.replaceChildren();
     const banner = document.createElement("div");
     banner.className = "banner";
-    banner.append(...noteContent({ ...n, time: "now" }));
+    banner.append(...noteContent(n, "now"));
+    n.bannerEl = banner;
     bannerLayer.append(banner);
 
     const hide = () => {
@@ -132,8 +180,8 @@
     setTimeout(hide, BANNER_MS);
   }
 
-  function notify({ title, body, color, action }) {
-    const n = { title, body, color: color || "#3b6cff", action, time: hhmm(new Date()) };
+  function notify({ title, body, color, action, actions }) {
+    const n = { title, body, color: color || "#3b6cff", action, actions, time: hhmm(new Date()) };
     notifications.unshift(n);
     renderShadeList();
     if (!shade.classList.contains("open")) showBanner(n);

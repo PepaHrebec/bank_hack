@@ -758,7 +758,20 @@
     } else if (event.type === "request_received" || event.type === "request_declined") {
       const sender = event.type === "request_received" ? event.request.requester : event.request.payer;
       const note = event.request.note ? `\n${event.request.note}` : "";
-      Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[sender] });
+      const id = event.request.id;
+      // A request from a friend can be answered right in the notification.
+      const answer = (action, done) => async () => {
+        await postJson(`/api/requests/${id}/${action}`);
+        await load();
+        return done;
+      };
+      Phone.notify({
+        title: event.from, body: event.text + note, color: Phone.colors[sender],
+        actions: event.type === "request_received" ? [
+          { label: "Decline", secondary: true, onClick: answer("decline", "Declined") },
+          { label: "Pay", onClick: answer("pay", `Paid ${czk(event.request.amount)} ✓`) },
+        ] : undefined,
+      });
       load();
     } else if (event.type === "card_payment") {
       const prefill = { amount: event.payment.amount, note: event.payment.note };

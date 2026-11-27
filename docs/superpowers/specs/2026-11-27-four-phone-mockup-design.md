@@ -25,6 +25,11 @@ make the frontend work.
 - Notifications: a banner slides down from the top of the receiving phone,
   stays ~4 s, slides away. Tapping it dismisses it. Each notification is also
   added to that phone's pull-down list.
+- Request notifications (a friend asks me for money, including settlement
+  requests) carry Decline and Pay buttons, on the banner and in the
+  pull-down. They act in place: the notification then shows "Paid <n> CZK ✓"
+  or "Declined", or the error (e.g. "Insufficient funds") with the buttons
+  still there.
 - Pull-down panel: drag down from the top edge of the phone screen to open,
   drag up to close. Contains only: the time at the top, 5 rising signal bars
   next to it, and the notification list (newest first; dashed placeholder
