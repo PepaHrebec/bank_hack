@@ -45,6 +45,52 @@ GROUP_EXPENSES = [  # (payer, amount, description)
     (4, 1200, "benzín"),
 ]
 
+# Short WhatsApp conversations, one per pair: (hours before `now`, sender, text), oldest first.
+# A few contain money talk, so the Geoff hook has history to react to.
+CONVERSATIONS = {
+    (1, 2): [
+        (52, 1, "Čau Jirko, jdeš v pátek na ten koncert?"),
+        (51.5, 2, "Jasně, lístky už mám. Poslal jsem ti žádost, hoď mi to na účet"),
+        (51, 1, "Super, platím hned večer"),
+        (5, 2, "Ještě dneska pivo po práci?"),
+        (4.5, 1, "Jo, v šest v Lokálu"),
+    ],
+    (1, 3): [
+        (30, 3, "Byl jsem včera za nás oba v hospodě"),
+        (29.5, 1, "Díky, kolik to bylo?"),
+        (29, 3, "Dlužíš mi 300 za pivo, mrkni na to"),
+        (28, 1, "Haha, pošlu"),
+        (2, 3, "Čau, nejedeš náhodou na chatu o víkendu?"),
+    ],
+    (1, 4): [
+        (75, 4, "Rozpočítáme chatu, 4 500 za všechny, co říkáš?"),
+        (74, 1, "Určitě, založ to přes Geoffa"),
+        (73, 4, "Jo, uděláme společné vyrovnání s Pepou a Jirkou"),
+        (20, 1, "Petře, vezmu auto, benzín si pak spočítáme"),
+        (19, 4, "Platí, díky"),
+        (1, 4, "Neposlal jsi mi ještě 320 za pizzu :)"),
+    ],
+    (2, 3): [
+        (48, 2, "Pepo, kdy půjdem na oběd?"),
+        (47, 3, "V úterý u Lokálu?"),
+        (46, 2, "Domluveno"),
+        (3, 3, "Dlužím ti 180 za ten oběd, hned ti to pošlu"),
+    ],
+    (2, 4): [
+        (100, 4, "Jirko, máš ještě ty jízdenky na Brno?"),
+        (99, 2, "Mám, pošli mi 250 a jsou tvoje"),
+        (98, 4, "Posláno, díky"),
+        (6, 2, "Nezapomeň zítra na poradu"),
+    ],
+    (3, 4): [
+        (60, 3, "Petře, nájem se blíží, podíl je 1 200"),
+        (59, 4, "Já vím, pošlu zítra"),
+        (58, 3, "Dobře, díky"),
+        (10, 4, "Pepo, posílám ti nájem, mrkni na účet"),
+        (9, 3, "Přišlo, děkuju!"),
+    ],
+}
+
 DAY_START = (7, 0)
 DAY_END = (23, 30)
 
@@ -126,11 +172,26 @@ def _write(path, events):
             conn.execute("UPDATE accounts SET balance = ? WHERE id = ?", (balance, person))
 
 
+def _write_messages(path, now):
+    with db._transaction(path) as conn:
+        conn.execute("DELETE FROM sqlite_sequence WHERE name = 'messages'")
+        rows = []
+        for (a, b), lines in CONVERSATIONS.items():
+            for hours, sender, text in lines:
+                when = now - timedelta(minutes=round(hours * 60))
+                rows.append((when.isoformat(timespec="seconds"), sender, b if sender == a else a, text))
+        for stamp, sender, recipient, text in sorted(rows):
+            conn.execute(
+                "INSERT INTO messages (sender, recipient, text, created_at) VALUES (?, ?, ?, ?)",
+                (sender, recipient, text, stamp))
+
+
 def seed_db(path, now=None, rng_seed=7):
     """Wipe the database and fill it with mock data; returns {person id: number of history items}."""
     now = (now or datetime.now()).replace(microsecond=0)
     db.reset_db(path)
     _write(path, _build_events(random.Random(rng_seed), now))
+    _write_messages(path, now)
 
     for requester, payer, amount, note in REQUESTS:
         db.create_request(path, requester, payer, amount, note)

@@ -99,6 +99,12 @@ def init_db(path):
             "CREATE TABLE IF NOT EXISTS recordings ("
             " person INTEGER PRIMARY KEY, started_at TEXT NOT NULL)"
         )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS messages ("
+            " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " sender INTEGER NOT NULL, recipient INTEGER NOT NULL,"
+            " text TEXT NOT NULL, created_at TEXT NOT NULL)"
+        )
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
@@ -120,6 +126,7 @@ def reset_db(path):
         conn.execute("DELETE FROM card_payments")
         conn.execute("DELETE FROM income")
         conn.execute("DELETE FROM recordings")
+        conn.execute("DELETE FROM messages")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
 
@@ -684,3 +691,56 @@ def groups_for(path, person):
             (person,),
         ).fetchall()
         return [_group_dict(conn, g) for g in rows]
+
+
+# ---- WhatsApp mock-up: one-to-one messages ----
+
+MESSAGE_MAX_CHARS = 1000
+
+
+def _message(row):
+    return {k: row[k] for k in ("id", "sender", "recipient", "text", "created_at")}
+
+
+def send_message(path, sender, recipient, text):
+    if not isinstance(text, str) or not text.strip():
+        raise PaymentError("Napiš nějakou zprávu")
+    text = text.strip()
+    if len(text) > MESSAGE_MAX_CHARS:
+        raise PaymentError(f"Zpráva může mít nejvýš {MESSAGE_MAX_CHARS} znaků")
+    _check_pair(sender, recipient, unknown="Neznámý příjemce", self_msg="Nelze psát sám sobě")
+    created_at = _now()
+    with _connect(path) as conn:
+        cur = conn.execute(
+            "INSERT INTO messages (sender, recipient, text, created_at) VALUES (?, ?, ?, ?)",
+            (sender, recipient, text, created_at),
+        )
+    return {"id": cur.lastrowid, "sender": sender, "recipient": recipient, "text": text, "created_at": created_at}
+
+
+def conversation(path, me, other, limit=200):
+    """The last `limit` messages between two people, oldest first."""
+    with _connect(path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?)"
+            " ORDER BY created_at DESC, id DESC LIMIT ?",
+            (me, other, other, me, limit),
+        ).fetchall()
+    return [_message(r) for r in reversed(rows)]
+
+
+def chats(path, me):
+    """One entry per friend with the last message (or None), newest conversation first."""
+    out = []
+    with _connect(path) as conn:
+        for other, name in PEOPLE.items():
+            if other == me:
+                continue
+            row = conn.execute(
+                "SELECT * FROM messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?)"
+                " ORDER BY created_at DESC, id DESC LIMIT 1",
+                (me, other, other, me),
+            ).fetchone()
+            out.append({"with": other, "name": name, "last": _message(row) if row else None})
+    out.sort(key=lambda c: (c["last"]["created_at"], c["last"]["id"]) if c["last"] else ("", 0), reverse=True)
+    return out

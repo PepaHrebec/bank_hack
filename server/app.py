@@ -63,7 +63,16 @@ def _chat_messages(body):
     return clean
 
 
-def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=None) -> FastAPI:
+def _default_suggest():
+    # Imported lazily so the messages work even before the Geoff hook module exists.
+    try:
+        from server import geoff_hook
+    except ImportError:
+        return None
+    return geoff_hook.suggest
+
+
+def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=None, suggest=None) -> FastAPI:
     app = FastAPI(title=f"Phone of {db.PEOPLE[person_id]}")
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 
@@ -91,6 +100,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "requested": db.requests_by(db_path, person_id),
             "groups": db.groups_for(db_path, person_id),
             "recording": db.recording(db_path, person_id),
+            "chats": db.chats(db_path, person_id),
         }
 
     @app.post("/api/payments")
@@ -152,6 +162,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         return result
 
     me = db.PEOPLE[person_id]
+    background = set()
 
     async def announce_request(req, title=None):
         text = f"{me} žádá o {req['amount']} Kč" + (f" za {title}" if title else "")
@@ -334,6 +345,47 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             })
         await group_changed(group)
         return group
+
+    # ---- WhatsApp mock-up ----
+
+    async def suggest_for(message):
+        # Runs in the background after delivery; whatever goes wrong here is only logged.
+        try:
+            fn = suggest or _default_suggest()
+            if fn is None:
+                return
+            suggestion = await fn(message["text"], person_id, message["recipient"])
+            if suggestion is not None:
+                await orch.send(person_id, {
+                    "type": "geoff_suggestion", "message_id": message["id"], "suggestion": suggestion,
+                })
+        except Exception:
+            logging.getLogger(__name__).warning("Geoff suggestion failed", exc_info=True)
+
+    @app.get("/api/messages")
+    async def get_messages(request: Request):
+        other = request.query_params.get("with", "")
+        if not other.isdigit() or int(other) not in db.PEOPLE or int(other) == person_id:
+            return _bad("Vyber kontakt")
+        return await run_in_threadpool(db.conversation, db_path, person_id, int(other))
+
+    @app.post("/api/messages")
+    async def send_message(request: Request):
+        try:
+            body = await _json_object(request)
+            recipient = body.get("recipient")
+            if type(recipient) is not int:
+                raise BadInput("Vyber kontakt")
+            message = await run_in_threadpool(db.send_message, db_path, person_id, recipient, body.get("text"))
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        await orch.send(recipient, {"type": "message", "message": message})
+        await orch.send(person_id, {"type": "message", "message": message})
+        # Keep a reference so the task is not garbage-collected before it finishes.
+        task = asyncio.create_task(suggest_for(message))
+        background.add(task)
+        task.add_done_callback(background.discard)
+        return message
 
     @app.post("/api/chat")
     async def chat_endpoint(request: Request):
