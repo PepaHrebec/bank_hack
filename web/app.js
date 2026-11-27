@@ -40,9 +40,6 @@
     const others = people.filter((p) => p.id !== me.id);
     recipient = others[0].id;
 
-    const header = el("header", "app-header");
-    header.append(avatar(me), el("div", "hello", `Hi, ${firstName(me.name)}`));
-
     const card = el("section", "balance-card");
     card.style.setProperty("--accent", Phone.colors[me.id]);
     const balance = el("div", "balance-value");
@@ -77,7 +74,7 @@
     const historyList = el("div");
     historyBox.append(el("h3", null, "History"), historyList);
 
-    root.replaceChildren(header, card, form, historyBox);
+    root.replaceChildren(card, form, historyBox);
     ui = { balance, amount, note, button, msg, historyList };
   }
 

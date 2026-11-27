@@ -22,25 +22,13 @@
   font-size: 0.85em;
 }
 
-.app-header {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  margin: 0.6em 0 1em;
-}
-
-.hello {
-  font-size: 1.35em;
-  font-weight: 700;
-}
-
 .balance-card {
   padding: 1.1em 1.2em;
   border-radius: 1.3em;
   color: #fff;
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #0b0d2a));
   box-shadow: 0 0.6em 1.6em color-mix(in srgb, var(--accent) 35%, transparent);
-  margin-bottom: 1.2em;
+  margin: 0.6em 0 1.2em;
 }
 
 .balance-label {
