@@ -58,7 +58,8 @@ def test_stop_returns_payments_and_ends(db, monkeypatch):
     start_recording(db, 1)
     card_payment(db, 1, 100, "A")
     before = recording(db, 1)
-    assert stop_recording(db, 1) == before
+    out = stop_recording(db, 1)
+    assert out == {k: before[k] for k in ("started_at", "payments", "total")} | {"participants": [1]}
     assert recording(db, 1) is None
     with pytest.raises(PaymentError, match="Žádná skupinová platba neběží"):
         stop_recording(db, 1)

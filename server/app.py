@@ -101,6 +101,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "groups": db.groups_for(db_path, person_id),
             "group_invites": db.group_invites_for(db_path, person_id),
             "recording": db.recording(db_path, person_id),
+            "session_invites": db.session_invites_for(db_path, person_id),
             "chats": db.chats(db_path, person_id),
         }
 
@@ -145,22 +146,87 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         return payment
 
     @app.post("/api/recording/start")
-    async def recording_start():
+    async def recording_start(request: Request):
         try:
-            started = await run_in_threadpool(db.start_recording, db_path, person_id)
-        except db.PaymentError as e:
+            raw = await request.body()
+            body = await _json_object(request) if raw.strip() else {}
+            invite = body.get("invite", [])
+            if not isinstance(invite, list):
+                raise BadInput("Pozvaní musí být seznam")
+            started = await run_in_threadpool(db.start_recording, db_path, person_id, invite)
+        except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
+        for p in started["invited"]:
+            await orch.send(p, {
+                "type": "session_invite",
+                "starter": person_id,
+                "from": me,
+                "text": f"{me} tě zve do skupinové platby",
+            })
         await orch.send(person_id, {"type": "recording_changed"})
         return started
+
+    @app.post("/api/recording/invites/{starter}/accept")
+    async def session_accept(starter: int):
+        try:
+            result = await run_in_threadpool(db.accept_session_invite, db_path, person_id, starter)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        for p in {starter, person_id}:
+            await orch.send(p, {"type": "recording_changed"})
+        return result
+
+    @app.post("/api/recording/invites/{starter}/decline")
+    async def session_decline(starter: int):
+        try:
+            result = await run_in_threadpool(db.decline_session_invite, db_path, person_id, starter)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        for p in {starter, person_id}:
+            await orch.send(p, {"type": "recording_changed"})
+        return result
 
     @app.post("/api/recording/stop")
     async def recording_stop():
         try:
+            before = await run_in_threadpool(db.recording, db_path, person_id)
             result = await run_in_threadpool(db.stop_recording, db_path, person_id)
         except db.PaymentError as e:
             return _bad(str(e))
-        await orch.send(person_id, {"type": "recording_changed"})
+        invited = before["invited"] if before else []
+        for p in {*result["participants"], *invited}:
+            await orch.send(p, {"type": "recording_changed"})
+        for p in result["participants"]:
+            if p != person_id:
+                await orch.send(p, {
+                    "type": "session_ended",
+                    "from": me,
+                    "text": f"{me} ukončil(a) skupinovou platbu",
+                })
         return result
+
+    @app.post("/api/recording/group")
+    async def recording_group(request: Request):
+        try:
+            body = await _json_object(request)
+            group = await run_in_threadpool(db.create_group_from_session, db_path, person_id, body.get("name"))
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        for p in group["members"]:
+            if p != person_id:
+                await orch.send(p, {
+                    "type": "group_added",
+                    "group": group,
+                    "from": me,
+                    "text": f"{me} tě přidal(a) do skupiny {group['name']}",
+                })
+        await orch.send(person_id, {"type": "group_changed", "group_id": group["id"]})
+        return group
+
+    @app.post("/api/recording/discard")
+    async def recording_discard():
+        await run_in_threadpool(db.discard_session, db_path, person_id)
+        return {"ok": True}
 
     me = db.PEOPLE[person_id]
     background = set()
@@ -340,6 +406,8 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                     "from": me,
                     "text": f"{me} smazal(a) skupinu {done['name']}",
                 })
+        for p in done["invited"]:
+            await orch.send(p, {"type": "group_changed", "group_id": group_id})
         await orch.send(person_id, {"type": "group_changed", "group_id": group_id})
         return done
 
@@ -367,6 +435,8 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                 "text": f"{payee} žádá o {req['amount']} Kč za {group['name']}",
             })
         await group_changed(group)
+        for p in group["cancelled_invites"]:
+            await orch.send(p, {"type": "group_changed", "group_id": group_id})
         return group
 
     # ---- WhatsApp mock-up ----

@@ -103,6 +103,16 @@ def init_db(path):
             "CREATE TABLE IF NOT EXISTS recordings ("
             " person INTEGER PRIMARY KEY, started_at TEXT NOT NULL)"
         )
+        columns = [c["name"] for c in conn.execute("PRAGMA table_info(recordings)")]
+        if "session_starter" not in columns:
+            # A shared session: every participant's row points at the person who started it.
+            conn.execute("ALTER TABLE recordings ADD COLUMN session_starter INTEGER")
+            conn.execute("ALTER TABLE recordings ADD COLUMN ended_at TEXT")
+        conn.execute("UPDATE recordings SET session_starter = person WHERE session_starter IS NULL")
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS session_invites ("
+            " starter INTEGER NOT NULL, person INTEGER NOT NULL, PRIMARY KEY (starter, person))"
+        )
         conn.execute(
             "CREATE TABLE IF NOT EXISTS messages ("
             " id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -130,6 +140,7 @@ def reset_db(path):
         conn.execute("DELETE FROM card_payments")
         conn.execute("DELETE FROM income")
         conn.execute("DELETE FROM recordings")
+        conn.execute("DELETE FROM session_invites")
         conn.execute("DELETE FROM messages")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
@@ -226,29 +237,127 @@ def card_payment(path, person, amount, note=""):
     return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
 
 
+def _own_payments(conn, person, since, until=None):
+    sql = "SELECT * FROM card_payments WHERE person = ? AND created_at >= ?"
+    args = [person, since]
+    if until is not None:
+        sql += " AND created_at <= ?"
+        args.append(until)
+    return [dict(r) for r in conn.execute(sql + " ORDER BY created_at, id", args)]
+
+
+def _participants(conn, starter, ended):
+    """Ids of the session's accepted people (the starter first), running or ended."""
+    rows = conn.execute(
+        "SELECT person FROM recordings WHERE session_starter = ? AND person != ?"
+        + (" AND ended_at IS NOT NULL" if ended else " AND ended_at IS NULL") + " ORDER BY person",
+        (starter, starter),
+    )
+    return [starter] + [r["person"] for r in rows]
+
+
+def _session_invited(conn, starter):
+    return [r["person"] for r in conn.execute(
+        "SELECT person FROM session_invites WHERE starter = ? ORDER BY person", (starter,)
+    )]
+
+
 def _recording(conn, person):
-    row = conn.execute("SELECT started_at FROM recordings WHERE person = ?", (person,)).fetchone()
+    row = conn.execute(
+        "SELECT started_at, session_starter FROM recordings WHERE person = ? AND ended_at IS NULL", (person,)
+    ).fetchone()
     if row is None:
         return None
-    payments = [
-        dict(r) for r in conn.execute(
-            "SELECT * FROM card_payments WHERE person = ? AND created_at >= ? ORDER BY created_at, id",
-            (person, row["started_at"]),
-        )
-    ]
-    return {"started_at": row["started_at"], "payments": payments, "total": sum(p["amount"] for p in payments)}
+    payments = _own_payments(conn, person, row["started_at"])
+    starter = row["session_starter"]
+    return {
+        "started_at": row["started_at"],
+        "payments": payments,
+        "total": sum(p["amount"] for p in payments),
+        "starter": starter,
+        "participants": _participants(conn, starter, ended=False),
+        "invited": _session_invited(conn, starter),
+    }
 
 
-def start_recording(path, person):
-    """Start collecting `person`'s card payments (for a Group Payment)."""
+def start_recording(path, person, invite=()):
+    """Start collecting `person`'s card payments (for a Group Payment), inviting friends to join."""
     if person not in PEOPLE:
         raise PaymentError("Neznámá osoba")
+    invited = sorted({i for i in invite if type(i) is int and i in PEOPLE and i != person})
     with _transaction(path) as conn:
-        if conn.execute("SELECT 1 FROM recordings WHERE person = ?", (person,)).fetchone():
+        if conn.execute(
+            "SELECT 1 FROM recordings WHERE person = ? AND ended_at IS NULL", (person,)
+        ).fetchone():
             raise PaymentError("Skupinová platba už běží")
+        _clear_ended_row(conn, person)
         started_at = _now()
-        conn.execute("INSERT INTO recordings (person, started_at) VALUES (?, ?)", (person, started_at))
-    return {"started_at": started_at}
+        conn.execute(
+            "INSERT INTO recordings (person, started_at, session_starter) VALUES (?, ?, ?)",
+            (person, started_at, person),
+        )
+        for other in invited:
+            conn.execute("INSERT INTO session_invites (starter, person) VALUES (?, ?)", (person, other))
+    return {"started_at": started_at, "invited": invited}
+
+
+def _clear_ended_row(conn, person):
+    """`person` has no running recording; free their row if it's their own finished session."""
+    row = conn.execute("SELECT session_starter FROM recordings WHERE person = ?", (person,)).fetchone()
+    if row is None:
+        return
+    if row["session_starter"] != person:
+        raise PaymentError("Už jsi v jiné skupinové platbě")
+    _delete_session(conn, person)
+
+
+def _delete_session(conn, starter):
+    conn.execute("DELETE FROM recordings WHERE session_starter = ?", (starter,))
+    conn.execute("DELETE FROM session_invites WHERE starter = ?", (starter,))
+
+
+def accept_session_invite(path, person, starter):
+    with _transaction(path) as conn:
+        invite = conn.execute(
+            "SELECT 1 FROM session_invites WHERE starter = ? AND person = ?", (starter, person)
+        ).fetchone()
+        running = conn.execute(
+            "SELECT 1 FROM recordings WHERE person = ? AND session_starter = ? AND ended_at IS NULL",
+            (starter, starter),
+        ).fetchone()
+        if invite is None or running is None:
+            raise PaymentError("Skupinová platba už skončila")
+        if conn.execute("SELECT 1 FROM recordings WHERE person = ? AND ended_at IS NULL", (person,)).fetchone():
+            raise PaymentError("Už jsi v jiné skupinové platbě")
+        _clear_ended_row(conn, person)
+        conn.execute(
+            "INSERT INTO recordings (person, started_at, session_starter) VALUES (?, ?, ?)",
+            (person, _now(), starter),
+        )
+        conn.execute("DELETE FROM session_invites WHERE starter = ? AND person = ?", (starter, person))
+        return _recording(conn, person)
+
+
+def decline_session_invite(path, person, starter):
+    with _transaction(path) as conn:
+        if conn.execute(
+            "DELETE FROM session_invites WHERE starter = ? AND person = ?", (starter, person)
+        ).rowcount == 0:
+            raise PaymentError("Pozvánka nebyla nalezena")
+    return {"starter": starter}
+
+
+def session_invites_for(path, person):
+    with _connect(path) as conn:
+        return [
+            {"starter": r["starter"], "started_at": r["started_at"]}
+            for r in conn.execute(
+                "SELECT i.starter, r.started_at FROM session_invites i"
+                " JOIN recordings r ON r.person = i.starter AND r.ended_at IS NULL"
+                " WHERE i.person = ? ORDER BY r.started_at, i.starter",
+                (person,),
+            )
+        ]
 
 
 def recording(path, person):
@@ -258,13 +367,69 @@ def recording(path, person):
 
 
 def stop_recording(path, person):
-    """End the recording and return what it collected."""
+    """End the recording (only its starter can) and return what it collected."""
     with _transaction(path) as conn:
         result = _recording(conn, person)
         if result is None:
             raise PaymentError("Žádná skupinová platba neběží")
-        conn.execute("DELETE FROM recordings WHERE person = ?", (person,))
-    return result
+        if result["starter"] != person:
+            raise PaymentError("Skupinovou platbu může ukončit jen ten, kdo ji spustil")
+        conn.execute("DELETE FROM session_invites WHERE starter = ?", (person,))
+        if len(result["participants"]) == 1:
+            conn.execute("DELETE FROM recordings WHERE person = ?", (person,))
+            return {k: result[k] for k in ("started_at", "payments", "total", "participants")}
+        ended_at = _now()
+        payments = []
+        for p in result["participants"]:
+            since = conn.execute("SELECT started_at FROM recordings WHERE person = ?", (p,)).fetchone()["started_at"]
+            payments += _own_payments(conn, p, since, ended_at)
+        payments.sort(key=lambda x: (x["created_at"], x["id"]))
+        conn.execute(
+            "UPDATE recordings SET ended_at = ? WHERE session_starter = ? AND ended_at IS NULL", (ended_at, person)
+        )
+    return {
+        "started_at": result["started_at"],
+        "payments": payments,
+        "total": sum(p["amount"] for p in payments),
+        "participants": result["participants"],
+        "shared": True,
+    }
+
+
+def _ended_session_payments(conn, starter):
+    participants = _participants(conn, starter, ended=True)
+    if len(participants) < 2 or not conn.execute(
+        "SELECT 1 FROM recordings WHERE person = ? AND ended_at IS NOT NULL", (starter,)
+    ).fetchone():
+        raise PaymentError("Žádná ukončená skupinová platba")
+    payments = []
+    for p in participants:
+        r = conn.execute("SELECT started_at, ended_at FROM recordings WHERE person = ?", (p,)).fetchone()
+        payments += _own_payments(conn, p, r["started_at"], r["ended_at"])
+    payments.sort(key=lambda x: (x["created_at"], x["id"]))
+    return participants, payments
+
+
+def create_group_from_session(path, starter, name):
+    """Turn the starter's finished shared session into a group; everyone who joined is already in."""
+    name = _text(name, GROUP_NAME_MAX, "Název skupiny")
+    with _transaction(path) as conn:
+        participants, payments = _ended_session_payments(conn, starter)
+        group = _insert_group(conn, starter, name, participants[1:], True, None, [])
+        for p in payments:
+            _expense_from_payment(conn, group["id"], p["person"], "card", p["id"])
+        _delete_session(conn, starter)
+        g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group["id"],)).fetchone()
+        return _group_dict(conn, g)
+
+
+def discard_session(path, starter):
+    """Drop the starter's finished session without making a group."""
+    with _transaction(path) as conn:
+        if conn.execute(
+            "SELECT 1 FROM recordings WHERE person = ? AND ended_at IS NOT NULL", (starter,)
+        ).fetchone():
+            _delete_session(conn, starter)
 
 
 def add_income(path, person, amount, note=""):
@@ -514,28 +679,33 @@ def create_group(path, creator, name, members, expense=None, sources=None, accep
         if not isinstance(expense, dict):
             raise PaymentError("Výdaj musí mít částku a popis")
         _check_amount(expense.get("amount"))
-        description = _text(expense.get("description"), EXPENSE_DESC_MAX, "Za co to bylo")
+        expense = {**expense, "description": _text(expense.get("description"), EXPENSE_DESC_MAX, "Za co to bylo")}
     sources = _check_sources(sources)
     with _transaction(path) as conn:
-        group_id = conn.execute(
-            "INSERT INTO settle_groups (name, creator, created_at) VALUES (?, ?, ?)",
-            (name, creator, _now()),
-        ).lastrowid
-        for person in {creator, *members}:
-            status = "accepted" if accepted or person == creator else "invited"
-            conn.execute(
-                "INSERT INTO settle_members (group_id, person, status) VALUES (?, ?, ?)",
-                (group_id, person, status),
-            )
-        if expense is not None:
-            conn.execute(
-                "INSERT INTO expenses (group_id, payer, amount, description, created_at) VALUES (?, ?, ?, ?, ?)",
-                (group_id, creator, expense["amount"], description, _now()),
-            )
-        for source in sources:
-            _expense_from_payment(conn, group_id, creator, source["kind"], source["id"])
-        g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone()
-        return _group_dict(conn, g)
+        return _insert_group(conn, creator, name, members, accepted, expense, sources)
+
+
+def _insert_group(conn, creator, name, members, accepted, expense, sources):
+    """Insert a validated group; the caller owns the transaction."""
+    group_id = conn.execute(
+        "INSERT INTO settle_groups (name, creator, created_at) VALUES (?, ?, ?)",
+        (name, creator, _now()),
+    ).lastrowid
+    for person in {creator, *members}:
+        status = "accepted" if accepted or person == creator else "invited"
+        conn.execute(
+            "INSERT INTO settle_members (group_id, person, status) VALUES (?, ?, ?)",
+            (group_id, person, status),
+        )
+    if expense is not None:
+        conn.execute(
+            "INSERT INTO expenses (group_id, payer, amount, description, created_at) VALUES (?, ?, ?, ?, ?)",
+            (group_id, creator, expense["amount"], expense["description"], _now()),
+        )
+    for source in sources:
+        _expense_from_payment(conn, group_id, creator, source["kind"], source["id"])
+    g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone()
+    return _group_dict(conn, g)
 
 
 def _insert_expense(conn, group_id, payer, amount, description, source_kind=None, source_id=None):
@@ -695,7 +865,10 @@ def delete_group(path, group_id, person):
         conn.execute("DELETE FROM settle_groups WHERE id = ?", (group_id,))
     for r in cancelled:
         r["status"] = "cancelled"
-    return {"id": group_id, "name": info["name"], "members": info["members"], "cancelled": cancelled}
+    return {
+        "id": group_id, "name": info["name"], "members": info["members"],
+        "invited": info["invited"], "cancelled": cancelled,
+    }
 
 
 def groups_for(path, person):
