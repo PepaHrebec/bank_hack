@@ -116,26 +116,32 @@ body {
 
 /* ---- app area ---- */
 
-#app {
+.app-window {
   position: absolute;
   inset: 0;
   z-index: 2;
-  padding: 3.6em 0 1.6em;
   overflow-y: auto;
   scrollbar-width: none;
-  background: #f2f3f7;
   transition:
     transform 0.42s cubic-bezier(0.2, 0.9, 0.3, 1),
     opacity 0.3s,
     border-radius 0.42s;
 }
 
-#app::-webkit-scrollbar { display: none; }
+.app-window::-webkit-scrollbar { display: none; }
 
-#app.swiping { transition: none; }
+.app-window.swiping { transition: none; }
 
-/* On the home screen the app shrinks into its icon (transform-origin is set from JS). */
-.at-home #app {
+/* Embedded frames (e.g. a video) would swallow the pointer and strand the swipe. */
+.app-window.swiping iframe { pointer-events: none; }
+
+#app {
+  padding: 3.6em 0 1.6em;
+  background: #f2f3f7;
+}
+
+/* A closed app is shrunk into its icon (transform-origin is set from JS). */
+.app-window:not(.open) {
   transform: scale(0.14);
   opacity: 0;
   border-radius: 6em;
@@ -217,8 +223,8 @@ body {
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
 }
 
-.at-home .statusbar { color: #fff; }
-.at-home .homebar { background: #fff; opacity: 0.8; }
+.light-status .statusbar { color: #fff; }
+.light-status .homebar { background: #fff; opacity: 0.8; }
 
 /* ---- swipe-up trigger: invisible strip along the bottom edge of an open app ---- */
 

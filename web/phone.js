@@ -4,8 +4,10 @@
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
 //   Phone.initials(name)                "Petr Šafář" -> "PŠ"
-// The shell also owns the home screen: swipe up from the bottom edge leaves the app,
-// the George icon (or tapping a notification banner) brings it back.
+// The shell also owns the home screen. Every `.app-window` opens from the home-screen
+// icon whose data-opens is its id, and swiping up from the bottom edge closes it. Windows
+// get "app-open" / "app-close" DOM events. Tapping a notification banner opens George.
+//   Phone.openApp(id | null)            open a window by id, or go home with null
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -20,7 +22,7 @@
   const bannerLayer = document.getElementById("banners");
   const appEl = document.getElementById("app");
   const swipeZone = document.getElementById("swipeZone");
-  const appIcon = document.getElementById("appIcon");
+  const windows = [...document.querySelectorAll(".app-window")];
 
   const handlers = [];
   const notifications = [];
@@ -98,7 +100,7 @@
       banner.classList.remove("show");
       setTimeout(() => banner.remove(), 450);
     };
-    banner.addEventListener("click", () => { hide(); setHome(false); });
+    banner.addEventListener("click", () => { hide(); openApp(appEl); });
     // Pulling the banner down opens the panel, like pulling the top edge.
     banner.addEventListener("pointerdown", (e) => startDrag(e, true));
     banner.addEventListener("pointermove", moveDrag);
@@ -193,23 +195,34 @@
     if (e.key === "Escape") setOpen(false);
   });
 
-  // ---- home screen: swipe up from the bottom edge of the app, tap George to come back ----
+  // ---- home screen: swipe up from the bottom edge of an app, tap an icon to open one ----
 
   let swipe = null; // { startY, lastY, height }
+  let current = appEl; // open window, or null on the home screen
 
-  // The app grows out of / shrinks into its icon.
-  function originAtIcon() {
+  // An app grows out of / shrinks into its icon.
+  function originAtIcon(win) {
+    const icon = document.querySelector(`[data-opens="${win.id}"]`);
+    if (!icon) return;
     const s = screen.getBoundingClientRect();
-    const i = appIcon.getBoundingClientRect();
-    appEl.style.transformOrigin = `${i.left + i.width / 2 - s.left}px ${i.top + i.height / 2 - s.top}px`;
+    const i = icon.getBoundingClientRect();
+    win.style.transformOrigin = `${i.left + i.width / 2 - s.left}px ${i.top + i.height / 2 - s.top}px`;
   }
 
-  function setHome(home) {
-    originAtIcon();
-    appEl.classList.remove("swiping");
-    appEl.style.transform = "";
-    appEl.style.borderRadius = "";
-    screen.classList.toggle("at-home", home);
+  function openApp(win) {
+    const previous = current;
+    for (const w of windows) {
+      originAtIcon(w);
+      w.classList.remove("swiping");
+      w.style.transform = "";
+      w.style.borderRadius = "";
+      w.classList.toggle("open", w === win);
+    }
+    current = win;
+    screen.classList.toggle("at-home", !win);
+    screen.classList.toggle("light-status", !win || win.dataset.statusbar === "light");
+    if (previous && previous !== win) previous.dispatchEvent(new Event("app-close"));
+    if (win && win !== previous) win.dispatchEvent(new Event("app-open"));
   }
 
   function swipeProgress() {
@@ -217,10 +230,10 @@
   }
 
   swipeZone.addEventListener("pointerdown", (e) => {
-    if (shade.classList.contains("open") || screen.classList.contains("at-home")) return;
+    if (shade.classList.contains("open") || !current) return;
     swipe = { startY: e.clientY, lastY: e.clientY, height: screen.clientHeight };
-    originAtIcon();
-    appEl.classList.add("swiping");
+    originAtIcon(current);
+    current.classList.add("swiping");
     swipeZone.setPointerCapture(e.pointerId);
   });
 
@@ -228,15 +241,15 @@
     if (!swipe) return;
     swipe.lastY = e.clientY;
     const p = swipeProgress();
-    appEl.style.transform = `scale(${1 - 0.6 * p})`;
-    appEl.style.borderRadius = `${p * 3}em`;
+    current.style.transform = `scale(${1 - 0.6 * p})`;
+    current.style.borderRadius = `${p * 3}em`;
   }
 
   function endSwipe() {
     if (!swipe) return;
     const home = swipeProgress() > 0.15;
     swipe = null;
-    setHome(home);
+    openApp(home ? null : current);
   }
 
   swipeZone.addEventListener("pointermove", moveSwipe);
@@ -245,7 +258,9 @@
   window.addEventListener("pointercancel", endSwipe);
   document.addEventListener("lostpointercapture", endSwipe);
 
-  appIcon.addEventListener("click", () => setHome(false));
+  document.querySelectorAll("[data-opens]").forEach((icon) => {
+    icon.addEventListener("click", () => openApp(document.getElementById(icon.dataset.opens)));
+  });
 
   // ---- connection to the orchestrator ----
 
@@ -274,6 +289,7 @@
     me: null,
     colors: PERSON_COLORS,
     initials,
+    openApp: (id) => openApp(id ? document.getElementById(id) : null),
     notify,
     onEvent(fn) { handlers.push(fn); },
     ready: null,

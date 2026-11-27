@@ -47,6 +47,14 @@ make the frontend work.
   a dock of filler icons (Safari, WhatsApp, Spotify, Instagram). Filler icons
   do nothing. Icons are the real App Store artwork, saved in `web/icons/`.
 - Tapping George (or a notification banner) opens the app again.
+- Filler mock-up apps (open from their icon, close with the same swipe up):
+  - Tinder: a card stack of fictional women with drawn portraits; the
+    buttons flip to the next card.
+  - Grindr: a dark "Nearby" grid of fictional men with drawn portraits.
+  - Spotify: a "now playing" screen for Never Gonna Give You Up that embeds
+    the official YouTube video, which plays while the screen is open and
+    stops when it closes. This needs internet.
+  - Portraits are original SVG illustrations, not photos of real people.
 
 ## Anti-goals
 
