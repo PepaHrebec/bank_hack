@@ -46,6 +46,14 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
     app = FastAPI(title=f"Phone of {db.PEOPLE[person_id]}")
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 
+    @app.middleware("http")
+    async def no_stale_pages(request: Request, call_next):
+        # The demo changes often; a reload must always pick up the newest page and scripts.
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
     @app.get("/")
     def index():
         return FileResponse(WEB_DIR / "index.html")

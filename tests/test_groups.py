@@ -93,8 +93,8 @@ def test_only_creator_approves_once_and_group_locks(db):
         add_expense(db, g["id"], 2, 50, "Late beer")
 
 
-def test_default_split_is_empty_for_now():
-    assert settle([1, 2], [{"payer": 1, "amount": 100}]) == []
+def test_default_split_is_the_equal_split():
+    assert settle([1, 2], [{"payer": 1, "amount": 100}]) == [(2, 1, 50)]
 
 
 def test_approve_turns_split_into_requests(db):

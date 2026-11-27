@@ -35,6 +35,8 @@
   };
 
   const czk = (n) => `${n.toLocaleString("cs-CZ")} CZK`;
+  // "2026-11-27T14:05:09" (the server computer's local time) -> "27.11.2026 14:05"
+  const stamp = (iso) => `${+iso.slice(8, 10)}.${+iso.slice(5, 7)}.${iso.slice(0, 4)} ${iso.slice(11, 16)}`;
   const nameOf = (id) => state.people.find((p) => p.id === id).name;
 
   function el(tag, cls, text) {
@@ -305,7 +307,7 @@
       if (p.kind === "card") {
         const row = el("div", "tx");
         const info = el("div", "tx-info");
-        info.append(el("div", "tx-name", p.note ? `Card · ${p.note}` : "Card payment"), el("div", "tx-meta", p.created_at.slice(11, 16)));
+        info.append(el("div", "tx-name", p.note ? `Card · ${p.note}` : "Card payment"), el("div", "tx-meta", stamp(p.created_at)));
         row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
         rows.push(row);
         continue;
@@ -315,8 +317,8 @@
       const row = el("div", "tx");
       const info = el("div", "tx-info");
       info.append(el("div", "tx-name", `${outgoing ? "To" : "From"} ${nameOf(other)}`));
-      const time = p.created_at.slice(11, 16);
-      info.append(el("div", "tx-meta", p.note ? `${p.note} · ${time}` : time));
+      const when = stamp(p.created_at);
+      info.append(el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
       row.append(avatar({ id: other, name: nameOf(other) }), info,
         el("div", "tx-amount " + (outgoing ? "out" : "in"), `${outgoing ? "−" : "+"}${czk(p.amount)}`));
       rows.push(row);
@@ -521,7 +523,7 @@
     } else {
       approve.push(el("div", "approve-hint", g.requests_sent > 0
         ? "Approved: payment requests were sent. Check To be paid."
-        : "Approved: split algorithm not implemented yet, so no requests were sent."));
+        : "Approved: everyone is already even, no requests needed."));
     }
     if (g.creator === mine) {
       const del = button("delete-group-btn", "Delete group");
@@ -546,7 +548,7 @@
       const label = h.kind === "card"
         ? (h.note ? `Card · ${h.note}` : "Card payment")
         : (h.note || `Payment to ${nameOf(h.recipient)}`);
-      info.append(el("div", "tx-name", label), el("div", "tx-meta", time(h.created_at)));
+      info.append(el("div", "tx-name", label), el("div", "tx-meta", stamp(h.created_at)));
       const add = button("add-btn", "Add");
       const msg = el("div", "form-msg error");
       add.addEventListener("click", () => addFromHistory(h, add, msg));
