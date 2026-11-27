@@ -1,6 +1,7 @@
 // Placeholder bank app.
 //   main     balance card (tap -> history), Contacts button, chat window (empty for now)
-//   contacts Settle Up (not implemented yet) and the other three people (tap -> pay)
+//   contacts Settle Up and To be paid (requests from Settle Up; both not implemented yet)
+//            and the other three people (tap -> pay)
 //   pay      send money to one contact
 //   history  payments from the database
 // Talks to the shell only through window.Phone, so it can be swapped for the real app.
@@ -17,6 +18,7 @@
     chevron: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     contacts: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path d="M2.5 19.5c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="currentColor"/><circle cx="17" cy="9" r="2.8" fill="currentColor" opacity=".55"/><path d="M15.8 13.7c3.3-.3 5.7 1.9 5.7 5.3h-4.3c0-2-.5-3.8-1.4-5.3z" fill="currentColor" opacity=".55"/></svg>',
     history: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3.5 4v4.5H8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    request: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
 
@@ -89,14 +91,18 @@
 
     // contacts
     const contacts = el("section", "view");
-    const settle = button("settle", icon("settle", "settle-icon"), el("span", null, "Settle Up"));
+    const actions = el("div", "quick-actions");
+    actions.append(
+      button("settle", icon("settle", "settle-icon"), el("span", null, "Settle Up")),
+      button("settle", icon("request", "settle-icon"), el("span", null, "To be paid")),
+    );
     const list = el("div", "card-list");
     for (const p of others) {
       const row = button("contact", avatar(p), el("span", "contact-name", p.name), icon("chevron", "chev"));
       row.addEventListener("click", () => openPay(p.id));
       list.append(row);
     }
-    contacts.append(header("Contacts", "main"), settle, list);
+    contacts.append(header("Contacts", "main"), actions, list);
     views.contacts = contacts;
 
     // pay

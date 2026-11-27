@@ -66,8 +66,9 @@ make the frontend work.
   - Main: balance card with a history icon (tap opens History), a Contacts
     button, and a large chat window, empty for now; the smart chatbot comes
     later.
-  - Contacts: a Settle Up icon (not implemented yet) above the other three
-    people. Tapping a person opens Send money for them (amount, note).
+  - Contacts: Settle Up and To be paid icons (To be paid will list the
+    requests created by Settle Up; neither is implemented yet) above the
+    other three people. Tapping a person opens Send money for them (amount, note).
   - History: payments from the database, newest first. The history stays in
     the database for other uses.
 - Data persists across restarts (SQLite file). A reset command restores the

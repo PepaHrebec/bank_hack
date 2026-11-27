@@ -169,16 +169,20 @@ button {
 
 /* ---- contacts ---- */
 
+.quick-actions {
+  display: flex;
+  gap: 1.6em;
+  margin: 0 0 1em 0.2em;
+}
+
 .settle {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35em;
-  align-self: flex-start;
   border: none;
   background: none;
   padding: 0;
-  margin: 0 0 1em 0.2em;
   font-size: 0.8em;
   font-weight: 600;
   cursor: pointer;
