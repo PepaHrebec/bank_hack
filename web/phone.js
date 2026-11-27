@@ -2,6 +2,9 @@
 //   Phone.notify({title, body, color})  show a banner and add it to the pull-down list
 //   Phone.onEvent(fn)                   receive every event the orchestrator pushes
 //   Phone.me / Phone.ready              who this phone belongs to
+//   Phone.colors                        person id -> colour
+// After every (re)connect handlers get {type: "connected"}, so the app can refetch
+// anything it missed while the connection was down.
 (function () {
   const PERSON_COLORS = { 1: "#3b6cff", 2: "#2bb673", 3: "#f5a623", 4: "#e5487a" };
   const BANNER_MS = 4000;
@@ -80,6 +83,8 @@
     bannerLayer.append(banner);
 
     const hide = () => {
+      // Never pull the banner out from under a drag; try again once it's over.
+      if (drag) { setTimeout(hide, 500); return; }
       banner.classList.remove("show");
       setTimeout(() => banner.remove(), 450);
     };
@@ -89,6 +94,7 @@
     banner.addEventListener("pointermove", moveDrag);
     banner.addEventListener("pointerup", endDrag);
     banner.addEventListener("pointercancel", endDrag);
+    banner.addEventListener("lostpointercapture", endDrag);
     requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add("show")));
     setTimeout(hide, BANNER_MS);
   }
@@ -104,7 +110,7 @@
 
   // ---- pull-down panel ----
 
-  let drag = null; // { startY, startOffset, height }
+  let drag = null; // { startY, lastY, startOffset, height, moved }
 
   function setShadeOffset(px) {
     shade.style.transform = `translateY(${px}px)`;
@@ -112,22 +118,24 @@
 
   function startDrag(e, opening) {
     const height = screen.clientHeight;
-    drag = { startY: e.clientY, startOffset: opening ? -height : 0, height, moved: false };
+    drag = { startY: e.clientY, lastY: e.clientY, startOffset: opening ? -height : 0, height, moved: false };
     shade.classList.add("dragging");
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function moveDrag(e) {
     if (!drag) return;
+    drag.lastY = e.clientY;
     const dy = e.clientY - drag.startY;
     if (Math.abs(dy) > 4) drag.moved = true;
     const offset = Math.min(0, Math.max(-drag.height, drag.startOffset + dy));
     setShadeOffset(offset);
   }
 
-  function endDrag(e) {
+  function endDrag() {
+    // Uses the last move position: lostpointercapture/pointercancel may report clientY 0.
     if (!drag) return;
-    const dy = e.clientY - drag.startY;
+    const dy = drag.lastY - drag.startY;
     const offset = Math.min(0, Math.max(-drag.height, drag.startOffset + dy));
     const visible = (drag.height + offset) / drag.height;
     const wasOpen = drag.startOffset === 0;
@@ -148,11 +156,20 @@
   pullZone.addEventListener("pointermove", moveDrag);
   pullZone.addEventListener("pointerup", endDrag);
   pullZone.addEventListener("pointercancel", endDrag);
+  pullZone.addEventListener("lostpointercapture", endDrag);
 
   shade.addEventListener("pointerdown", (e) => startDrag(e, false));
   shade.addEventListener("pointermove", moveDrag);
   shade.addEventListener("pointerup", endDrag);
   shade.addEventListener("pointercancel", endDrag);
+  shade.addEventListener("lostpointercapture", endDrag);
+
+  // If the element that started the drag disappears (e.g. the banner is replaced), its own
+  // listeners stop firing; the window still sees the pointer, so finish the drag there.
+  window.addEventListener("pointermove", moveDrag);
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
+  document.addEventListener("lostpointercapture", endDrag);
 
   // Trackpad / mouse wheel: scroll down over the top strip opens, scroll up on the panel closes.
   pullZone.addEventListener("wheel", (e) => {
@@ -168,15 +185,20 @@
 
   // ---- connection to the orchestrator ----
 
+  function dispatch(event) {
+    for (const fn of handlers) {
+      try { fn(event); } catch (err) { console.error(err); }
+    }
+  }
+
   function connect() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws.addEventListener("open", () => dispatch({ type: "connected" }));
     ws.addEventListener("message", (msg) => {
       let event;
       try { event = JSON.parse(msg.data); } catch { return; }
-      for (const fn of handlers) {
-        try { fn(event); } catch (err) { console.error(err); }
-      }
+      dispatch(event);
     });
     ws.addEventListener("close", () => setTimeout(connect, 2000));
   }
@@ -189,13 +211,22 @@
     colors: PERSON_COLORS,
     notify,
     onEvent(fn) { handlers.push(fn); },
-    ready: fetch("/api/state")
-      .then((r) => r.json())
-      .then((s) => {
+    ready: null,
+  };
+
+  // Keep trying until the server answers, so a page opened before the server starts still comes up.
+  async function whoAmI() {
+    for (;;) {
+      try {
+        const s = await (await fetch("/api/state")).json();
         Phone.me = s.me;
         document.title = `${s.me.name} · Phone`;
         return s.me;
-      }),
-  };
+      } catch {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+  }
+  Phone.ready = whoAmI();
   window.Phone = Phone;
 })();

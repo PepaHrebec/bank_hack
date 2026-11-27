@@ -19,6 +19,10 @@ Needs [uv](https://docs.astral.sh/uv/).
 uv run run.py
 ```
 
+It prints one address per person using your machine's network IP (e.g.
+`http://192.168.1.20:3001`), so the pages also open from other devices on the same
+network. Use `--host 127.0.0.1` to keep it local to this machine.
+
 Open each address in its own browser window. On a phone, drag down from the top edge
 of the screen to open the notification panel.
 

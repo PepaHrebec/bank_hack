@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import socket
 
 import uvicorn
 
@@ -12,7 +13,17 @@ from server.orchestrator import Orchestrator
 BASE_PORT = 3000
 
 
-async def serve(db_path, host):
+def lan_ip():
+    # Connecting a UDP socket sends nothing; it just reveals which local address routes out.
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+
+
+async def serve(db_path, host, shown_host):
     orch = Orchestrator()
     servers = []
     for person_id in PEOPLE:
@@ -24,14 +35,15 @@ async def serve(db_path, host):
         )
         servers.append(uvicorn.Server(config))
     for person_id, name in PEOPLE.items():
-        print(f"{name}: http://localhost:{BASE_PORT + person_id}", flush=True)
+        print(f"{name}: http://{shown_host}:{BASE_PORT + person_id}", flush=True)
     await asyncio.gather(*(s.serve() for s in servers))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default="bank.db", help="SQLite file (default: bank.db)")
-    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--host", default="0.0.0.0",
+                        help="address to listen on (default: all, so other devices on the network can connect)")
     parser.add_argument("--reset", action="store_true", help="restore starting balances and exit")
     args = parser.parse_args()
 
@@ -40,7 +52,8 @@ def main():
         print("Database reset: every person has 10 000 CZK, no payments.")
         return
     init_db(args.db)
-    asyncio.run(serve(args.db, args.host))
+    shown_host = lan_ip() if args.host == "0.0.0.0" else args.host
+    asyncio.run(serve(args.db, args.host, shown_host))
 
 
 if __name__ == "__main__":
