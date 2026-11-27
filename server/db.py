@@ -37,6 +37,12 @@ def init_db(path):
             " sender INTEGER NOT NULL, recipient INTEGER NOT NULL,"
             " amount INTEGER NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL)"
         )
+        # Card payments leave the account for a shop, so they have no recipient.
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS card_payments ("
+            " id INTEGER PRIMARY KEY AUTOINCREMENT, person INTEGER NOT NULL,"
+            " amount INTEGER NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL)"
+        )
         # A request asks `payer` to send `amount` to `requester`. Requests created together
         # by Group Settle share a request_groups row.
         conn.execute(
@@ -96,6 +102,7 @@ def reset_db(path):
         conn.execute("DELETE FROM settle_members")
         conn.execute("DELETE FROM settle_groups")
         conn.execute("DELETE FROM payments")
+        conn.execute("DELETE FROM card_payments")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
 
@@ -136,12 +143,17 @@ def _transaction(path):
             raise
 
 
-def _transfer(conn, sender, recipient, amount, note):
-    """Move money inside an open transaction and record the payment."""
-    balance = conn.execute("SELECT balance FROM accounts WHERE id = ?", (sender,)).fetchone()["balance"]
+def _debit(conn, person, amount):
+    """Take money from an account inside an open transaction, if it has enough."""
+    balance = conn.execute("SELECT balance FROM accounts WHERE id = ?", (person,)).fetchone()["balance"]
     if balance < amount:
         raise PaymentError("Insufficient funds")
-    conn.execute("UPDATE accounts SET balance = balance - ? WHERE id = ?", (amount, sender))
+    conn.execute("UPDATE accounts SET balance = balance - ? WHERE id = ?", (amount, person))
+
+
+def _transfer(conn, sender, recipient, amount, note):
+    """Move money inside an open transaction and record the payment."""
+    _debit(conn, sender, amount)
     conn.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (amount, recipient))
     created_at = _now()
     cur = conn.execute(
@@ -165,13 +177,38 @@ def send_payment(path, sender, recipient, amount, note=""):
         return _transfer(conn, sender, recipient, amount, (note or "").strip())
 
 
+CARD_NOTE_MAX = 60
+
+
+def card_payment(path, person, amount, note=""):
+    """Pay a shop by card: the money leaves `person`'s account and goes nowhere in the app."""
+    _check_amount(amount)
+    if person not in PEOPLE:
+        raise PaymentError("Unknown person")
+    note = (note or "").strip()
+    if len(note) > CARD_NOTE_MAX:
+        raise PaymentError(f"Note can be at most {CARD_NOTE_MAX} characters")
+    with _transaction(path) as conn:
+        _debit(conn, person, amount)
+        created_at = _now()
+        cur = conn.execute(
+            "INSERT INTO card_payments (person, amount, note, created_at) VALUES (?, ?, ?, ?)",
+            (person, amount, note, created_at),
+        )
+    return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
+
+
 def history(path, person_id):
+    """Transfers and card payments of one person, newest first."""
     with _connect(path) as conn:
-        rows = conn.execute(
-            "SELECT * FROM payments WHERE sender = ? OR recipient = ? ORDER BY id DESC",
-            (person_id, person_id),
+        transfers = conn.execute(
+            "SELECT * FROM payments WHERE sender = ? OR recipient = ?", (person_id, person_id)
         ).fetchall()
-    return [dict(r) for r in rows]
+        cards = conn.execute("SELECT * FROM card_payments WHERE person = ?", (person_id,)).fetchall()
+    items = [{"kind": "transfer", **dict(r)} for r in transfers]
+    items += [{"kind": "card", **dict(r)} for r in cards]
+    items.sort(key=lambda i: (i["created_at"], i["id"]), reverse=True)
+    return items
 
 
 # ---- payment requests ----
@@ -356,8 +393,10 @@ def _group_dict(conn, g):
     }
 
 
-def create_group(path, creator, name, members):
-    """A new open group of `creator` plus `members` (ids of other people)."""
+def create_group(path, creator, name, members, expense=None):
+    """A new open group of `creator` plus `members` (ids of other people).
+
+    `expense` ({"amount", "description"}) is a first expense paid by `creator`."""
     name = _text(name, GROUP_NAME_MAX, "Group name")
     if not isinstance(members, list) or not members:
         raise PaymentError("Add at least one person")
@@ -366,6 +405,11 @@ def create_group(path, creator, name, members):
             raise PaymentError("You can only add the other people")
     if creator not in PEOPLE:
         raise PaymentError("Unknown person")
+    if expense is not None:
+        if not isinstance(expense, dict):
+            raise PaymentError("Expense must be an amount and a description")
+        _check_amount(expense.get("amount"))
+        description = _text(expense.get("description"), EXPENSE_DESC_MAX, "What it was for")
     with _transaction(path) as conn:
         group_id = conn.execute(
             "INSERT INTO settle_groups (name, creator, created_at) VALUES (?, ?, ?)",
@@ -373,6 +417,11 @@ def create_group(path, creator, name, members):
         ).lastrowid
         for person in {creator, *members}:
             conn.execute("INSERT INTO settle_members (group_id, person) VALUES (?, ?)", (group_id, person))
+        if expense is not None:
+            conn.execute(
+                "INSERT INTO expenses (group_id, payer, amount, description, created_at) VALUES (?, ?, ?, ?, ?)",
+                (group_id, creator, expense["amount"], description, _now()),
+            )
         g = conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone()
         return _group_dict(conn, g)
 

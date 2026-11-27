@@ -1,6 +1,7 @@
 import pytest
 
-from server.db import PaymentError, get_balance, history, init_db, reset_db, send_payment
+from server import db as server_db
+from server.db import PaymentError, card_payment, get_balance, history, init_db, reset_db, send_payment
 
 
 @pytest.fixture
@@ -169,3 +170,45 @@ def test_requests_by_lists_mine_with_status(db):
     assert status[a["id"]] == "paid" and status[b["id"]] == "declined"
     assert mine[0]["group"]["title"] == "Trip"
     assert requests_by(db, 3) == []
+
+
+def test_card_payment_lowers_balance_and_shows_in_history(db, monkeypatch):
+    times = iter(["2026-01-01T10:00:00", "2026-01-01T10:00:01", "2026-01-01T10:00:02"])
+    monkeypatch.setattr(server_db, "_now", lambda: next(times))
+    a = send_payment(db, 1, 2, 10)
+    c = card_payment(db, 1, 480, "  Pivnice  ")
+    b = send_payment(db, 3, 1, 20)
+    assert c["person"] == 1 and c["amount"] == 480 and c["note"] == "Pivnice"
+    assert get_balance(db, 1) == 10000 - 10 - 480 + 20
+    items = history(db, 1)
+    assert [(i["kind"], i["id"]) for i in items] == [
+        ("transfer", b["id"]), ("card", c["id"]), ("transfer", a["id"])]
+    assert items[1] == {"kind": "card", **c}
+    assert history(db, 2)[0]["kind"] == "transfer"
+
+
+def test_card_payment_insufficient_funds(db):
+    with pytest.raises(PaymentError, match="Insufficient funds"):
+        card_payment(db, 1, 10001)
+    assert balances(db) == [10000] * 4
+    assert history(db, 1) == []
+
+
+@pytest.mark.parametrize("amount", [0, -1, 2.5, "5", True])
+def test_card_payment_invalid_amount(db, amount):
+    with pytest.raises(PaymentError):
+        card_payment(db, 1, amount)
+    assert balances(db) == [10000] * 4
+
+
+def test_card_payment_note_too_long(db):
+    card_payment(db, 1, 5, "x" * 60)
+    with pytest.raises(PaymentError):
+        card_payment(db, 1, 5, "x" * 61)
+
+
+def test_reset_clears_card_payments(db):
+    card_payment(db, 1, 5)
+    reset_db(db)
+    assert history(db, 1) == []
+    assert balances(db) == [10000] * 4

@@ -85,6 +85,19 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
 
+    @app.post("/api/card-payments")
+    async def card_pay(request: Request):
+        try:
+            body = await _json_object(request)
+            payment = await run_in_threadpool(
+                db.card_payment, db_path, person_id, body.get("amount"), _note(body)
+            )
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        text = f"You paid {payment['amount']} CZK" + (f" · {payment['note']}" if payment["note"] else "")
+        await orch.send(person_id, {"type": "card_payment", "payment": payment, "text": text})
+        return payment
+
     me = db.PEOPLE[person_id]
 
     async def announce_request(req, title=None):
@@ -180,8 +193,11 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
     async def create_group(request: Request):
         try:
             body = await _json_object(request)
+            expense = body.get("expense")
+            if expense is not None and not isinstance(expense, dict):
+                raise BadInput("Expense must be an amount and a description")
             group = await run_in_threadpool(
-                db.create_group, db_path, person_id, body.get("name"), body.get("members")
+                db.create_group, db_path, person_id, body.get("name"), body.get("members"), expense
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))

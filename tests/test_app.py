@@ -252,3 +252,36 @@ def test_outsider_cannot_touch_group(clients):
     gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
     assert clients[4].post(f"/api/groups/{gid}/expenses", json={"amount": 5, "description": "x"}).status_code == 400
     assert clients[4].post(f"/api/groups/{gid}/approve").status_code == 400
+
+
+def test_card_payment_endpoint(clients):
+    with clients[1].websocket_connect("/ws") as ws1:
+        r = clients[1].post("/api/card-payments", json={"amount": 480, "note": "Pivnice U Tygra"})
+        assert r.status_code == 200 and r.json()["amount"] == 480
+        ev = ws1.receive_json()
+        assert ev["type"] == "card_payment"
+        assert ev["text"] == "You paid 480 CZK · Pivnice U Tygra"
+        assert ev["payment"]["id"] == r.json()["id"]
+        clients[1].post("/api/card-payments", json={"amount": 50})
+        assert ws1.receive_json()["text"] == "You paid 50 CZK"
+    s = clients[1].get("/api/state").json()
+    assert s["balance"] == 10000 - 530
+    assert [h["kind"] for h in s["history"]] == ["card", "card"]
+
+
+def test_card_payment_bad_bodies(clients):
+    for body in [{}, {"amount": 0}, {"amount": "5"}, {"amount": 2.5}, {"amount": 5, "note": 3},
+                 {"amount": 5, "note": "x" * 61}, {"amount": 10001}, []]:
+        assert clients[1].post("/api/card-payments", json=body).status_code == 400, body
+    assert clients[1].get("/api/state").json()["balance"] == 10000
+
+
+def test_create_group_with_expense_endpoint(clients):
+    r = clients[1].post("/api/groups", json={
+        "name": "Hospoda", "members": [2], "expense": {"amount": 480, "description": "Pivnice"}})
+    assert r.status_code == 200
+    g = clients[2].get("/api/state").json()["groups"][0]
+    assert g["total"] == 480 and g["expenses"][0]["payer"] == 1
+    r = clients[1].post("/api/groups", json={"name": "X", "members": [2], "expense": 5})
+    assert r.status_code == 400
+    assert len(clients[1].get("/api/state").json()["groups"]) == 1

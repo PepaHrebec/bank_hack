@@ -132,3 +132,17 @@ def test_group_reports_how_many_requests_were_sent(db):
     # Pepa is neither payer nor payee, and Jirka's request may later be paid: both still see it was sent.
     assert groups_for(db, 3)[0]["requests_sent"] == 1
     assert groups_for(db, 2)[0]["requests_sent"] == 1
+
+
+def test_create_group_with_starting_expense(db):
+    g = create_group(db, 1, "Hospoda", [2], expense={"amount": 480, "description": "Pivnice"})
+    assert g["total"] == 480
+    assert [(e["payer"], e["amount"], e["description"]) for e in g["expenses"]] == [(1, 480, "Pivnice")]
+
+
+def test_create_group_with_invalid_expense_creates_nothing(db):
+    with pytest.raises(PaymentError):
+        create_group(db, 1, "Hospoda", [2], expense={"amount": 0, "description": "Pivnice"})
+    with pytest.raises(PaymentError):
+        create_group(db, 1, "Hospoda", [2], expense={"amount": 5, "description": " "})
+    assert groups_for(db, 1) == []
