@@ -1,22 +1,23 @@
 # 1 · Geoff (10 s)
 
-*A pale-blue slide. The huge navy wordmark "Geoff" rises line by line from below and slowly tightens its letter spacing. The dot after it is Erste bright blue. The tagline slides up after it.*
+_A pale-blue slide. The huge navy wordmark "Geoff" rises line by line from below and slowly tightens its letter spacing. "Ge" and the dot are navy, while "off" is highlighted in Erste bright blue (in every big "Geoff" across the deck). The tagline slides up after it._
 
 **Geoff.**
 
-Banka, na kterou můžete zapomenout.
+Protože svět je sám o sobě složitý.
 
-> Poznámky: Tohle je Geoff. Banka, na kterou můžete zapomenout.
+> Poznámky: Tohle je Geoff. Protože svět je sám o sobě složitý.
 
 # 2 · Chaos (18 s)
 
-*The background turns glaring white. The headline appears in a white highlight box. Around it, about 24 nagging fintech notifications pop in one by one (pink, violet and white chips, red badge counters, small trend lines) and keep jittering. They are placed at random each time, but never cover the text or each other.*
+_The background turns glaring white. The headline appears in a white highlight box. Around it, about 24 nagging fintech notifications pop in one by one (pink, violet and white chips, red badge counters, small trend lines) and keep jittering. They are placed at random each time, but never cover the text or each other._
 
 **Chtěli jste jen vědět, kolik máte na účtu.**
 
 Každá aplikace chce minutu vaší pozornosti. Banka taky.
 
 Floating notifications:
+
 - 🔥 Série 14 dní! Nepřerušte ji
 - 📊 Váš týdenní přehled výdajů je tu
 - 🏅 Nový odznak: Spořílek III
@@ -42,30 +43,31 @@ Floating notifications:
 
 > Poznámky: Svět a to, jak s ním interagujeme, se každým dnem komplikuje. Každá služba zápasí o každou minutu naší pozornosti, a nevyhýbá se to ani financím. Chcete jen zjistit, kolik máte na účtu, a dostanete tucty grafů, upozornění a odznaků, které vás mají udržet u obrazovky.
 
-# 3 · Klid (20 s)
+# 3 · Klid (19 s)
 
-*All the notifications are swept off to the left, blurring as they go, and the calm pale-blue background returns. The headline rises in, then three moments of one evening appear left to right, each under a navy line. Each has a small ring that fills to show how many seconds it takes. The closing line fades in last.*
+_All the notifications are swept off to the left, blurring as they go, and the calm pale-blue background returns. The headline rises in, then three moments of one evening appear left to right, each under a navy line. The closing line fades in last._
 
 **Já chci být s přáteli, ne v aplikaci.**
 
-- 21:40 · **Na baru** · Kolik mám na účtu? · 3 s
-- 22:15 · **Ve frontě** · Poslat Jirkovi za lístek · 8 s
-- 23:50 · **V tramvaji** · Poprosit kluky o jejich podíl · 6 s
+- 21:40 · **Na bowlingu** · Kolik mám na účtu?
+- 22:15 · **Ve frontě** · Poslat Jirkovi za lístek
+- 23:50 · **V tramvaji** · Poprosit partu o jejich podíl
 
 Zbytek večera patří **skutečnému světu.**
 
-> Poznámky: Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím na barové stoličce, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.
+> Poznámky: Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím s přáteli na bowlingu, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.
 
 # 4 · Bankéř (16 s)
 
-*The headline and subtitle are on the left. On the right is a diagram: a navy "Výplata" box. Three blue lines draw themselves down from it to three containers. Small dots flow along the lines while each container fills with light blue and its amount counts up.*
+_The headline and subtitle are on the left. On the right is a diagram: a navy "Výplata" box. Three blue lines draw themselves down from it to three containers. Small dots flow along the lines while each container fills with light blue and its amount counts up._
 
 **Nejlepší interakce je žádná interakce.**
 
 Dřív jste měli bankéře, který se o všechno postaral.
-Geoff je ten bankéř: výplata přijde a sama se rozdělí.
+Ge**off** je ten bankéř: výplata přijde a sama se rozdělí.
 
 Diagram:
+
 - Výplata +42 000 Kč
 - Účet 28 000
 - Spoření 9 000
@@ -75,22 +77,22 @@ Diagram:
 
 # 5 · Proto Geoff (12 s)
 
-*A phone swings up into place on the right and stays there through slide 10. It shows its home screen: a colourful wallpaper, a frosted Geoff widget, app icons and a dock. On the left, the headline and four lines rise in one after another.*
+_A phone swings up into place on the right and stays there through slide 10. It starts on the Geoff app's main screen. On the left, the headline and four lines rise in one after another._
 
-**Proto Geoff.**
+**Proto Geoff.** (with "off" highlighted)
 
 - Kolik máte peněz.
 - Peníze mezi přáteli.
 - QR kódy.
-- A těch 16 piv *rozdělených mezi 5 přátel.*
+- A bowling _rozdělený mezi 5 přátel._
 
-On the phone (widget): Geoff · Zůstatek · 31 615 Kč · +110 Kč dnes · Spustit skupinovou platbu · icons Fotky, Mapy, Poznámky, Geoff
+On the phone (app main screen): Zůstatek · 31 615 Kč · +110 Kč dnes · Kontakty · QR kód · Spustit skupinovou platbu · Zeptej se mě na své platby. · Dnes · Tento měsíc · Kolik dlužím? · Kdo dluží mně? · Moje skupiny · Napiš zprávu… · Poslat
 
 > Poznámky: Věci jdou dělat jednoduše, jen jsme na to rezignovali. Nepřicházíme s deseti novými funkcemi ani s bankovnictvím v lednici. Přicházíme s Geoffem a se čtyřmi věcmi, které opravdu potřebujete.
 
 # 6 · Kolik máte peněz (14 s)
 
-*On the home screen, the widget balance counts up from zero. A tap ripple hits the widget and the app zooms open out of its icon onto the main screen. A tap on the blue balance card slides in History. A tap on the back arrow returns to the main screen.*
+_Two steps. First the text rises in while the app closes back into its icon and the phone stays still on the home screen: a colourful wallpaper, the frosted Geoff widget showing the balance, app icons and a dock. On the next click (or after 3 s in autoplay) the animation starts: a tap ripple hits the widget and the app zooms open out of its icon onto the main screen. A tap on the blue balance card slides in History. A tap on the back arrow returns to the main screen._
 
 Kolik máte peněz
 
@@ -99,6 +101,8 @@ Kolik máte peněz
 Zůstatek a dnešní změna rovnou na ploše. Historie je o klepnutí dál.
 
 On the phone:
+
+- Home screen widget: Geoff · Zůstatek · 31 615 Kč · +110 Kč dnes · Spustit skupinovou platbu · icons Fotky, Mapy, Poznámky, Geoff
 - Main screen: Zůstatek · 31 615 Kč · +110 Kč dnes · Kontakty · QR kód · Spustit skupinovou platbu · chat panel „Zeptej se mě na své platby.“ with chips Dnes, Tento měsíc, Kolik dlužím?, Kdo dluží mně?, Moje skupiny · Napiš zprávu… · Poslat
 - Historie:
   - Od Štěpán Pressl · kebab · 27.11.2026 20:12 · +120 Kč
@@ -112,9 +116,9 @@ On the phone:
 
 > Poznámky: Kolik máte peněz, vidíte hned na ploše, i s tím, o kolik se to dnes změnilo. Žádné bannery, žádné nabídky. Klepnete a jste v aplikaci. Historie, i s výplatou, je o jedno klepnutí dál.
 
-# 7 · Peníze mezi přáteli (18 s)
+# 7 · Peníze mezi přáteli (19 s)
 
-*The phone taps Kontakty, then Jirka (his row highlights). The pay screen slides in, and "350" and "lístek na koncert" are typed in with a blinking cursor. Poslat is tapped and a green confirmation appears; the balance drops. Then a notification slides down from the top with Zaplatit / Odmítnout buttons. Zaplatit is tapped, the buttons turn into a green "Zaplaceno", and the notification slides away.*
+_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Jirka (his row highlights). The pay screen slides in, and "350" and "lístek na koncert" are typed in with a blinking cursor. Poslat is tapped and a green confirmation appears; the balance drops. Then a notification slides down from the top with Zaplatit / Odmítnout buttons. Zaplatit is tapped, the buttons turn into a green "Zaplaceno", and the notification slides away._
 
 Peníze mezi přáteli
 
@@ -123,6 +127,7 @@ Peníze mezi přáteli
 Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte rovnou z notifikace.
 
 On the phone:
+
 - Kontakty: Skupinové vyrovnání · K zaplacení (badge 1) · Štěpán Pressl · Jirka Měřínský · Petr Šafář · Ondra Kubát · Bára Nováková
 - Poslat peníze: Jirka Měřínský · Platba / Žádost · 350 · lístek na koncert · Poslat · Odesláno · 350 Kč pro Jirku
 - Notification: Geoff · teď · Štěpán Pressl žádá 120 Kč · kebab · Zaplatit · Odmítnout → Zaplaceno
@@ -131,7 +136,7 @@ On the phone:
 
 # 8 · QR kódy (10 s)
 
-*The phone taps the QR kód tile and the QR screen slides in. The amount and note are typed in, and the caption under the code updates as you type.*
+_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps the QR kód tile and the QR screen slides in. The amount and note are typed in, and the caption under the code updates as you type._
 
 QR kódy
 
@@ -139,46 +144,48 @@ QR kódy
 
 Pro každého, koho v kontaktech nemáte.
 
-On the phone: QR kód · Naskenuj a zaplať → 160 Kč · za pivo · fields 160 and za pivo
+On the phone: QR kód · Naskenuj a zaplať → 90 Kč · za kávu · fields 90 and za kávu
 
 > Poznámky: Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.
 
 # 9 · Skupinová platba (32 s)
 
-*The phone is on its home screen. The widget's "Spustit skupinovou platbu" is tapped and turns red, with a pulsing dot that counts recorded payments. Two card-payment notifications drop in as the clock moves from 21:48 to 23:20, and the counter rises. At 23:31 the recording is stopped and a popup sheet slides up from the bottom. "Vytvořit skupinové vyrovnání" is tapped, the group name is typed and five friends are ticked one by one. The new group opens and "Schválit a rozdělit" is tapped. The status turns green and the five requests switch from "Čeká" to "Zaplaceno" one at a time while a progress bar fills. On the left, four numbers light up in step with the phone, and the last one counts up to 800 Kč.*
+_The phone is on its home screen. The widget's "Spustit skupinovou platbu" is tapped and turns red, with a pulsing dot that counts recorded payments. Two card-payment notifications drop in as the clock moves from 19:10 (bowling) to 21:20 (pizza), and the counter rises. At 22:40 the recording is stopped and a popup sheet slides up from the bottom. "Vytvořit skupinové vyrovnání" is tapped, the group name is typed and five friends are ticked one by one. The new group opens and "Schválit a rozdělit" is tapped. The status turns green and the five requests switch from "Čeká" to "Zaplaceno" one at a time while a progress bar fills. On the left, four numbers light up in step with the phone, and the last one counts up to 2 400 Kč._
 
 Skupinová platba
 
-**Spustit na baru. Rozdělit v tramvaji.**
+**Spustit při hře. Rozdělit v tramvaji.**
 
-- **16** piv u Tygra
-- **2** platby kartou, zaznamenané samy
-- **6** lidí u stolu
-- **800 Kč** zpátky na účtu
+- **1 200 Kč** bowling
+- **1 680 Kč** pizza pro celou partu
+- **6** lidí v partě
+- **2 400 Kč** zpátky na účtu
 
 On the phone:
-- Widget: Ukončit skupinovou platbu · Zaznamenáno: 2 platby · 960 Kč
-- Notifications: Platba kartou 600 Kč · Pivnice U Tygra · přidáno do skupinové platby / Platba kartou 360 Kč · Pivnice U Tygra · přidáno do skupinové platby
-- Popup: Skupinová platba ukončena · Pivnice U Tygra 27.11.2026 21:48 −600 Kč · Pivnice U Tygra 27.11.2026 23:20 −360 Kč · Celkem: 960 Kč · Vytvořit skupinové vyrovnání · Nebo přidat do skupiny: Chata Krkonoše · Nic nedělat
-- Nová skupina: U Tygra · 2 platby · 960 Kč · zaplaceno tebou · Kdo je ve skupině: Štěpán Pressl, Jirka Měřínský, Petr Šafář, Ondra Kubát, Bára Nováková · Vytvořit skupinu
-- U Tygra: Založeno mnou · 960 Kč · utraceno společně · Otevřená → Schválená · Ty, Štěpán, Jirka, Petr, Ondra, Bára · Výdaje: Pivnice U Tygra (Ty · 21:48) 600 Kč, Pivnice U Tygra (Ty · 23:20) 360 Kč · Schválit a rozdělit · Žádosti · 160 Kč na osobu · Štěpán, Jirka, Petr, Ondra, Bára: Čeká → Zaplaceno
 
-> Poznámky: A teď ten večer. Nabídli jste se, že tentokrát pivo platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dvě rundy u Tygra, šestnáct piv. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.
+- Widget: Ukončit skupinovou platbu · Zaznamenáno: 2 platby · 2 880 Kč
+- Notifications: Platba kartou 1 200 Kč · Bowling Strike · přidáno do skupinové platby / Platba kartou 1 680 Kč · Pizzerie Napoli · přidáno do skupinové platby
+- Popup: Skupinová platba ukončena · Bowling Strike 27.11.2026 19:10 −1 200 Kč · Pizzerie Napoli 27.11.2026 21:20 −1 680 Kč · Celkem: 2 880 Kč · Vytvořit skupinové vyrovnání · Nebo přidat do skupiny: Chata Krkonoše · Nic nedělat
+- Nová skupina: Bowling · 2 platby · 2 880 Kč · zaplaceno tebou · Kdo je ve skupině: Štěpán Pressl, Jirka Měřínský, Petr Šafář, Ondra Kubát, Bára Nováková · Vytvořit skupinu
+- Bowling: Založeno mnou · 2 880 Kč · utraceno společně · Otevřená → Schválená · Ty, Štěpán, Jirka, Petr, Ondra, Bára · Výdaje: Bowling Strike (Ty · 19:10) 1 200 Kč, Pizzerie Napoli (Ty · 21:20) 1 680 Kč · Schválit a rozdělit · Žádosti · 480 Kč na osobu · Štěpán, Jirka, Petr, Ondra, Bára: Čeká → Zaplaceno
+
+> Poznámky: A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.
 
 # 10 · Všechno ostatní (16 s)
 
-*The phone is on the app's main screen at 23:58. The "Tento měsíc" chip is tapped: a blue question bubble pops in, then a grey "…" bubble that turns into Geoff's answer. The same happens with "Kolik dlužím?".*
+_The phone is on the app's main screen at 23:58. The "Tento měsíc" chip is tapped: a blue question bubble pops in, then a grey "…" bubble that turns into Geoff's answer. The same happens with "Kolik dlužím?"._
 
 Všechno ostatní
 
 **Chcete přehled? Zeptejte se.**
 
-Geoff odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.
+Ge**off** odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.
 
 On the phone:
-- Zůstatek · 30 985 Kč · −160 Kč dnes
+
+- Zůstatek · 30 665 Kč · −480 Kč dnes
 - Shrň mi platby za tento měsíc.
-- Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pivnice U Tygra (1 840 Kč).
+- Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pizzerie Napoli (1 680 Kč).
 - Komu a kolik dlužím?
 - Štěpánovi dlužíš 250 Kč za Chatu Krkonoše. Nikomu dalšímu nic nedlužíš.
 
@@ -186,12 +193,12 @@ On the phone:
 
 # 11 · Závěr (12 s)
 
-*The phone drops away. The large headline rises in line by line. After a pause the blue closing line follows, and finally a small "Geoff." signature fades in at the bottom right.*
+_The phone drops away. The large headline rises in line by line. After a pause the blue closing line follows, and finally a small "Geoff." signature fades in at the bottom right._
 
-**A to je všechno, co Geoff nabízí.**
+**A to je všechno, co Geoff nabízí.** (with "off" highlighted)
 
 Protože svět je komplikovaný už teď.
 
-Geoff.
+Geoff. (signature, "off" highlighted)
 
 > Poznámky: A to je všechno, co Geoff nabízí. Protože svět je komplikovaný už teď.

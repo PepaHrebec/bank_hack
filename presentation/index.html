@@ -19,7 +19,7 @@
   --blue: #7B2FF7;
   --bg: var(--fog);
   --ease: cubic-bezier(.2, .8, .2, 1);
-  --ph: min(76vh, 720px);
+  --ph: min(80vh, 760px);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
@@ -64,19 +64,19 @@ button { font: inherit; color: inherit; }
 
 h1, h2, p { margin: 0; }
 .display {
-  font-size: clamp(2.6rem, 6.6vw, 7.6rem);
+  font-size: clamp(3rem, 7.6vw, 8.8rem);
   font-weight: 800;
   line-height: .98;
   letter-spacing: -.045em;
 }
 .h {
-  font-size: clamp(2rem, 4.3vw, 4.8rem);
+  font-size: clamp(2.4rem, 5.1vw, 5.8rem);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -.04em;
 }
 .lede {
-  font-size: clamp(1.1rem, 1.7vw, 1.65rem);
+  font-size: clamp(1.3rem, 2.1vw, 2.05rem);
   font-weight: 400;
   line-height: 1.4;
   max-width: 34ch;
@@ -87,19 +87,20 @@ h1, h2, p { margin: 0; }
 
 /* ---------- 1 intro ---------- */
 #s-intro .wordmark {
-  font-size: clamp(5rem, 21vw, 24rem);
+  font-size: clamp(5.5rem, 24vw, 27rem);
   font-weight: 800;
   line-height: .8;
   letter-spacing: 0;
   transition: letter-spacing 2.4s var(--ease);
 }
 #s-intro.active .wordmark { letter-spacing: -.065em; }
-#s-intro .wordmark .dot { color: var(--amber); }
-#s-intro .lede { margin-top: .6em; font-size: clamp(1.3rem, 2.4vw, 2.4rem); max-width: none; }
+#s-intro .wordmark .dot { color: var(--ink); }
+.off { color: var(--moss); }
+#s-intro .lede { margin-top: .6em; font-size: clamp(1.6rem, 3vw, 3rem); max-width: none; }
 
 /* ---------- 2 chaos ---------- */
 #s-chaos { z-index: 4; align-items: flex-start; }
-#s-chaos .h { font-size: clamp(2.2rem, 5.4vw, 6.2rem); }
+#s-chaos .h { font-size: clamp(2.6rem, 6.4vw, 7.4rem); }
 #s-chaos .r > span > span { background: var(--glare); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 0 .12em; }
 .noise { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
 .chip {
@@ -109,7 +110,7 @@ h1, h2, p { margin: 0; }
   border-radius: 1.1em;
   background: #fff;
   box-shadow: 0 10px 30px -8px rgba(11, 31, 66, .28), 0 0 0 1px rgba(11, 31, 66, .06);
-  font: 600 clamp(.72rem, 1vw, .98rem)/1.25 system-ui, -apple-system, sans-serif;
+  font: 600 clamp(.85rem, 1.2vw, 1.15rem)/1.25 system-ui, -apple-system, sans-serif;
   color: #1a1a2e;
   white-space: nowrap;
   opacity: 0;
@@ -136,15 +137,15 @@ h1, h2, p { margin: 0; }
 .evening { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vw; margin-top: 7vh; max-width: 1200px; }
 .moment { border-top: 2px solid var(--ink); padding-top: 1.1rem; }
 .moment .time { font-weight: 500; font-variant-numeric: tabular-nums; }
-.moment .place { font-size: clamp(1.5rem, 2.4vw, 2.6rem); font-weight: 800; letter-spacing: -.02em; margin: .2em 0 .1em; }
-.moment .what { color: color-mix(in srgb, var(--ink) 70%, transparent); font-size: clamp(1rem, 1.25vw, 1.2rem); }
+.moment .place { font-size: clamp(1.8rem, 2.9vw, 3.1rem); font-weight: 800; letter-spacing: -.02em; margin: .2em 0 .1em; }
+.moment .what { color: color-mix(in srgb, var(--ink) 70%, transparent); font-size: clamp(1.2rem, 1.55vw, 1.5rem); }
 .ring { display: flex; align-items: center; gap: .6em; margin-top: 1.2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .ring svg { width: 2.4rem; height: 2.4rem; transform: rotate(-90deg); }
 .ring circle { fill: none; stroke-width: 4; }
 .ring .track { stroke: color-mix(in srgb, var(--ink) 12%, transparent); }
 .ring .fill { stroke: var(--moss); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1.6s var(--ease); }
 .slide.active .ring .fill { stroke-dashoffset: var(--to); transition-delay: calc(var(--d) * 110ms + 600ms); }
-.rest { margin-top: 6vh; font-size: clamp(1.4rem, 2.4vw, 2.4rem); font-weight: 600; letter-spacing: -.01em; }
+.rest { margin-top: 6vh; font-size: clamp(1.7rem, 2.9vw, 2.9rem); font-weight: 600; letter-spacing: -.01em; }
 .rest b { color: var(--moss); font-weight: 750; }
 
 /* ---------- 4 principle ---------- */
@@ -163,16 +164,16 @@ h1, h2, p { margin: 0; }
 
 /* ---------- 5 four things ---------- */
 .four { list-style: none; padding: 0; margin: 5vh 0 0; }
-.four li { font-size: clamp(1.4rem, 2.5vw, 2.6rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.12; }
+.four li { font-size: clamp(1.7rem, 3vw, 3.1rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.12; }
 .four li + li { margin-top: .25em; }
 .four li .muted { font-weight: 400; }
 
 /* feature slides */
-.kicker { font-weight: 600; color: var(--moss); font-size: clamp(1rem, 1.3vw, 1.25rem); margin-bottom: 1.2rem; }
-.big-stat { font-size: clamp(2.3rem, 4.2vw, 4.6rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.kicker { font-weight: 600; color: var(--moss); font-size: clamp(1.2rem, 1.6vw, 1.55rem); margin-bottom: 1.2rem; }
+.big-stat { font-size: clamp(2.7rem, 5vw, 5.4rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
 .math { display: grid; grid-template-columns: auto 1fr; column-gap: 1.2rem; row-gap: .2rem; margin-top: 4.5vh; align-items: baseline; }
 .math .big-stat { text-align: right; }
-.math .lbl { font-size: clamp(1rem, 1.4vw, 1.35rem); color: color-mix(in srgb, var(--ink) 65%, transparent); }
+.math .lbl { font-size: clamp(1.2rem, 1.7vw, 1.65rem); color: color-mix(in srgb, var(--ink) 65%, transparent); }
 .math .big-stat.amber { color: var(--moss); }
 .math .row { display: contents; }
 .math .row .big-stat, .math .row .lbl { opacity: .12; transition: opacity .6s var(--ease); }
@@ -180,9 +181,9 @@ h1, h2, p { margin: 0; }
 
 /* ---------- 11 outro ---------- */
 #s-outro .display { max-width: 14ch; }
-#s-outro .second { margin-top: 5vh; font-size: clamp(1.6rem, 3.4vw, 3.6rem); font-weight: 500; letter-spacing: -.02em; line-height: 1.05; color: var(--moss); }
-#s-outro .sign { position: absolute; right: 7vw; bottom: 8vh; font-size: clamp(2rem, 4vw, 4rem); font-weight: 800; letter-spacing: -.05em; }
-#s-outro .sign span { color: var(--amber); }
+#s-outro .second { margin-top: 5vh; font-size: clamp(1.9rem, 4vw, 4.3rem); font-weight: 500; letter-spacing: -.02em; line-height: 1.05; color: var(--moss); }
+#s-outro .sign { position: absolute; right: 7vw; bottom: 8vh; font-size: clamp(2.4rem, 4.8vw, 4.8rem); font-weight: 800; letter-spacing: -.05em; }
+#s-outro .sign .off { color: var(--moss); }
 
 /* ---------- phone: mirrors the real Geoff app (web/app.css, web/phone.css) ---------- */
 .stage {
@@ -433,7 +434,7 @@ body.show-hud .hud, .hud:focus-within { opacity: 1; }
 .ticks i b { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ink); }
 .ticks i.past b { width: 100%; }
 
-.notes { position: fixed; left: 7vw; right: 7vw; bottom: 8vh; z-index: 12; background: var(--ink); color: var(--foam); padding: 1.1rem 1.4rem; border-radius: 1rem; font-size: 1.05rem; line-height: 1.5; max-width: 900px; display: none; }
+.notes { position: fixed; left: 7vw; right: 7vw; bottom: 8vh; z-index: 12; background: var(--ink); color: var(--foam); padding: 1.1rem 1.4rem; border-radius: 1rem; font-size: 1.25rem; line-height: 1.5; max-width: 900px; display: none; }
 body.show-notes .notes { display: block; }
 .notes small { display: block; opacity: .55; margin-bottom: .3em; }
 
@@ -458,9 +459,9 @@ body.show-notes .notes { display: block; }
 
 <!-- 1 -->
 <section class="slide" id="s-intro" data-dur="10" data-bg="#EEF4FD"
-  data-notes="Tohle je Geoff. Banka, na kterou můžete zapomenout.">
-  <h1 class="wordmark"><span class="r"><span>Geoff<span class="dot">.</span></span></span></h1>
-  <p class="lede"><span class="r"><span style="--d:3">Banka, na kterou můžete zapomenout.</span></span></p>
+  data-notes="Tohle je Geoff. Protože svět je sám o sobě složitý.">
+  <h1 class="wordmark"><span class="r"><span>Ge<span class="off">off</span><span class="dot">.</span></span></span></h1>
+  <p class="lede"><span class="r"><span style="--d:3">Protože svět je sám o sobě složitý.</span></span></p>
 </section>
 
 <!-- 2 -->
@@ -474,8 +475,8 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 3 -->
-<section class="slide" id="s-calm" data-dur="20" data-bg="#EEF4FD"
-  data-notes="Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím na barové stoličce, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.">
+<section class="slide" id="s-calm" data-dur="19" data-bg="#EEF4FD"
+  data-notes="Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím s přáteli na bowlingu, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.">
   <h2 class="h">
     <span class="r"><span style="--d:0">Já chci být s přáteli,</span></span>
     <span class="r"><span style="--d:1">ne v aplikaci.</span></span>
@@ -483,21 +484,18 @@ body.show-notes .notes { display: block; }
   <div class="evening">
     <div class="moment f" style="--d:3">
       <div class="time muted">21:40</div>
-      <div class="place">Na baru</div>
+      <div class="place">Na bowlingu</div>
       <div class="what">Kolik mám na účtu?</div>
-      <div class="ring" style="--d:3;--to:70"><svg viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" pathLength="100"/></svg>3 s</div>
     </div>
     <div class="moment f" style="--d:5">
       <div class="time muted">22:15</div>
       <div class="place">Ve frontě</div>
       <div class="what">Poslat Jirkovi za lístek</div>
-      <div class="ring" style="--d:5;--to:20"><svg viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" pathLength="100"/></svg>8 s</div>
     </div>
     <div class="moment f" style="--d:7">
       <div class="time muted">23:50</div>
       <div class="place">V tramvaji</div>
-      <div class="what">Poprosit kluky o jejich podíl</div>
-      <div class="ring" style="--d:7;--to:40"><svg viewBox="0 0 40 40"><circle class="track" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" pathLength="100"/></svg>6 s</div>
+      <div class="what">Poprosit partu o jejich podíl</div>
     </div>
   </div>
   <p class="rest f" style="--d:10">Zbytek večera patří <b>skutečnému světu.</b></p>
@@ -511,7 +509,7 @@ body.show-notes .notes { display: block; }
       <span class="r"><span style="--d:0">Nejlepší interakce</span></span>
       <span class="r"><span style="--d:1">je žádná interakce.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Dřív jste měli bankéře, který se o všechno postaral.</span></span><span class="r"><span style="--d:4">Geoff je ten bankéř: výplata přijde a sama se rozdělí.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Dřív jste měli bankéře, který se o všechno postaral.</span></span><span class="r"><span style="--d:4">Ge<span class="off">off</span> je ten bankéř: výplata přijde a sama se rozdělí.</span></span></p>
   </div>
   <div class="flow f" style="--d:2">
     <svg viewBox="0 0 600 470" aria-label="Výplata se sama rozdělí na účet, spoření a stavebko">
@@ -550,18 +548,18 @@ body.show-notes .notes { display: block; }
 <section class="slide with-phone" id="s-geoff" data-dur="12" data-bg="#EEF4FD" data-phone="on"
   data-notes="Věci jdou dělat jednoduše, jen jsme na to rezignovali. Nepřicházíme s deseti novými funkcemi ani s bankovnictvím v lednici. Přicházíme s Geoffem a se čtyřmi věcmi, které opravdu potřebujete.">
   <div class="copy">
-    <h2 class="h"><span class="r"><span style="--d:0">Proto Geoff.</span></span></h2>
+    <h2 class="h"><span class="r"><span style="--d:0">Proto Ge<span class="off">off</span>.</span></span></h2>
     <ul class="four">
       <li><span class="r"><span style="--d:2">Kolik máte peněz.</span></span></li>
       <li><span class="r"><span style="--d:3">Peníze mezi přáteli.</span></span></li>
       <li><span class="r"><span style="--d:4">QR kódy.</span></span></li>
-      <li><span class="r"><span style="--d:5">A těch 16 piv <span class="muted">rozdělených mezi 5 přátel.</span></span></span></li>
+      <li><span class="r"><span style="--d:5">A bowling <span class="muted">rozdělený mezi 5 přátel.</span></span></span></li>
     </ul>
   </div>
 </section>
 
 <!-- 6 -->
-<section class="slide with-phone" id="s-balance" data-dur="14" data-bg="#EEF4FD" data-phone="on"
+<section class="slide with-phone" id="s-balance" data-dur="14" data-hold="3" data-bg="#EEF4FD" data-phone="on"
   data-notes="Kolik máte peněz, vidíte hned na ploše, i s tím, o kolik se to dnes změnilo. Žádné bannery, žádné nabídky. Klepnete a jste v aplikaci. Historie, i s výplatou, je o jedno klepnutí dál.">
   <div class="copy">
     <p class="kicker f">Kolik máte peněz</p>
@@ -575,7 +573,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 7 -->
-<section class="slide with-phone" id="s-pay" data-dur="18" data-bg="#EEF4FD" data-phone="on"
+<section class="slide with-phone" id="s-pay" data-dur="19" data-hold="3" data-bg="#EEF4FD" data-phone="on"
   data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, zaplatíte rovnou z notifikace. Aplikaci ani nemusíte otevírat.">
   <div class="copy">
     <p class="kicker f">Peníze mezi přáteli</p>
@@ -588,7 +586,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 8 -->
-<section class="slide with-phone" id="s-qr" data-dur="10" data-bg="#EEF4FD" data-phone="on"
+<section class="slide with-phone" id="s-qr" data-dur="10" data-hold="3" data-bg="#EEF4FD" data-phone="on"
   data-notes="Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.">
   <div class="copy">
     <p class="kicker f">QR kódy</p>
@@ -602,17 +600,17 @@ body.show-notes .notes { display: block; }
 
 <!-- 9 -->
 <section class="slide with-phone" id="s-beers" data-dur="32" data-bg="#EEF4FD" data-phone="on"
-  data-notes="A teď ten večer. Nabídli jste se, že tentokrát pivo platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dvě rundy u Tygra, šestnáct piv. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
+  data-notes="A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
   <div class="copy">
     <p class="kicker f">Skupinová platba</p>
     <h2 class="h">
-      <span class="r"><span style="--d:0">Spustit na baru.</span></span>
+      <span class="r"><span style="--d:0">Spustit při hře.</span></span>
       <span class="r"><span style="--d:1">Rozdělit v tramvaji.</span></span>
     </h2>
     <div class="math">
-      <div class="row"><span class="big-stat">16</span><span class="lbl">piv u Tygra</span></div>
-      <div class="row"><span class="big-stat">2</span><span class="lbl">platby kartou, zaznamenané samy</span></div>
-      <div class="row"><span class="big-stat">6</span><span class="lbl">lidí u stolu</span></div>
+      <div class="row"><span class="big-stat">1 200 Kč</span><span class="lbl">bowling</span></div>
+      <div class="row"><span class="big-stat">1 680 Kč</span><span class="lbl">pizza pro celou partu</span></div>
+      <div class="row"><span class="big-stat">6</span><span class="lbl">lidí v partě</span></div>
       <div class="row"><span class="big-stat amber" id="backStat">0 Kč</span><span class="lbl">zpátky na účtu</span></div>
     </div>
   </div>
@@ -627,7 +625,7 @@ body.show-notes .notes { display: block; }
       <span class="r"><span style="--d:0">Chcete přehled?</span></span>
       <span class="r"><span style="--d:1">Zeptejte se.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Geoff odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Ge<span class="off">off</span> odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.</span></span></p>
   </div>
 </section>
 
@@ -636,10 +634,10 @@ body.show-notes .notes { display: block; }
   data-notes="A to je všechno, co Geoff nabízí. Protože svět je komplikovaný už teď.">
   <h2 class="display">
     <span class="r"><span style="--d:0">A to je všechno,</span></span>
-    <span class="r"><span style="--d:1">co Geoff nabízí.</span></span>
+    <span class="r"><span style="--d:1">co Ge<span class="off">off</span> nabízí.</span></span>
   </h2>
   <p class="second"><span class="r"><span style="--d:14">Protože svět je komplikovaný už teď.</span></span></p>
-  <div class="sign f" style="--d:18">Geoff<span>.</span></div>
+  <div class="sign f" style="--d:18">Ge<span class="off">off</span>.</div>
 </section>
 
 <div class="noise" id="noise" aria-hidden="true"></div>
@@ -768,7 +766,7 @@ body.show-notes .notes { display: block; }
           <div class="vh"><span class="back ico" data-ico="back"></span><h3>Nová skupina</h3></div>
           <div class="pcard">
             <div class="field" id="ngName"></div>
-            <div class="ng-exp">2 platby · 960 Kč · zaplaceno tebou</div>
+            <div class="ng-exp">2 platby · 2 880 Kč · zaplaceno tebou</div>
             <div class="sect">Kdo je ve skupině</div>
             <div id="picks">
               <div class="crow compact"><span class="box ico" data-ico="check"></span><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán Pressl</span></div>
@@ -783,9 +781,9 @@ body.show-notes .notes { display: block; }
 
         <!-- one group -->
         <div class="scr" data-s="group">
-          <div class="vh"><span class="back ico" data-ico="back"></span><h3>U Tygra</h3></div>
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>Bowling</h3></div>
           <div class="gcard">
-            <div class="gtop"><div><small>Založeno mnou</small><div class="gtot">960 Kč</div><small>utraceno společně</small></div><span class="pill open" id="gStatus">Otevřená</span></div>
+            <div class="gtop"><div><small>Založeno mnou</small><div class="gtot">2 880 Kč</div><small>utraceno společně</small></div><span class="pill open" id="gStatus">Otevřená</span></div>
             <div class="members">
               <span class="member"><span class="av" style="background:#f5a623">PH</span>Ty</span>
               <span class="member"><span class="av" style="background:#3b6cff">ŠP</span>Štěpán</span>
@@ -798,13 +796,13 @@ body.show-notes .notes { display: block; }
           <div id="gExp">
             <div class="sect">Výdaje</div>
             <div class="clist">
-              <div class="crow compact"><span class="av ico" data-ico="card"></span><span class="nm">Pivnice U Tygra<span class="sub">Ty · 21:48</span></span><span class="amt">600 Kč</span></div>
-              <div class="crow compact"><span class="av ico" data-ico="card"></span><span class="nm">Pivnice U Tygra<span class="sub">Ty · 23:20</span></span><span class="amt">360 Kč</span></div>
+              <div class="crow compact"><span class="av ico" data-ico="card"></span><span class="nm">Bowling Strike<span class="sub">Ty · 19:10</span></span><span class="amt">1 200 Kč</span></div>
+              <div class="crow compact"><span class="av ico" data-ico="card"></span><span class="nm">Pizzerie Napoli<span class="sub">Ty · 21:20</span></span><span class="amt">1 680 Kč</span></div>
             </div>
           </div>
           <div class="sbtn" id="gApprove" style="margin-top:.9em">Schválit a rozdělit</div>
           <div id="gReq" hidden>
-            <div class="sect">Žádosti · 160 Kč na osobu</div>
+            <div class="sect">Žádosti · 480 Kč na osobu</div>
             <div class="meter"><i id="gMeter"></i></div>
             <div class="clist" id="gRows">
               <div class="crow compact"><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán</span><span class="pill">Čeká</span></div>
@@ -821,9 +819,9 @@ body.show-notes .notes { display: block; }
       <div class="sheet-bg" id="sheet">
         <div class="sheet">
           <h4>Skupinová platba ukončena</h4>
-          <div class="prow"><div><b>Pivnice U Tygra</b><small>27.11.2026 21:48</small></div><span class="amt">−600 Kč</span></div>
-          <div class="prow"><div><b>Pivnice U Tygra</b><small>27.11.2026 23:20</small></div><span class="amt">−360 Kč</span></div>
-          <div class="ptotal">Celkem: 960 Kč</div>
+          <div class="prow"><div><b>Bowling Strike</b><small>27.11.2026 19:10</small></div><span class="amt">−1 200 Kč</span></div>
+          <div class="prow"><div><b>Pizzerie Napoli</b><small>27.11.2026 21:20</small></div><span class="amt">−1 680 Kč</span></div>
+          <div class="ptotal">Celkem: 2 880 Kč</div>
           <div class="sbtn" id="shCreate">Vytvořit skupinové vyrovnání</div>
           <div class="psub">Nebo přidat do skupiny:</div>
           <div class="pbtn">Chata Krkonoše</div>
@@ -1069,16 +1067,15 @@ body.show-notes .notes { display: block; }
       });
       at(5600, () => $$(".flow .bead").forEach((b) => (b.style.opacity = 0)));
     },
-    "s-geoff"() { resetPhone("21:40"); screen("home"); },
+    "s-geoff"() { resetPhone("21:40"); screen("main"); },
     "s-balance"() {
       resetPhone("21:40"); screen("home");
-      tween($("#wBal"), 0, 31615, 1400);
-      at(4000, () => tap($("#widget")));
-      at(4300, () => screen("main"));
-      at(7600, () => tap($("#balCard")));
-      at(7900, () => screen("history"));
-      at(12000, () => tap($("#histBack")));
-      at(12300, () => screen("main"));
+      at(800, () => tap($("#widget")));
+      at(1100, () => screen("main"));
+      at(4400, () => tap($("#balCard")));
+      at(4700, () => screen("history"));
+      at(8800, () => tap($("#histBack")));
+      at(9100, () => screen("main"));
     },
     "s-pay"() {
       resetPhone("22:15"); screen("main");
@@ -1106,13 +1103,13 @@ body.show-notes .notes { display: block; }
       placeholder(a, "Částka (Kč)"); placeholder(n, "Poznámka (nepovinná)"); cap.textContent = "Naskenuj a zaplať";
       at(600, () => tap($("#tQr")));
       at(900, () => screen("qr"));
-      let t = type(a, "160", 2000, 140);
-      at(t + 50, () => { cap.textContent = "160 Kč"; a.classList.remove("focus", "caret"); });
-      t = type(n, "za pivo", t + 400, 80);
-      at(t + 50, () => { cap.textContent = "160 Kč · za pivo"; n.classList.remove("focus", "caret"); });
+      let t = type(a, "90", 2000, 140);
+      at(t + 50, () => { cap.textContent = "90 Kč"; a.classList.remove("focus", "caret"); });
+      t = type(n, "za kávu", t + 400, 80);
+      at(t + 50, () => { cap.textContent = "90 Kč · za kávu"; n.classList.remove("focus", "caret"); });
     },
     "s-beers"() {
-      resetPhone("21:05", 31145, 0); screen("home");
+      resetPhone("18:55", 31145, 0); screen("home");
       const mrows = $$("#s-beers .math .row"); mrows.forEach((r) => r.classList.remove("on"));
       $("#backStat").textContent = "0 Kč";
       const picks = $$("#picks .crow"); picks.forEach((r) => r.classList.remove("picked"));
@@ -1126,16 +1123,16 @@ body.show-notes .notes { display: block; }
       at(1400, () => tap($("#wRec")));
       at(1700, () => setRec({ n: 0, total: 0 }));
       // every card payment of the evening gets collected
-      at(4000, () => { clock.textContent = "21:48"; notify("Platba kartou 600 Kč · Pivnice U Tygra · přidáno do skupinové platby"); setRec({ n: 1, total: 600 }); setMoney(30545, -600); mrows[0].classList.add("on"); });
+      at(4000, () => { clock.textContent = "19:10"; notify("Platba kartou 1 200 Kč · Bowling Strike · přidáno do skupinové platby"); setRec({ n: 1, total: 1200 }); setMoney(29945, -1200); mrows[0].classList.add("on"); });
       at(7000, hideBanner);
-      at(8000, () => { clock.textContent = "23:20"; notify("Platba kartou 360 Kč · Pivnice U Tygra · přidáno do skupinové platby"); setRec({ n: 2, total: 960 }); setMoney(30185, -960); mrows[1].classList.add("on"); });
+      at(8000, () => { clock.textContent = "21:20"; notify("Platba kartou 1 680 Kč · Pizzerie Napoli · přidáno do skupinové platby"); setRec({ n: 2, total: 2880 }); setMoney(28265, -2880); mrows[1].classList.add("on"); });
       at(11000, hideBanner);
       // stop: the popup offers a Group Settle with everything collected
-      at(12000, () => { clock.textContent = "23:31"; tap($("#wRec")); });
+      at(12000, () => { clock.textContent = "22:40"; tap($("#wRec")); });
       at(12300, () => { setRec(null); sheet.classList.add("on"); });
       at(15000, () => tap($("#shCreate")));
       at(15300, () => { sheet.classList.remove("on"); screen("newgroup"); });
-      const t = type($("#ngName"), "U Tygra", 16000, 90);
+      const t = type($("#ngName"), "Bowling", 16000, 90);
       at(t + 150, () => $("#ngName").classList.remove("focus", "caret"));
       picks.forEach((r, i) => at(17000 + i * 380, () => { tap(r.querySelector(".box")); r.classList.add("picked"); }));
       at(17400, () => mrows[2].classList.add("on"));
@@ -1151,18 +1148,27 @@ body.show-notes .notes { display: block; }
       let back = 0;
       [23000, 24300, 25200, 27000, 28800].forEach((ms, i) => at(ms, () => {
         pills[i].textContent = "Zaplaceno"; pills[i].className = "pill paid";
-        tween($("#backStat"), back, back + 160, 500);
-        back += 160; $("#gMeter").style.width = `${back / 8}%`;
+        tween($("#backStat"), back, back + 480, 500);
+        back += 480; $("#gMeter").style.width = `${back / 24}%`;
       }));
     },
     "s-chat"() {
-      resetPhone("23:58", 30985, -160); screen("main");
+      resetPhone("23:58", 30665, -480); screen("main");
       ask($("#chipMonth"), "Shrň mi platby za tento měsíc.",
-        "Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pivnice U Tygra (1 840 Kč).", 1200);
+        "Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pizzerie Napoli (1 680 Kč).", 1200);
       ask($("#chipOwe"), "Komu a kolik dlužím?",
         "Štěpánovi dlužíš 250 Kč za Chatu Krkonoše. Nikomu dalšímu nic nedlužíš.", 7600);
     },
   };
+
+  // Slides with data-hold open on a still phone; the next press (or, in autoplay,
+  // the hold running out) starts the phone animation instead of changing slide.
+  const stills = {
+    "s-balance"() { resetPhone("21:40"); screen("home"); },
+    "s-pay"() { resetPhone("22:15"); screen("main"); },
+    "s-qr"() { resetPhone("22:40", 31145, -360); screen("main"); },
+  };
+  let pending = false; // the current slide still waits for its animation
 
   /* ---- navigation ---- */
   const ticks = $("#ticks");
@@ -1181,7 +1187,11 @@ body.show-notes .notes { display: block; }
     document.body.style.setProperty("--bg", s.dataset.bg);
     document.body.dataset.phone = s.dataset.phone || "off";
     setTimeout(() => s.classList.add("active"), prev ? 350 : 50);
-    if (scenes[s.id]) scenes[s.id](prevId);
+    pending = !!stills[s.id];
+    if (pending) {
+      stills[s.id]();
+      if (playing) at(s.dataset.hold * 1000, () => playing && step());
+    } else if (scenes[s.id]) scenes[s.id](prevId);
     $("#notesHead").textContent = `${i + 1} / ${slides.length} · ${s.dataset.dur} s`;
     $("#notesText").textContent = s.dataset.notes || "";
     $("#count").textContent = `${i + 1} / ${slides.length}`;
@@ -1190,6 +1200,13 @@ body.show-notes .notes { display: block; }
     if (playing) advanceTimer = setTimeout(() => (cur < slides.length - 1 ? go(cur + 1) : setPlaying(false)), s.dataset.dur * 1000);
     try { history.replaceState(null, "", "#" + (i + 1)); } catch (e) {}
   }
+  function step() {
+    if (!pending) return;
+    pending = false;
+    clearAll();
+    scenes[slides[cur].id]();
+  }
+  const next = () => (pending ? step() : go(cur + 1));
   function setPlaying(v) {
     playing = v;
     $("#playBtn").textContent = v ? "Pozastavit" : "Přehrát";
@@ -1197,6 +1214,7 @@ body.show-notes .notes { display: block; }
     if (v) {
       const s = slides[cur], left = s.dataset.dur * 1000 - (performance.now() - slideT0);
       advanceTimer = setTimeout(() => (cur < slides.length - 1 ? go(cur + 1) : setPlaying(false)), Math.max(500, left));
+      if (pending) at(Math.max(300, s.dataset.hold * 1000 - (performance.now() - slideT0)), () => playing && step());
     }
   }
   // progress: per-slide tick + total timer (against the 3-minute budget)
@@ -1214,7 +1232,7 @@ body.show-notes .notes { display: block; }
   addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (["arrowright", "pagedown", " ", "enter"].includes(k)) { e.preventDefault(); go(cur + 1); }
+    if (["arrowright", "pagedown", " ", "enter"].includes(k)) { e.preventDefault(); next(); }
     else if (["arrowleft", "pageup", "backspace"].includes(k)) { e.preventDefault(); go(cur - 1); }
     else if (k === "home") go(0);
     else if (k === "end") go(slides.length - 1);
@@ -1223,16 +1241,16 @@ body.show-notes .notes { display: block; }
     else if (k === "f") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
     else if (k === "r") { const c = cur; cur = -1; go(c); }
   });
-  $("#nextBtn").onclick = () => go(cur + 1);
+  $("#nextBtn").onclick = next;
   $("#prevBtn").onclick = () => go(cur - 1);
   $("#playBtn").onclick = () => setPlaying(!playing);
   // click / tap anywhere advances (except on the controls)
-  addEventListener("click", (e) => { if (!e.target.closest(".hud")) go(cur + 1); });
+  addEventListener("click", (e) => { if (!e.target.closest(".hud")) next(); });
   let hudT;
   addEventListener("mousemove", () => { document.body.classList.add("show-hud"); clearTimeout(hudT); hudT = setTimeout(() => document.body.classList.remove("show-hud"), 2200); });
   let tx = null;
   addEventListener("touchstart", (e) => (tx = e.touches[0].clientX), { passive: true });
-  addEventListener("touchend", (e) => { if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1)); tx = null; });
+  addEventListener("touchend", (e) => { if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) (dx < 0 ? next() : go(cur - 1)); tx = null; });
 
   const start = parseInt(location.hash.slice(1), 10);
   go(Number.isFinite(start) ? start - 1 : 0);
