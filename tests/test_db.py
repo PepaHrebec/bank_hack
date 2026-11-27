@@ -150,3 +150,22 @@ def test_reset_clears_requests(db):
     create_group_request(db, 1, "G", {3: 5})
     reset_db(db)
     assert open_requests_for(db, 2) == [] and open_requests_for(db, 3) == []
+
+
+from server.db import requests_by  # noqa: E402
+
+
+def test_requests_by_lists_mine_with_status(db):
+    a = create_request(db, 1, 2, 100, "a")
+    b = create_request(db, 1, 3, 200, "b")
+    create_request(db, 2, 1, 50)  # someone else's
+    g = create_group_request(db, 1, "Trip", {2: 10, 4: 20})
+    pay_request(db, a["id"], 2)
+    decline_request(db, b["id"], 3)
+
+    mine = requests_by(db, 1)
+    assert [r["id"] for r in mine] == [r["id"] for r in g["requests"]][::-1] + [b["id"], a["id"]]
+    status = {r["id"]: r["status"] for r in mine}
+    assert status[a["id"]] == "paid" and status[b["id"]] == "declined"
+    assert mine[0]["group"]["title"] == "Trip"
+    assert requests_by(db, 3) == []

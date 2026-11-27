@@ -73,15 +73,22 @@ make the frontend work.
 - The recipient's phone gets a notification: "Person 1 sent you 250 CZK".
   The recipient's balance and history update live.
 - App screens (updated 2026-11-27):
-  - Main: balance card with a history icon (tap opens History), a Contacts
-    button, and a large chat window, empty for now; the smart chatbot comes
+  - Main: balance card with a history icon (tap opens History), Contacts
+    and QR code tiles side by side, and a large chat window, empty for now; the smart chatbot comes
     later.
   - Contacts: Group Settle (not implemented yet) and To be paid icons side
     by side (To be paid shows a red count of open requests), above the other
     three people. Tapping a person opens a screen with a Payment | Request
     switch above amount and note: Payment sends money, Request asks that
     person for it.
-  - To be paid: open requests to me, split into Individual (from Request)
+  - QR code: a fixed QR code (always
+    https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ, stored as
+    `web/qr.svg`) with amount and note fields under it; they only update the
+    caption under the code.
+  - To be paid has two tabs. "Requested from others": every request I made
+    with its status (Waiting, Paid, Declined), group requests as one card
+    with each member and how much of the total is paid. "Requested from
+    me": open requests to me, split into Individual (from Request)
     and Group (shares of a group request, showing the group title, total and
     every member's status). Each has Pay (moves the money, notifies the
     requester) and Decline (notifies the requester).

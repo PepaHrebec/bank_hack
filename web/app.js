@@ -1,9 +1,11 @@
 // Placeholder bank app.
-//   main     balance card (tap -> history), Contacts button, chat window (empty for now)
+//   main     balance card (tap -> history), Contacts and QR tiles, chat window (empty for now)
+//   qr       a fixed QR code with amount and note fields under it (display only)
 //   contacts Group Settle (not implemented yet), To be paid, and the other three people
 //            (tap -> pay)
 //   pay      Payment (send money) or Request (ask for money) with one contact
-//   tobepaid open requests to me: individual ones and shares of group requests
+//   tobepaid "Requested from me": open requests to me (individual and group shares) to pay
+//            or decline; "Requested from others": requests I made and their status
 //   history  payments from the database
 // Talks to the shell only through window.Phone, so it can be swapped for the real app.
 // Every screen is built once; refreshes only touch balance and history, so a person
@@ -21,6 +23,7 @@
     contacts: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path d="M2.5 19.5c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="currentColor"/><circle cx="17" cy="9" r="2.8" fill="currentColor" opacity=".55"/><path d="M15.8 13.7c3.3-.3 5.7 1.9 5.7 5.3h-4.3c0-2-.5-3.8-1.4-5.3z" fill="currentColor" opacity=".55"/></svg>',
     history: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3.5 4v4.5H8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     request: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    qr: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></g><g fill="currentColor"><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/><rect x="18" y="14" width="3" height="2"/><rect x="14" y="19" width="2" height="2"/></g></svg>',
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
 
@@ -85,10 +88,14 @@
     top.append(el("span", "balance-label", "Balance"), icon("history", "balance-history"));
     card.append(top, balance);
     card.addEventListener("click", () => show("history"));
-    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Contacts"), icon("chevron", "chev"));
+    const tiles = el("div", "main-tiles");
+    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Contacts"));
     contactsBtn.addEventListener("click", () => show("contacts"));
+    const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR code"));
+    qrBtn.addEventListener("click", () => show("qr"));
+    tiles.append(contactsBtn, qrBtn);
     const chat = el("section", "chat"); // the smart chatbot goes here later
-    main.append(card, contactsBtn, chat);
+    main.append(card, tiles, chat);
     views.main = main;
 
     // contacts
@@ -145,14 +152,55 @@
 
     // to be paid
     const tobepaid = el("section", "view");
+    const tabs = el("div", "segmented");
+    const tabButtons = {
+      me: button("seg active", "Requested from me"),
+      others: button("seg", "Requested from others"),
+    };
     const toPayList = el("div", "topay-list");
-    tobepaid.append(header("To be paid", "contacts"), toPayList);
+    const requestedList = el("div", "topay-list");
+    requestedList.hidden = true;
+    for (const [key, b] of Object.entries(tabButtons)) {
+      b.addEventListener("click", () => {
+        for (const [k, x] of Object.entries(tabButtons)) x.classList.toggle("active", k === key);
+        toPayList.hidden = key !== "me";
+        requestedList.hidden = key !== "others";
+      });
+      tabs.append(b);
+    }
+    tobepaid.append(header("To be paid", "contacts"), tabs, toPayList, requestedList);
     views.tobepaid = tobepaid;
+
+    // qr
+    const qr = el("section", "view");
+    const qrCard = el("div", "qr-card");
+    const qrImg = el("img", "qr-img");
+    qrImg.src = "/static/qr.svg";
+    qrImg.alt = "QR code";
+    const qrCaption = el("div", "qr-caption", "Scan to pay");
+    const qrAmount = el("input", "field");
+    Object.assign(qrAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Amount (CZK)" });
+    const qrNote = el("input", "field");
+    Object.assign(qrNote, { type: "text", maxLength: 80, placeholder: "Note (optional)" });
+    const updateCaption = () => {
+      const amt = Number(qrAmount.value);
+      const parts = [];
+      if (qrAmount.value !== "" && amt > 0) parts.push(czk(amt));
+      if (qrNote.value.trim()) parts.push(qrNote.value.trim());
+      qrCaption.textContent = parts.length ? parts.join(" · ") : "Scan to pay";
+    };
+    qrAmount.addEventListener("input", updateCaption);
+    qrNote.addEventListener("input", updateCaption);
+    qrCard.append(qrImg, qrCaption);
+    const qrForm = el("div", "pay-form");
+    qrForm.append(qrAmount, qrNote);
+    qr.append(header("QR code", "main"), qrCard, qrForm);
+    views.qr = qr;
 
     root.replaceChildren(...Object.values(views));
     ui = {
       views, balance, payWho, amount, note, sendBtn, msg, historyList,
-      payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge,
+      payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
     };
     show("main");
   }
@@ -240,6 +288,56 @@
       }
     }
     ui.toPayList.replaceChildren(...blocks);
+    renderRequested();
+  }
+
+  const STATUS = { open: "Waiting", paid: "Paid", declined: "Declined" };
+
+  // Requests I made. Group requests come back as one row per member; show one card per group.
+  function renderRequested() {
+    const mine = state.requested || [];
+    const blocks = [];
+    if (mine.length === 0) blocks.push(el("div", "empty topay-empty", "You haven't requested anything"));
+    const individual = mine.filter((r) => !r.group);
+    if (individual.length) {
+      blocks.push(el("h3", "topay-section", "Individual"));
+      const box = el("div", "card-list");
+      for (const r of individual) {
+        const row = el("div", "req");
+        const info = el("div", "tx-info");
+        info.append(el("div", "tx-name", nameOf(r.payer)));
+        info.append(el("div", "tx-meta", [r.note, r.created_at.slice(11, 16)].filter(Boolean).join(" · ")));
+        const right = el("div", "req-right");
+        right.append(el("div", "tx-amount", czk(r.amount)), el("span", `status ${r.status}`, STATUS[r.status]));
+        const top = el("div", "req-top");
+        top.append(avatar({ id: r.payer, name: nameOf(r.payer) }), info, right);
+        row.append(top);
+        box.append(row);
+      }
+      blocks.push(box);
+    }
+    const groups = new Map();
+    for (const r of mine) if (r.group && !groups.has(r.group.id)) groups.set(r.group.id, r.group);
+    if (groups.size) {
+      blocks.push(el("h3", "topay-section", "Group"));
+      for (const g of groups.values()) {
+        const box = el("div", "card-list group-card");
+        const head = el("div", "group-head");
+        const paid = g.members.filter((m) => m.status === "paid").reduce((sum, m) => sum + m.amount, 0);
+        head.append(el("div", "group-title", g.title), el("div", "group-meta", `${czk(paid)} of ${czk(g.total)} paid`));
+        const list = el("div", "group-rows");
+        for (const m of g.members) {
+          const row = el("div", "req-top group-row");
+          const right = el("div", "req-right");
+          right.append(el("div", "tx-amount", czk(m.amount)), el("span", `status ${m.status}`, STATUS[m.status]));
+          row.append(avatar({ id: m.payer, name: nameOf(m.payer) }), el("div", "tx-info tx-name", nameOf(m.payer)), right);
+          list.append(row);
+        }
+        box.append(head, list);
+        blocks.push(box);
+      }
+    }
+    ui.requestedList.replaceChildren(...blocks);
   }
 
   function requestRow(r, label) {

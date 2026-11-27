@@ -229,6 +229,20 @@ def open_requests_for(path, payer):
     return result
 
 
+def requests_by(path, requester):
+    """Every request `requester` has made (any status), newest first; group ones carry group info."""
+    with _connect(path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM requests WHERE requester = ? ORDER BY id DESC", (requester,)
+        ).fetchall()
+        result = []
+        for r in rows:
+            item = dict(r)
+            item["group"] = _group_info(conn, r["group_id"]) if r["group_id"] else None
+            result.append(item)
+    return result
+
+
 def _open_request(conn, request_id, payer):
     r = conn.execute("SELECT * FROM requests WHERE id = ?", (request_id,)).fetchone()
     if r is None or r["payer"] != payer:

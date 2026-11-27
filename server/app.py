@@ -58,6 +58,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
             "to_pay": db.open_requests_for(db_path, person_id),
+            "requested": db.requests_by(db_path, person_id),
         }
 
     @app.post("/api/payments")

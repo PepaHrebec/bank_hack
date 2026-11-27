@@ -172,3 +172,10 @@ def test_group_request_api(clients):
 ])
 def test_bad_group_requests(clients, body):
     assert clients[1].post("/api/requests/group", json=body).status_code == 400
+
+
+def test_state_lists_requests_i_made(clients):
+    clients[1].post("/api/requests", json={"payer": 2, "amount": 70})
+    s = clients[1].get("/api/state").json()
+    assert [(r["payer"], r["amount"], r["status"]) for r in s["requested"]] == [(2, 70, "open")]
+    assert clients[2].get("/api/state").json()["requested"] == []
