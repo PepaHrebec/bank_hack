@@ -1,6 +1,6 @@
 // Placeholder bank app.
 //   main     balance card with today's change (tap -> history), Contacts and QR tiles,
-//            chat window (empty for now)
+//            chat with Geoff (read-only questions about my payments)
 // It also fills the home-screen widget (Phone.widget) with the balance and today's change.
 //   groups   Group Settle: every group I'm in, "+ New group"
 //   newgroup name a group and tick who's in it
@@ -113,7 +113,7 @@
     const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR kód"));
     qrBtn.addEventListener("click", () => show("qr"));
     tiles.append(contactsBtn, qrBtn);
-    const chat = el("section", "chat"); // the smart chatbot goes here later
+    const chat = buildChat();
     const recToggle = button("rec-toggle");
     recToggle.addEventListener("click", toggleRecording);
     const recInfo = el("div", "rec-info");
@@ -565,6 +565,91 @@
     ui.ngMsg.textContent = "";
     show("newgroup");
     ui.ngName.focus();
+  }
+
+  const CHIPS = [
+    ["Dnes", "Shrň mi dnešní platby."],
+    ["Tento měsíc", "Shrň mi platby za tento měsíc."],
+    ["Kolik dlužím?", "Komu a kolik dlužím?"],
+    ["Kdo dluží mně?", "Kdo a kolik dluží mně?"],
+    ["Moje skupiny", "Jak jsou na tom moje skupiny?"],
+  ];
+  const chatHistory = []; // {role, content}; lives only until reload; errors never enter it
+
+  // Built once in build(); refresh() never touches it, so the conversation survives.
+  function buildChat() {
+    const chat = el("section", "chat");
+    chat.style.setProperty("--accent", Phone.colors[state.me.id]);
+    const list = el("div", "chat-list");
+    const empty = el("div", "chat-empty", "Zeptej se mě na své platby.");
+    list.append(empty);
+    const chips = el("div", "chat-chips");
+    const form = el("form", "chat-form");
+    const input = el("input", "chat-input");
+    input.type = "text";
+    input.maxLength = 1000;
+    input.placeholder = "Napiš zprávu…";
+    const send = button("chat-send", "Poslat");
+    send.type = "submit";
+    form.append(input, send);
+    const controls = [send];
+
+    const bubble = (cls, text) => {
+      empty.hidden = true;
+      const b = el("div", `chat-msg ${cls}`);
+      b.textContent = text;
+      list.append(b);
+      list.scrollTop = list.scrollHeight;
+      return b;
+    };
+    let busy = false;
+    const setBusy = (v) => {
+      busy = v;
+      for (const c of controls) c.disabled = v;
+    };
+
+    async function ask(text) {
+      text = text.trim();
+      if (!text || busy) return;
+      setBusy(true);
+      input.value = "";
+      chatHistory.push({ role: "user", content: text });
+      bubble("chat-user", text);
+      const wait = bubble("chat-bot", "…");
+      try {
+        const r = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ messages: chatHistory.slice(-20) }),
+        });
+        let data = {};
+        try { data = await r.json(); } catch { /* non-JSON error page */ }
+        if (r.ok && typeof data.reply === "string") {
+          chatHistory.push({ role: "assistant", content: data.reply });
+          wait.textContent = data.reply;
+        } else {
+          chatHistory.pop(); // keep the history ending on a user message that got no answer out
+          wait.textContent = data.detail || `Selhalo (${r.status})`;
+          wait.classList.add("chat-error");
+        }
+      } catch {
+        chatHistory.pop();
+        wait.textContent = "Geoff je nedostupný.";
+        wait.classList.add("chat-error");
+      }
+      list.scrollTop = list.scrollHeight;
+      setBusy(false);
+    }
+
+    for (const [label, message] of CHIPS) {
+      const chip = button("chat-chip", label);
+      chip.addEventListener("click", () => ask(message));
+      chips.append(chip);
+      controls.push(chip);
+    }
+    form.addEventListener("submit", (e) => { e.preventDefault(); ask(input.value); });
+    chat.append(list, chips, form);
+    return chat;
   }
 
   async function postJson(url, body, method = "POST") {

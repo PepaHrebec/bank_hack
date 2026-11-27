@@ -212,14 +212,107 @@ button {
   color: #fff;
 }
 
-/* Chatbot window: intentionally empty for now. */
+/* Chat with Geoff: the message list scrolls, chips and input stay at the bottom. */
 .chat {
-  flex: 1;
+  flex: 1 1 0; /* basis 0: messages scroll inside instead of stretching the screen */
   min-height: 14em;
+  display: flex;
+  flex-direction: column;
+  padding: 0.7em;
+  gap: 0.5em;
   border-radius: 1.3em;
   background: #fff;
   box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
 }
+
+.chat-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.chat-empty {
+  margin: auto;
+  color: #8a8f9a;
+  font-size: 0.85em;
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: 0.45em 0.75em;
+  border-radius: 1em;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+
+.chat-bot {
+  align-self: flex-start;
+  background: #eceef2;
+  color: #1c1e24;
+}
+
+.chat-bot.chat-error {
+  background: #fde8e8;
+  color: #d93636;
+}
+
+.chat-chips {
+  display: flex;
+  gap: 0.4em;
+  overflow-x: auto;
+  flex: none;
+}
+
+.chat-chip {
+  flex: none;
+  padding: 0.3em 0.7em;
+  border: 0;
+  border-radius: 1em;
+  background: #eceef2;
+  color: #1c1e24;
+  font: inherit;
+  font-size: 0.78em;
+  cursor: pointer;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.4em;
+  flex: none;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45em 0.8em;
+  border: 1px solid #d8dbe2;
+  border-radius: 1em;
+  font: inherit;
+  font-size: 0.85em;
+}
+
+.chat-send {
+  padding: 0.4em 0.9em;
+  border: 0;
+  border-radius: 1em;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.chat-chip:disabled, .chat-send:disabled { opacity: 0.5; cursor: default; }
 
 /* ---- contacts ---- */
 
