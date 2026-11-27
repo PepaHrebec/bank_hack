@@ -2,7 +2,9 @@
 
 import argparse
 import asyncio
+import os
 import socket
+from pathlib import Path
 
 import uvicorn
 
@@ -12,6 +14,26 @@ from server.orchestrator import Orchestrator
 from server.seed import seed_db
 
 BASE_PORT = 3000
+ENV_FILE = Path(__file__).resolve().parent / ".env"
+
+
+def load_env(path):
+    """Read KEY=VALUE lines (e.g. OPENROUTER_API_KEY) from a .env file into the environment.
+
+    Variables already set in the shell win, so a one-off `OPENROUTER_MODEL=... uv run python run.py`
+    still overrides the file."""
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = (part.strip() for part in line.split("=", 1))
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
 
 
 def lan_ip():
@@ -63,6 +85,7 @@ def main():
     parser.add_argument("--seed", action="store_true",
                         help="fill the database with Czech mock data and exit")
     args = parser.parse_args()
+    load_env(ENV_FILE)
 
     if args.reset:
         reset_db(args.db)
