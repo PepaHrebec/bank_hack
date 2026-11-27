@@ -27,9 +27,9 @@ async def _json_object(request):
     try:
         body = json.loads(await request.body())
     except ValueError:
-        raise BadInput("Invalid JSON")
+        raise BadInput("Neplatný JSON")
     if not isinstance(body, dict):
-        raise BadInput("Expected a JSON object")
+        raise BadInput("Očekává se JSON objekt")
     return body
 
 
@@ -38,7 +38,7 @@ def _note(body):
     if note is None:
         return ""
     if not isinstance(note, str):
-        raise BadInput("Note must be text")
+        raise BadInput("Poznámka musí být text")
     return note
 
 
@@ -77,7 +77,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             body = await _json_object(request)
             recipient, amount, note = body.get("recipient"), body.get("amount"), _note(body)
             if type(recipient) is not int:
-                raise BadInput("Pick a recipient")
+                raise BadInput("Vyber příjemce")
             payment = await run_in_threadpool(
                 db.send_payment, db_path, person_id, recipient, amount, note
             )
@@ -89,7 +89,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "type": "payment_received",
             "payment": payment,
             "from": sender_name,
-            "text": f"{sender_name} sent you {amount} CZK",
+            "text": f"{sender_name} ti poslal(a) {amount} Kč",
         })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
@@ -103,14 +103,14 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
-        text = f"You paid {payment['amount']} CZK" + (f" · {payment['note']}" if payment["note"] else "")
+        text = f"Platba kartou {payment['amount']} Kč" + (f" · {payment['note']}" if payment["note"] else "")
         await orch.send(person_id, {"type": "card_payment", "payment": payment, "text": text})
         return payment
 
     me = db.PEOPLE[person_id]
 
     async def announce_request(req, title=None):
-        text = f"{me} requests {req['amount']} CZK" + (f" for {title}" if title else "")
+        text = f"{me} žádá o {req['amount']} Kč" + (f" za {title}" if title else "")
         await orch.send(req["payer"], {"type": "request_received", "request": req, "from": me, "text": text})
 
     @app.post("/api/requests")
@@ -119,7 +119,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             body = await _json_object(request)
             payer, amount, note = body.get("payer"), body.get("amount"), _note(body)
             if type(payer) is not int:
-                raise BadInput("Pick a contact")
+                raise BadInput("Vyber kontakt")
             req = await run_in_threadpool(db.create_request, db_path, person_id, payer, amount, note)
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
@@ -134,9 +134,9 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             body = await _json_object(request)
             title, shares, note = body.get("title", ""), body.get("shares"), _note(body)
             if not isinstance(title, str):
-                raise BadInput("Title must be text")
+                raise BadInput("Název musí být text")
             if not isinstance(shares, dict) or not all(k.isdigit() for k in shares):
-                raise BadInput("Shares must map person ids to amounts")
+                raise BadInput("Podíly musí přiřazovat částky osobám")
             group = await run_in_threadpool(
                 db.create_group_request, db_path, person_id, title,
                 {int(k): v for k, v in shares.items()}, note,
@@ -167,7 +167,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "type": "payment_received",
             "payment": payment,
             "from": me,
-            "text": f"{me} paid your request: {payment['amount']} CZK",
+            "text": f"{me} zaplatil(a) tvoji žádost: {payment['amount']} Kč",
         })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         await notify_group(req["group_id"], {person_id, payment["recipient"]})
@@ -183,7 +183,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "type": "request_declined",
             "request": req,
             "from": me,
-            "text": f"{me} declined your request: {req['amount']} CZK",
+            "text": f"{me} odmítl(a) tvoji žádost: {req['amount']} Kč",
         })
         await orch.send(person_id, {"type": "requests_changed"})
         await notify_group(req["group_id"], {person_id, req["requester"]})
@@ -204,7 +204,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             body = await _json_object(request)
             expense = body.get("expense")
             if expense is not None and not isinstance(expense, dict):
-                raise BadInput("Expense must be an amount and a description")
+                raise BadInput("Výdaj musí mít částku a popis")
             group = await run_in_threadpool(
                 db.create_group, db_path, person_id, body.get("name"), body.get("members"), expense
             )
@@ -216,7 +216,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
                     "type": "group_added",
                     "group": group,
                     "from": me,
-                    "text": f"{me} added you to {group['name']}",
+                    "text": f"{me} tě přidal(a) do skupiny {group['name']}",
                 })
         await orch.send(person_id, {"type": "group_changed", "group_id": group["id"]})
         return group
@@ -229,7 +229,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
                 # One of my payments picked from history: {"kind": "card" | "transfer", "id": int}
                 source = body["source"]
                 if not isinstance(source, dict) or type(source.get("id")) is not int:
-                    raise BadInput("Pick a payment from your history")
+                    raise BadInput("Vyber platbu ze své historie")
                 expense = await run_in_threadpool(
                     db.add_expense_from_payment, db_path, group_id, person_id, source.get("kind"), source["id"]
                 )
@@ -254,7 +254,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
                     "type": "group_deleted",
                     "group_id": group_id,
                     "from": me,
-                    "text": f"{me} deleted {done['name']}",
+                    "text": f"{me} smazal(a) skupinu {done['name']}",
                 })
         await orch.send(person_id, {"type": "group_changed", "group_id": group_id})
         return done
@@ -280,7 +280,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
                 "type": "request_received",
                 "request": req,
                 "from": payee,
-                "text": f"{payee} requests {req['amount']} CZK for {group['name']}",
+                "text": f"{payee} žádá o {req['amount']} Kč za {group['name']}",
             })
         await group_changed(group)
         return group

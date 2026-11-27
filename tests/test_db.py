@@ -204,7 +204,7 @@ def test_day_change_counts_only_today(db, monkeypatch):
 
 
 def test_card_payment_insufficient_funds(db):
-    with pytest.raises(PaymentError, match="Insufficient funds"):
+    with pytest.raises(PaymentError, match="Nedostatek prostředků"):
         card_payment(db, 1, 10001)
     assert balances(db) == [10000] * 4
     assert history(db, 1) == []

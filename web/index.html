@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="cs">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,14 +16,14 @@
         <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
       </div>
 
-      <!-- Home screen. George opens our app; Tinder, Grindr and Spotify open filler mock-ups. -->
+      <!-- Home screen. Geoff opens our app; Tinder, Grindr and Spotify open filler mock-ups. -->
       <div class="home" id="home">
         <div class="widget" id="widget" data-opens="app"></div>
         <div class="icon-grid">
           <button class="icon" type="button" data-opens="tinder"><img src="/static/icons/tinder.png" alt=""><span>Tinder</span></button>
           <button class="icon" type="button"><img src="/static/icons/youtube.png" alt=""><span>YouTube</span></button>
           <button class="icon" type="button" data-opens="grindr"><img src="/static/icons/grindr.png" alt=""><span>Grindr</span></button>
-          <button class="icon" type="button" data-opens="app"><img src="/static/icons/george.png" alt=""><span>George</span></button>
+          <button class="icon" type="button" data-opens="app"><img src="/static/icons/geoff.svg" alt=""><span>Geoff</span></button>
         </div>
         <div class="dock">
           <button class="icon" type="button"><img src="/static/icons/safari.png" alt="Safari"></button>
@@ -57,13 +57,13 @@
   </div>
 
   <aside class="demo-pay" id="demoAside">
-    <button type="button" class="demo-chip" id="demoChip" aria-label="Card payment (demo)">&#x1F4B3;</button>
+    <button type="button" class="demo-chip" id="demoChip" aria-label="Platba kartou (demo)">&#x1F4B3;</button>
     <div class="demo-panel">
-      <h4>Card payment (demo)<button type="button" class="demo-close" id="demoClose" aria-label="Close">&#x2715;</button></h4>
+      <h4>Platba kartou (demo)<button type="button" class="demo-close" id="demoClose" aria-label="Zavřít">&#x2715;</button></h4>
       <form id="demoPay">
-        <input id="demoAmount" type="number" min="1" step="1" placeholder="Amount (CZK)">
-        <input id="demoNote" type="text" maxlength="60" placeholder="Note">
-        <button type="submit">Pay</button>
+        <input id="demoAmount" type="number" min="1" step="1" placeholder="Částka (Kč)">
+        <input id="demoNote" type="text" maxlength="60" placeholder="Poznámka">
+        <button type="submit">Zaplatit</button>
       </form>
       <div class="demo-msg" id="demoMsg"></div>
     </div>

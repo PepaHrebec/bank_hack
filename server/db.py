@@ -116,7 +116,7 @@ def get_balance(path, person_id):
     with _connect(path) as conn:
         row = conn.execute("SELECT balance FROM accounts WHERE id = ?", (person_id,)).fetchone()
     if row is None:
-        raise PaymentError(f"Unknown person {person_id}")
+        raise PaymentError(f"Neznámá osoba {person_id}")
     return row["balance"]
 
 
@@ -126,10 +126,10 @@ def _now():
 
 def _check_amount(amount):
     if type(amount) is not int or amount <= 0:
-        raise PaymentError("Amount must be a whole number of CZK greater than zero")
+        raise PaymentError("Částka musí být celé číslo korun větší než nula")
 
 
-def _check_pair(me, other, unknown="Unknown recipient", self_msg="You can't pay yourself"):
+def _check_pair(me, other, unknown="Neznámý příjemce", self_msg="Nemůžeš platit sám sobě"):
     if me not in PEOPLE or other not in PEOPLE:
         raise PaymentError(unknown)
     if me == other:
@@ -152,7 +152,7 @@ def _debit(conn, person, amount):
     """Take money from an account inside an open transaction, if it has enough."""
     balance = conn.execute("SELECT balance FROM accounts WHERE id = ?", (person,)).fetchone()["balance"]
     if balance < amount:
-        raise PaymentError("Insufficient funds")
+        raise PaymentError("Nedostatek prostředků")
     conn.execute("UPDATE accounts SET balance = balance - ? WHERE id = ?", (amount, person))
 
 
@@ -189,10 +189,10 @@ def card_payment(path, person, amount, note=""):
     """Pay a shop by card: the money leaves `person`'s account and goes nowhere in the app."""
     _check_amount(amount)
     if person not in PEOPLE:
-        raise PaymentError("Unknown person")
+        raise PaymentError("Neznámá osoba")
     note = (note or "").strip()
     if len(note) > CARD_NOTE_MAX:
-        raise PaymentError(f"Note can be at most {CARD_NOTE_MAX} characters")
+        raise PaymentError(f"Poznámka může mít nejvýše {CARD_NOTE_MAX} znaků")
     with _transaction(path) as conn:
         _debit(conn, person, amount)
         created_at = _now()
@@ -253,7 +253,7 @@ def _insert_request(conn, requester, payer, amount, note, group_id=None):
 def create_request(path, requester, payer, amount, note=""):
     """Ask `payer` to send `amount` CZK to `requester`."""
     _check_amount(amount)
-    _check_pair(requester, payer, "Unknown contact", "You can't request money from yourself")
+    _check_pair(requester, payer, "Neznámý kontakt", "Nemůžeš žádat peníze sám od sebe")
     with _transaction(path) as conn:
         return _insert_request(conn, requester, payer, amount, (note or "").strip())
 
@@ -261,11 +261,11 @@ def create_request(path, requester, payer, amount, note=""):
 def create_group_request(path, requester, title, shares, note=""):
     """One request per payer in `shares` ({payer_id: amount}), grouped under `title`."""
     if not shares:
-        raise PaymentError("Pick at least one person")
+        raise PaymentError("Vyber alespoň jednu osobu")
     for payer, amount in shares.items():
         _check_amount(amount)
-        _check_pair(requester, payer, "Unknown contact", "You can't request money from yourself")
-    title = (title or "").strip() or "Group payment"
+        _check_pair(requester, payer, "Neznámý kontakt", "Nemůžeš žádat peníze sám od sebe")
+    title = (title or "").strip() or "Skupinová platba"
     note = (note or "").strip()
     with _transaction(path) as conn:
         created_at = _now()
@@ -330,9 +330,9 @@ def requests_by(path, requester):
 def _open_request(conn, request_id, payer):
     r = conn.execute("SELECT * FROM requests WHERE id = ?", (request_id,)).fetchone()
     if r is None or r["payer"] != payer:
-        raise PaymentError("Request not found")
+        raise PaymentError("Žádost nebyla nalezena")
     if r["status"] != "open":
-        raise PaymentError(f"This request is already {r['status']}")
+        raise PaymentError("Tato žádost už není otevřená")
     return r
 
 
@@ -369,10 +369,10 @@ EXPENSE_DESC_MAX = 60
 
 def _text(value, max_len, what):
     if not isinstance(value, str) or not value.strip():
-        raise PaymentError(f"{what} is required")
+        raise PaymentError(f"Vyplň pole „{what}“")
     value = value.strip()
     if len(value) > max_len:
-        raise PaymentError(f"{what} can be at most {max_len} characters")
+        raise PaymentError(f"Pole „{what}“ může mít nejvýše {max_len} znaků")
     return value
 
 
@@ -382,13 +382,13 @@ def _group_row(conn, group_id, person):
         "SELECT 1 FROM settle_members WHERE group_id = ? AND person = ?", (group_id, person)
     ).fetchone()
     if not member:
-        raise PaymentError("Group not found")
+        raise PaymentError("Skupina nebyla nalezena")
     return g
 
 
 def _require_open(g):
     if g["status"] != "open":
-        raise PaymentError("This group is already approved")
+        raise PaymentError("Tato skupina je už schválená")
 
 
 def _group_dict(conn, g):
@@ -414,19 +414,19 @@ def create_group(path, creator, name, members, expense=None):
     """A new open group of `creator` plus `members` (ids of other people).
 
     `expense` ({"amount", "description"}) is a first expense paid by `creator`."""
-    name = _text(name, GROUP_NAME_MAX, "Group name")
+    name = _text(name, GROUP_NAME_MAX, "Název skupiny")
     if not isinstance(members, list) or not members:
-        raise PaymentError("Add at least one person")
+        raise PaymentError("Přidej alespoň jednu osobu")
     for m in members:
         if type(m) is not int or m not in PEOPLE or m == creator:
-            raise PaymentError("You can only add the other people")
+            raise PaymentError("Přidat můžeš jen ostatní lidi")
     if creator not in PEOPLE:
-        raise PaymentError("Unknown person")
+        raise PaymentError("Neznámá osoba")
     if expense is not None:
         if not isinstance(expense, dict):
-            raise PaymentError("Expense must be an amount and a description")
+            raise PaymentError("Výdaj musí mít částku a popis")
         _check_amount(expense.get("amount"))
-        description = _text(expense.get("description"), EXPENSE_DESC_MAX, "What it was for")
+        description = _text(expense.get("description"), EXPENSE_DESC_MAX, "Za co to bylo")
     with _transaction(path) as conn:
         group_id = conn.execute(
             "INSERT INTO settle_groups (name, creator, created_at) VALUES (?, ?, ?)",
@@ -465,7 +465,7 @@ def _insert_expense(conn, group_id, payer, amount, description, source_kind=None
 def add_expense(path, group_id, payer, amount, description):
     """Record that `payer` paid `amount` for the group. No money moves."""
     _check_amount(amount)
-    description = _text(description, EXPENSE_DESC_MAX, "What it was for")
+    description = _text(description, EXPENSE_DESC_MAX, "Za co to bylo")
     with _transaction(path) as conn:
         _require_open(_group_row(conn, group_id, payer))
         return _insert_expense(conn, group_id, payer, amount, description)
@@ -479,21 +479,21 @@ def add_expense_from_payment(path, group_id, payer, kind, payment_id):
             row = conn.execute(
                 "SELECT amount, note FROM card_payments WHERE id = ? AND person = ?", (payment_id, payer)
             ).fetchone()
-            default = "Card payment"
+            default = "Platba kartou"
         elif kind == "transfer":
             row = conn.execute(
                 "SELECT amount, note, recipient FROM payments WHERE id = ? AND sender = ?", (payment_id, payer)
             ).fetchone()
-            default = row and f"Payment to {PEOPLE[row['recipient']]}"
+            default = row and f"Platba pro {PEOPLE[row['recipient']]}"
         else:
             row = None
         if row is None:
-            raise PaymentError("Payment not found")
+            raise PaymentError("Platba nebyla nalezena")
         if conn.execute(
             "SELECT 1 FROM expenses WHERE group_id = ? AND source_kind = ? AND source_id = ?",
             (group_id, kind, payment_id),
         ).fetchone():
-            raise PaymentError("That payment is already in this group")
+            raise PaymentError("Tato platba už ve skupině je")
         description = (row["note"] or default)[:EXPENSE_DESC_MAX]
         return _insert_expense(conn, group_id, payer, row["amount"], description, kind, payment_id)
 
@@ -505,9 +505,9 @@ def delete_expense(path, group_id, expense_id, person):
             "SELECT payer FROM expenses WHERE id = ? AND group_id = ?", (expense_id, group_id)
         ).fetchone()
         if e is None:
-            raise PaymentError("Expense not found")
+            raise PaymentError("Výdaj nebyl nalezen")
         if e["payer"] != person:
-            raise PaymentError("You can only delete your own expenses")
+            raise PaymentError("Smazat můžeš jen vlastní výdaje")
         conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
 
 
@@ -517,7 +517,7 @@ def approve_group(path, group_id, person, split=None):
     with _transaction(path) as conn:
         g = _group_row(conn, group_id, person)
         if g["creator"] != person:
-            raise PaymentError("Only the group's creator can approve it")
+            raise PaymentError("Skupinu může schválit jen její zakladatel")
         _require_open(g)
         info = _group_dict(conn, g)
         transfers = split(list(info["members"]), list(reversed(info["expenses"])))
@@ -529,7 +529,7 @@ def approve_group(path, group_id, person, split=None):
             ).lastrowid
             for payer, payee, amount in transfers:
                 if payer not in info["members"] or payee not in info["members"] or payer == payee:
-                    raise PaymentError("The split returned a payment outside the group")
+                    raise PaymentError("Vyrovnání vrátilo platbu mimo skupinu")
                 _check_amount(amount)
                 requests.append(_insert_request(conn, payee, payer, amount, "", request_group))
         conn.execute(
@@ -548,7 +548,7 @@ def delete_group(path, group_id, person):
     with _transaction(path) as conn:
         g = _group_row(conn, group_id, person)
         if g["creator"] != person:
-            raise PaymentError("Only the group's creator can delete it")
+            raise PaymentError("Skupinu může smazat jen její zakladatel")
         info = _group_dict(conn, g)
         cancelled = [dict(r) for r in conn.execute(
             "SELECT r.* FROM requests r JOIN request_groups rg ON rg.id = r.group_id"

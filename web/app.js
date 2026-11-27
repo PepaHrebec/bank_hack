@@ -36,10 +36,10 @@
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
 
-  const czk = (n) => `${n.toLocaleString("cs-CZ")} CZK`;
-  // Today's balance change, e.g. "+250 CZK today", with a class for its colour.
+  const czk = (n) => `${n.toLocaleString("cs-CZ")} Kč`;
+  // Today's balance change, e.g. "+250 Kč dnes", with a class for its colour.
   function showChange(e, n) {
-    e.textContent = `${n > 0 ? "+" : n < 0 ? "−" : "±"}${czk(Math.abs(n))} today`;
+    e.textContent = `${n > 0 ? "+" : n < 0 ? "−" : "±"}${czk(Math.abs(n))} dnes`;
     e.classList.toggle("up", n > 0);
     e.classList.toggle("down", n < 0);
   }
@@ -103,13 +103,13 @@
     const balance = el("div", "balance-value");
     const change = el("div", "balance-change");
     const top = el("div", "balance-top");
-    top.append(el("span", "balance-label", "Balance"), icon("history", "balance-history"));
+    top.append(el("span", "balance-label", "Zůstatek"), icon("history", "balance-history"));
     card.append(top, balance, change);
     card.addEventListener("click", () => show("history"));
     const tiles = el("div", "main-tiles");
-    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Contacts"));
+    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Kontakty"));
     contactsBtn.addEventListener("click", () => show("contacts"));
-    const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR code"));
+    const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR kód"));
     qrBtn.addEventListener("click", () => show("qr"));
     tiles.append(contactsBtn, qrBtn);
     const chat = el("section", "chat"); // the smart chatbot goes here later
@@ -122,9 +122,9 @@
     const toPayBadge = el("span", "badge");
     const toPayIcon = icon("request", "settle-icon");
     toPayIcon.append(toPayBadge);
-    const toPayBtn = button("settle", toPayIcon, el("span", null, "To be paid"));
+    const toPayBtn = button("settle", toPayIcon, el("span", null, "K zaplacení"));
     toPayBtn.addEventListener("click", () => show("tobepaid"));
-    const settleBtn = button("settle", icon("settle", "settle-icon"), el("span", null, "Group Settle"));
+    const settleBtn = button("settle", icon("settle", "settle-icon"), el("span", null, "Skupinové vyrovnání"));
     settleBtn.addEventListener("click", () => show("groups"));
     actions.append(settleBtn, toPayBtn);
     const list = el("div", "card-list");
@@ -133,17 +133,17 @@
       row.addEventListener("click", () => openPay(p.id));
       list.append(row);
     }
-    contacts.append(header("Contacts", "main"), actions, list);
+    contacts.append(header("Kontakty", "main"), actions, list);
     views.contacts = contacts;
 
     // pay
     const pay = el("section", "view");
-    const payHeader = header("Send money", "contacts");
+    const payHeader = header("Poslat peníze", "contacts");
     const payWho = el("div", "pay-who");
     const modes = el("div", "segmented");
     const modeButtons = {
-      payment: button("seg active", "Payment"),
-      request: button("seg", "Request"),
+      payment: button("seg active", "Platba"),
+      request: button("seg", "Žádost"),
     };
     for (const [key, b] of Object.entries(modeButtons)) {
       b.addEventListener("click", () => setMode(key));
@@ -151,12 +151,12 @@
     }
     const form = el("form", "pay-form");
     const amount = el("input", "field");
-    Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Amount (CZK)" });
+    Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
     amount.id = "amount";
     const note = el("input", "field");
-    Object.assign(note, { type: "text", maxLength: 80, placeholder: "Note (optional)" });
+    Object.assign(note, { type: "text", maxLength: 80, placeholder: "Poznámka (volitelné)" });
     note.id = "note";
-    const sendBtn = el("button", "send-btn", "Send");
+    const sendBtn = el("button", "send-btn", "Poslat");
     sendBtn.type = "submit";
     const msg = el("div", "form-msg");
     form.append(modes, amount, note, sendBtn, msg);
@@ -167,15 +167,15 @@
     // history
     const history = el("section", "view");
     const historyList = el("div", "card-list history-list");
-    history.append(header("History", "main"), historyList);
+    history.append(header("Historie", "main"), historyList);
     views.history = history;
 
     // to be paid
     const tobepaid = el("section", "view");
     const tabs = el("div", "segmented");
     const tabButtons = {
-      me: button("seg active", "Requested from me"),
-      others: button("seg", "Requested from others"),
+      me: button("seg active", "Přijaté žádosti"),
+      others: button("seg", "Moje žádosti"),
     };
     const toPayList = el("div", "topay-list");
     const requestedList = el("div", "topay-list");
@@ -188,22 +188,22 @@
       });
       tabs.append(b);
     }
-    tobepaid.append(header("To be paid", "contacts"), tabs, toPayList, requestedList);
+    tobepaid.append(header("K zaplacení", "contacts"), tabs, toPayList, requestedList);
     views.tobepaid = tobepaid;
 
     // groups
     const groups = el("section", "view");
-    const newGroupBtn = button("big-btn", icon("settle", "big-btn-icon"), el("span", null, "New group"), icon("chevron", "chev"));
+    const newGroupBtn = button("big-btn", icon("settle", "big-btn-icon"), el("span", null, "Nová skupina"), icon("chevron", "chev"));
     newGroupBtn.addEventListener("click", () => openNewGroup());
     const groupsList = el("div", "groups-list");
-    groups.append(header("Group Settle", "contacts"), newGroupBtn, groupsList);
+    groups.append(header("Skupinové vyrovnání", "contacts"), newGroupBtn, groupsList);
     views.groups = groups;
 
     // new group
     const newgroup = el("section", "view");
     const ngForm = el("form", "pay-form");
     const ngName = el("input", "field");
-    Object.assign(ngName, { type: "text", maxLength: 40, placeholder: "Group name (e.g. Chata)" });
+    Object.assign(ngName, { type: "text", maxLength: 40, placeholder: "Název skupiny (např. Chata)" });
     const ngPeople = el("div", "pick-list");
     const ngPicks = {};
     for (const p of others) {
@@ -214,14 +214,14 @@
       row.append(box, avatar(p), el("span", "contact-name", p.name));
       ngPeople.append(row);
     }
-    const ngBtn = el("button", "send-btn", "Create group");
+    const ngBtn = el("button", "send-btn", "Vytvořit skupinu");
     ngBtn.type = "submit";
     const ngMsg = el("div", "form-msg");
     const ngExpense = el("div", "ng-expense");
     ngExpense.hidden = true;
-    ngForm.append(ngName, ngExpense, el("h3", "topay-section", "Who's in"), ngPeople, ngBtn, ngMsg);
+    ngForm.append(ngName, ngExpense, el("h3", "topay-section", "Kdo je ve skupině"), ngPeople, ngBtn, ngMsg);
     ngForm.addEventListener("submit", (e) => { e.preventDefault(); createGroup(); });
-    newgroup.append(header("New group", "groups"), ngForm);
+    newgroup.append(header("Nová skupina", "groups"), ngForm);
     views.newgroup = newgroup;
 
     // one group
@@ -230,13 +230,13 @@
     const groupInfo = el("div", "group-info");
     const expenseForm = el("form", "pay-form expense-form");
     const exAmount = el("input", "field");
-    Object.assign(exAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Amount (CZK)" });
+    Object.assign(exAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
     const exDesc = el("input", "field");
-    Object.assign(exDesc, { type: "text", maxLength: 60, placeholder: "What for (e.g. Cabin)" });
-    const exBtn = el("button", "send-btn", "Add expense");
+    Object.assign(exDesc, { type: "text", maxLength: 60, placeholder: "Za co (např. Chata)" });
+    const exBtn = el("button", "send-btn", "Přidat výdaj");
     exBtn.type = "submit";
     const exMsg = el("div", "form-msg");
-    expenseForm.append(el("h3", "topay-section", "I paid"), exAmount, exDesc, exBtn, exMsg);
+    expenseForm.append(el("h3", "topay-section", "Zaplaceno mnou"), exAmount, exDesc, exBtn, exMsg);
     expenseForm.addEventListener("submit", (e) => { e.preventDefault(); addExpense(); });
     const pickBox = el("div", "pick-payments");
     const expenseList = el("div", "group-expenses");
@@ -249,25 +249,25 @@
     const qrCard = el("div", "qr-card");
     const qrImg = el("img", "qr-img");
     qrImg.src = "/static/qr.svg";
-    qrImg.alt = "QR code";
-    const qrCaption = el("div", "qr-caption", "Scan to pay");
+    qrImg.alt = "QR kód";
+    const qrCaption = el("div", "qr-caption", "Naskenuj a zaplať");
     const qrAmount = el("input", "field");
-    Object.assign(qrAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Amount (CZK)" });
+    Object.assign(qrAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
     const qrNote = el("input", "field");
-    Object.assign(qrNote, { type: "text", maxLength: 80, placeholder: "Note (optional)" });
+    Object.assign(qrNote, { type: "text", maxLength: 80, placeholder: "Poznámka (volitelné)" });
     const updateCaption = () => {
       const amt = Number(qrAmount.value);
       const parts = [];
       if (qrAmount.value !== "" && amt > 0) parts.push(czk(amt));
       if (qrNote.value.trim()) parts.push(qrNote.value.trim());
-      qrCaption.textContent = parts.length ? parts.join(" · ") : "Scan to pay";
+      qrCaption.textContent = parts.length ? parts.join(" · ") : "Naskenuj a zaplať";
     };
     qrAmount.addEventListener("input", updateCaption);
     qrNote.addEventListener("input", updateCaption);
     qrCard.append(qrImg, qrCaption);
     const qrForm = el("div", "pay-form");
     qrForm.append(qrAmount, qrNote);
-    qr.append(header("QR code", "main"), qrCard, qrForm);
+    qr.append(header("QR kód", "main"), qrCard, qrForm);
     views.qr = qr;
 
     root.replaceChildren(...Object.values(views));
@@ -275,13 +275,13 @@
     // home-screen widget
     const widgetHead = el("div", "widget-head");
     const logo = el("img", "widget-logo");
-    logo.src = "/static/icons/george.png";
+    logo.src = "/static/icons/geoff.svg";
     logo.alt = "";
-    widgetHead.append(logo, el("span", null, "George"));
+    widgetHead.append(logo, el("span", null, "Geoff"));
     const widgetBalance = el("div", "widget-balance");
     const widgetChange = el("div", "widget-change");
     const widgetBody = el("div", "widget-body");
-    widgetBody.append(el("div", "widget-label", "Balance"), widgetBalance, widgetChange);
+    widgetBody.append(el("div", "widget-label", "Zůstatek"), widgetBalance, widgetChange);
     Phone.widget.replaceChildren(widgetHead, widgetBody);
 
     ui = {
@@ -314,8 +314,8 @@
   function setMode(next) {
     mode = next;
     for (const [key, b] of Object.entries(ui.modeButtons)) b.classList.toggle("active", key === mode);
-    ui.payTitle.textContent = mode === "payment" ? "Send money" : "Request money";
-    ui.sendBtn.textContent = mode === "payment" ? "Send" : "Request";
+    ui.payTitle.textContent = mode === "payment" ? "Poslat peníze" : "Vyžádat peníze";
+    ui.sendBtn.textContent = mode === "payment" ? "Poslat" : "Vyžádat";
     setMsg(null, "");
   }
 
@@ -327,12 +327,12 @@
     showChange(ui.widgetChange, state.today_change);
 
     const rows = [];
-    if (history.length === 0) rows.push(el("div", "empty", "No payments yet"));
+    if (history.length === 0) rows.push(el("div", "empty", "Zatím žádné platby"));
     for (const p of history) {
       if (p.kind === "card") {
         const row = el("div", "tx");
         const info = el("div", "tx-info");
-        info.append(el("div", "tx-name", p.note ? `Card · ${p.note}` : "Card payment"), el("div", "tx-meta", stamp(p.created_at)));
+        info.append(el("div", "tx-name", p.note ? `Karta · ${p.note}` : "Platba kartou"), el("div", "tx-meta", stamp(p.created_at)));
         row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
         rows.push(row);
         continue;
@@ -341,7 +341,7 @@
       const other = outgoing ? p.recipient : p.sender;
       const row = el("div", "tx");
       const info = el("div", "tx-info");
-      info.append(el("div", "tx-name", `${outgoing ? "To" : "From"} ${nameOf(other)}`));
+      info.append(el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`));
       const when = stamp(p.created_at);
       info.append(el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
       row.append(avatar({ id: other, name: nameOf(other) }), info,
@@ -363,15 +363,15 @@
     const individual = toPay.filter((r) => !r.group);
     const group = toPay.filter((r) => r.group);
     const blocks = [];
-    if (toPay.length === 0) blocks.push(el("div", "empty topay-empty", "Nothing to pay 🎉"));
+    if (toPay.length === 0) blocks.push(el("div", "empty topay-empty", "Není co platit 🎉"));
     if (individual.length) {
-      blocks.push(el("h3", "topay-section", "Individual"));
+      blocks.push(el("h3", "topay-section", "Jednotlivé"));
       const box = el("div", "card-list");
       for (const r of individual) box.append(requestRow(r));
       blocks.push(box);
     }
     if (group.length) {
-      blocks.push(el("h3", "topay-section", "Group"));
+      blocks.push(el("h3", "topay-section", "Skupinové"));
       for (const r of group) {
         const box = el("div", "card-list group-card");
         const g = r.group;
@@ -380,16 +380,16 @@
         const total = sameBill.reduce((sum, m) => sum + m.amount, 0);
         const head = el("div", "group-head");
         head.append(el("div", "group-title", g.title),
-          el("div", "group-meta", `To ${nameOf(r.requester)} · total ${czk(total)}`));
+          el("div", "group-meta", `Pro ${nameOf(r.requester)} · celkem ${czk(total)}`));
         const members = el("div", "group-members");
         for (const m of sameBill) {
           const chip = el("span", `member ${m.status}`);
           chip.append(avatar({ id: m.payer, name: nameOf(m.payer) }),
-            el("span", null, m.payer === me.id ? "You" : nameOf(m.payer).split(" ")[0]),
-            el("small", null, m.status === "paid" ? "✓ paid" : m.status === "declined" ? "declined" : czk(m.amount)));
+            el("span", null, m.payer === me.id ? "Ty" : nameOf(m.payer).split(" ")[0]),
+            el("small", null, m.status === "paid" ? "✓ zaplaceno" : m.status === "declined" ? "odmítnuto" : czk(m.amount)));
           members.append(chip);
         }
-        box.append(head, members, requestRow(r, `Your share to ${nameOf(r.requester).split(" ")[0]}`));
+        box.append(head, members, requestRow(r, `Tvůj podíl pro ${nameOf(r.requester).split(" ")[0]}`));
         blocks.push(box);
       }
     }
@@ -397,7 +397,7 @@
     renderRequested();
   }
 
-  const STATUS = { open: "Waiting", paid: "Paid", declined: "Declined", cancelled: "Cancelled" };
+  const STATUS = { open: "Čeká se", paid: "Zaplaceno", declined: "Odmítnuto", cancelled: "Zrušeno" };
 
   // ---- Group Settle ----
 
@@ -411,19 +411,19 @@
   }
 
   function groupStatus(g) {
-    return el("span", `status ${g.status === "open" ? "open" : "paid"}`, g.status === "open" ? "Open" : "Approved");
+    return el("span", `status ${g.status === "open" ? "open" : "paid"}`, g.status === "open" ? "Otevřená" : "Schválená");
   }
 
   function renderGroups() {
     const list = state.groups || [];
     const cards = [];
-    if (list.length === 0) cards.push(el("div", "empty topay-empty", "No groups yet"));
+    if (list.length === 0) cards.push(el("div", "empty topay-empty", "Zatím žádné skupiny"));
     for (const g of list) {
       const card = button("group-tile");
       const top = el("div", "req-top");
       const info = el("div", "tx-info");
       info.append(el("div", "group-title", g.name),
-        el("div", "group-meta", g.creator === state.me.id ? "Created by me" : `Added by ${firstName(g.creator)}`));
+        el("div", "group-meta", g.creator === state.me.id ? "Založeno mnou" : `Přidal(a) ${firstName(g.creator)}`));
       const right = el("div", "req-right");
       right.append(el("div", "tx-amount", czk(g.total)), groupStatus(g));
       top.append(info, right);
@@ -439,7 +439,7 @@
     startExpense = prefill || null;
     ui.ngName.value = prefill ? prefill.note.slice(0, 40) : "";
     ui.ngExpense.hidden = !prefill;
-    ui.ngExpense.textContent = prefill ? `Expense: ${czk(prefill.amount)} · paid by you` : "";
+    ui.ngExpense.textContent = prefill ? `Výdaj: ${czk(prefill.amount)} · zaplaceno tebou` : "";
     for (const box of Object.values(ui.ngPicks)) box.checked = false;
     ui.ngMsg.className = "form-msg";
     ui.ngMsg.textContent = "";
@@ -455,7 +455,7 @@
     });
     let data = {};
     try { data = await r.json(); } catch { /* non-JSON error page */ }
-    if (!r.ok) throw new Error(data.detail || `Failed (${r.status})`);
+    if (!r.ok) throw new Error(data.detail || `Selhalo (${r.status})`);
     return data;
   }
 
@@ -464,13 +464,13 @@
     ui.ngBtn.disabled = true;
     try {
       const body = { name: ui.ngName.value, members };
-      if (startExpense) body.expense = { amount: startExpense.amount, description: startExpense.note || "Card payment" };
+      if (startExpense) body.expense = { amount: startExpense.amount, description: startExpense.note || "Platba kartou" };
       const g = await postJson("/api/groups", body);
       await load();
       openGroup(g.id);
     } catch (err) {
       ui.ngMsg.className = "form-msg error";
-      ui.ngMsg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      ui.ngMsg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
     } finally {
       ui.ngBtn.disabled = false;
     }
@@ -500,13 +500,13 @@
     const info = el("div", "card-list group-summary");
     const top = el("div", "req-top");
     const meta = el("div", "tx-info");
-    meta.append(el("div", "group-meta", g.creator === mine ? "Created by me" : `Created by ${nameOf(g.creator)}`),
-      el("div", "group-total", czk(g.total)), el("div", "group-meta", "spent together"));
+    meta.append(el("div", "group-meta", g.creator === mine ? "Založeno mnou" : `Založil(a) ${nameOf(g.creator)}`),
+      el("div", "group-total", czk(g.total)), el("div", "group-meta", "utraceno společně"));
     top.append(meta, groupStatus(g));
     const people = el("div", "group-members");
     for (const id of g.members) {
       const chip = el("span", "member");
-      chip.append(avatar({ id, name: nameOf(id) }), el("span", null, id === mine ? "You" : firstName(id)));
+      chip.append(avatar({ id, name: nameOf(id) }), el("span", null, id === mine ? "Ty" : firstName(id)));
       people.append(chip);
     }
     info.append(top, people);
@@ -515,18 +515,18 @@
     ui.expenseForm.hidden = !isOpen;
 
     const rows = [];
-    rows.push(el("h3", "topay-section", "Expenses"));
+    rows.push(el("h3", "topay-section", "Výdaje"));
     const box = el("div", "card-list");
-    if (g.expenses.length === 0) box.append(el("div", "empty", "No expenses yet"));
+    if (g.expenses.length === 0) box.append(el("div", "empty", "Zatím žádné výdaje"));
     for (const e of g.expenses) {
       const row = el("div", "tx");
       const text = el("div", "tx-info");
       text.append(el("div", "tx-name", e.description),
-        el("div", "tx-meta", `${e.payer === mine ? "You" : nameOf(e.payer)} paid · ${time(e.created_at)}`));
+        el("div", "tx-meta", `${e.payer === mine ? "Zaplaceno tebou" : `Zaplaceno: ${nameOf(e.payer)}`} · ${time(e.created_at)}`));
       row.append(avatar({ id: e.payer, name: nameOf(e.payer) }), text, el("div", "tx-amount", czk(e.amount)));
       if (isOpen && e.payer === mine) {
         const del = button("del-btn", "✕");
-        del.title = "Delete";
+        del.title = "Smazat";
         del.addEventListener("click", () => deleteExpense(e.id, del));
         row.append(del);
       }
@@ -539,19 +539,19 @@
 
     const approve = [];
     if (isOpen && g.creator === mine) {
-      const btn = button("send-btn approve-btn", "Approve and settle");
+      const btn = button("send-btn approve-btn", "Schválit a vyrovnat");
       const msg = el("div", "form-msg");
       btn.addEventListener("click", () => approveGroup(g.id, btn, msg));
-      approve.push(el("div", "approve-hint", "When everyone has added what they paid, approve to lock the group and send the payment requests."), btn, msg);
+      approve.push(el("div", "approve-hint", "Až všichni přidají, co zaplatili, schval skupinu. Zamkne se a odešlou se žádosti o platbu."), btn, msg);
     } else if (isOpen) {
-      approve.push(el("div", "approve-hint", `Waiting for ${firstName(g.creator)} to approve.`));
+      approve.push(el("div", "approve-hint", `Čeká se, až skupinu schválí ${firstName(g.creator)}.`));
     } else {
       approve.push(el("div", "approve-hint", g.requests_sent > 0
-        ? "Approved: payment requests were sent. Check To be paid."
-        : "Approved: everyone is already even, no requests needed."));
+        ? "Schváleno: žádosti o platbu byly odeslány. Najdeš je v K zaplacení."
+        : "Schváleno: všichni jsou už vyrovnaní, žádosti nejsou potřeba."));
     }
     if (g.creator === mine) {
-      const del = button("delete-group-btn", "Delete group");
+      const del = button("delete-group-btn", "Smazat skupinu");
       const msg = el("div", "form-msg");
       del.addEventListener("click", () => deleteGroup(g, del, msg));
       approve.push(del, msg);
@@ -571,17 +571,17 @@
       const row = el("div", "tx");
       const info = el("div", "tx-info");
       const label = h.kind === "card"
-        ? (h.note ? `Card · ${h.note}` : "Card payment")
-        : (h.note || `Payment to ${nameOf(h.recipient)}`);
+        ? (h.note ? `Karta · ${h.note}` : "Platba kartou")
+        : (h.note || `Platba pro ${nameOf(h.recipient)}`);
       info.append(el("div", "tx-name", label), el("div", "tx-meta", stamp(h.created_at)));
-      const add = button("add-btn", "Add");
+      const add = button("add-btn", "Přidat");
       const msg = el("div", "form-msg error");
       add.addEventListener("click", () => addFromHistory(h, add, msg));
       row.append(icon(h.kind === "card" ? "card" : "contacts", "req-icon"), info,
         el("div", "tx-amount", czk(h.amount)), add);
       box.append(row, msg);
     }
-    return [el("h3", "topay-section", "Or pick from my payments"), box];
+    return [el("h3", "topay-section", "Nebo vyber z mých plateb"), box];
   }
 
   async function addFromHistory(h, btn, msg) {
@@ -591,14 +591,14 @@
       await postJson(`/api/groups/${openGroupId}/expenses`, { source: { kind: h.kind, id: h.id } });
       await load();
     } catch (err) {
-      msg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      msg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
       btn.disabled = false;
     }
   }
 
   async function deleteGroup(g, btn, msg) {
-    const sent = g.requests_sent > 0 ? " Payment requests that aren't paid yet will be cancelled." : "";
-    if (!window.confirm(`Delete "${g.name}" for everyone?${sent}`)) return;
+    const sent = g.requests_sent > 0 ? " Nezaplacené žádosti o platbu se zruší." : "";
+    if (!window.confirm(`Smazat skupinu „${g.name}“ pro všechny?${sent}`)) return;
     btn.disabled = true;
     try {
       await postJson(`/api/groups/${g.id}`, undefined, "DELETE");
@@ -607,7 +607,7 @@
       await load();
     } catch (err) {
       msg.className = "form-msg error";
-      msg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      msg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
       btn.disabled = false;
     }
   }
@@ -624,7 +624,7 @@
       await load();
     } catch (err) {
       ui.exMsg.className = "form-msg error";
-      ui.exMsg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      ui.exMsg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
     } finally {
       ui.exBtn.disabled = false;
     }
@@ -647,7 +647,7 @@
       await load();
     } catch (err) {
       msg.className = "form-msg error";
-      msg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      msg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
       btn.disabled = false;
     }
   }
@@ -656,10 +656,10 @@
   function renderRequested() {
     const mine = state.requested || [];
     const blocks = [];
-    if (mine.length === 0) blocks.push(el("div", "empty topay-empty", "You haven't requested anything"));
+    if (mine.length === 0) blocks.push(el("div", "empty topay-empty", "Zatím jsi nic nevyžádal(a)"));
     const individual = mine.filter((r) => !r.group);
     if (individual.length) {
-      blocks.push(el("h3", "topay-section", "Individual"));
+      blocks.push(el("h3", "topay-section", "Jednotlivé"));
       const box = el("div", "card-list");
       for (const r of individual) {
         const row = el("div", "req");
@@ -678,7 +678,7 @@
     const groups = new Map();
     for (const r of mine) if (r.group && !groups.has(r.group.id)) groups.set(r.group.id, r.group);
     if (groups.size) {
-      blocks.push(el("h3", "topay-section", "Group"));
+      blocks.push(el("h3", "topay-section", "Skupinové"));
       for (const g of groups.values()) {
         // Only the rows owed to me; a settled group can also hold debts between other members.
         const owedToMe = g.members.filter((m) => m.requester === state.me.id);
@@ -686,7 +686,7 @@
         const box = el("div", "card-list group-card");
         const head = el("div", "group-head");
         const paid = owedToMe.filter((m) => m.status === "paid").reduce((sum, m) => sum + m.amount, 0);
-        head.append(el("div", "group-title", g.title), el("div", "group-meta", `${czk(paid)} of ${czk(total)} paid`));
+        head.append(el("div", "group-title", g.title), el("div", "group-meta", `Zaplaceno ${czk(paid)} z ${czk(total)}`));
         const list = el("div", "group-rows");
         for (const m of owedToMe) {
           const row = el("div", "req-top group-row");
@@ -711,8 +711,8 @@
     top.append(label ? icon("request", "req-icon") : avatar({ id: r.requester, name: nameOf(r.requester) }),
       info, el("div", "tx-amount", czk(r.amount)));
     const actions = el("div", "req-actions");
-    const decline = button("req-btn decline", "Decline");
-    const payBtn = button("req-btn pay", "Pay");
+    const decline = button("req-btn decline", "Odmítnout");
+    const payBtn = button("req-btn pay", "Zaplatit");
     const msg = el("div", "form-msg error");
     decline.addEventListener("click", () => answer(r.id, "decline", msg, [decline, payBtn]));
     payBtn.addEventListener("click", () => answer(r.id, "pay", msg, [decline, payBtn]));
@@ -729,13 +729,13 @@
       if (!r.ok) {
         let body = {};
         try { body = await r.json(); } catch { /* non-JSON error page */ }
-        msg.textContent = body.detail || `Failed (${r.status})`;
+        msg.textContent = body.detail || `Selhalo (${r.status})`;
         buttons.forEach((b) => { b.disabled = false; });
         return;
       }
       await load();
     } catch {
-      msg.textContent = "Can't reach the bank. Try again.";
+      msg.textContent = "Banku se nepodařilo zastihnout. Zkus to znovu.";
       buttons.forEach((b) => { b.disabled = false; });
     }
   }
@@ -761,17 +761,17 @@
       let body = {};
       try { body = await r.json(); } catch { /* non-JSON error page */ }
       if (!r.ok) {
-        setMsg("error", body.detail || `Payment failed (${r.status})`);
+        setMsg("error", body.detail || `Platba selhala (${r.status})`);
         return;
       }
       ui.amount.value = "";
       ui.note.value = "";
       setMsg("ok", requesting
-        ? `Requested ${czk(body.amount)} from ${nameOf(body.payer)}`
-        : `Sent ${czk(body.amount)} to ${nameOf(body.recipient)}`);
+        ? `Vyžádáno ${czk(body.amount)} od ${nameOf(body.payer)}`
+        : `Posláno ${czk(body.amount)} pro ${nameOf(body.recipient)}`);
       await load();
     } catch {
-      setMsg("error", "Can't reach the bank. Try again.");
+      setMsg("error", "Banku se nepodařilo zastihnout. Zkus to znovu.");
     } finally {
       ui.sendBtn.disabled = false;
     }
@@ -795,16 +795,16 @@
       Phone.notify({
         title: event.from, body: event.text + note, color: Phone.colors[sender],
         actions: event.type === "request_received" ? [
-          { label: "Decline", secondary: true, onClick: answer("decline", "Declined") },
-          { label: "Pay", onClick: answer("pay", `Paid ${czk(event.request.amount)} ✓`) },
+          { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
+          { label: "Zaplatit", onClick: answer("pay", `Zaplaceno ${czk(event.request.amount)} ✓`) },
         ] : undefined,
       });
       load();
     } else if (event.type === "card_payment") {
       const prefill = { amount: event.payment.amount, note: event.payment.note };
       Phone.notify({
-        title: "George", body: event.text, color: "#3b6cff",
-        action: { label: "Group Settle", onClick: () => openNewGroup(prefill) },
+        title: "Geoff", body: event.text, color: "#3b6cff",
+        action: { label: "Skupinové vyrovnání", onClick: () => openNewGroup(prefill) },
       });
       load();
     } else if (event.type === "group_deleted") {
@@ -837,10 +837,10 @@
       amount.value = "";
       note.value = "";
       demoMsg.className = "demo-msg ok";
-      demoMsg.textContent = "Paid";
+      demoMsg.textContent = "Zaplaceno";
     } catch (err) {
       demoMsg.className = "demo-msg error";
-      demoMsg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank." : err.message;
+      demoMsg.textContent = err.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout." : err.message;
     } finally {
       btn.disabled = false;
     }

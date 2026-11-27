@@ -211,8 +211,8 @@ def test_add_expense_from_sent_transfer_and_defaults(db):
     c = card_payment(db, 1, 90)
     e1 = add_expense_from_payment(db, g["id"], 1, "transfer", t["id"])
     e2 = add_expense_from_payment(db, g["id"], 1, "card", c["id"])
-    assert e1["description"] == "Payment to Pepa Hřebec" and e1["amount"] == 200
-    assert e2["description"] == "Card payment"
+    assert e1["description"] == "Platba pro Pepa Hřebec" and e1["amount"] == 200
+    assert e2["description"] == "Platba kartou"
 
 
 def test_cannot_add_someone_elses_or_incoming_payment(db):

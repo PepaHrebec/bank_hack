@@ -1,16 +1,16 @@
 // Phone shell. Gives the app a small API on window.Phone:
 //   Phone.notify({title, body, color, action?: {label, onClick}})
 //                                       show a banner and add it to the pull-down list;
-//                                       the action button runs onClick, then opens George
+//                                       the action button runs onClick, then opens Geoff
 //   Phone.onEvent(fn)                   receive every event the orchestrator pushes
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
 //   Phone.initials(name)                "Petr Šafář" -> "PŠ"
 // The shell also owns the home screen. Every `.app-window` opens from the home-screen
 // icon whose data-opens is its id, and swiping up from the bottom edge closes it. Windows
-// get "app-open" / "app-close" DOM events. Tapping a notification banner opens George.
+// get "app-open" / "app-close" DOM events. Tapping a notification banner opens Geoff.
 //   Phone.openApp(id | null)            open a window by id, or go home with null
-//   Phone.widget                        the home-screen widget; the app fills it, tapping it opens George
+//   Phone.widget                        the home-screen widget; the app fills it, tapping it opens Geoff
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -49,7 +49,7 @@
     return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   }
 
-  // Buttons on a notification. `action` (one button) opens George and runs onClick there.
+  // Buttons on a notification. `action` (one button) opens Geoff and runs onClick there.
   // `actions` are handled right in the notification: onClick may return a promise; its
   // resolved text (e.g. "Paid ✓") replaces the buttons, a rejection shows its message.
   function noteActions(n) {
@@ -63,15 +63,15 @@
     refreshNote(n);
     Promise.resolve()
       .then(() => a.onClick())
-      .then((result) => { n.result = result || "Done"; })
-      .catch((err) => { n.error = (err && err.message) || "Something went wrong"; })
+      .then((result) => { n.result = result || "Hotovo"; })
+      .catch((err) => { n.error = (err && err.message) || "Něco se nepovedlo"; })
       .finally(() => { n.pending = false; refreshNote(n); });
   }
 
   // Re-render a notification wherever it is shown (pull-down list and, if still up, its banner).
   function refreshNote(n) {
     renderShadeList();
-    if (n.bannerEl && n.bannerEl.isConnected) n.bannerEl.replaceChildren(...noteContent(n, "now"));
+    if (n.bannerEl && n.bannerEl.isConnected) n.bannerEl.replaceChildren(...noteContent(n, "teď"));
   }
 
   function noteContent(n, timeText = n.time) {
@@ -151,7 +151,7 @@
     for (let i = notifications.length; i < EMPTY_SLOTS; i++) {
       const slot = document.createElement("div");
       slot.className = "shade-slot";
-      slot.textContent = "notification placeholder";
+      slot.textContent = "místo pro oznámení";
       shadeList.append(slot);
     }
   }
@@ -160,7 +160,7 @@
     bannerLayer.replaceChildren();
     const banner = document.createElement("div");
     banner.className = "banner";
-    banner.append(...noteContent(n, "now"));
+    banner.append(...noteContent(n, "teď"));
     n.bannerEl = banner;
     bannerLayer.append(banner);
 
