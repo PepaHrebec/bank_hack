@@ -10,6 +10,7 @@
 
   const czk = (n) => `${n.toLocaleString("cs-CZ")} CZK`;
   const nameOf = (id) => state.people.find((p) => p.id === id).name;
+  const firstName = (name) => name.split(" ")[0];
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -19,7 +20,7 @@
   }
 
   function avatar(person) {
-    const a = el("span", "avatar", String(person.id));
+    const a = el("span", "avatar", Phone.initials(person.name));
     a.style.background = Phone.colors[person.id];
     return a;
   }
@@ -40,7 +41,7 @@
     recipient = others[0].id;
 
     const header = el("header", "app-header");
-    header.append(avatar(me), el("div", "hello", `Hi, ${me.name}`));
+    header.append(avatar(me), el("div", "hello", `Hi, ${firstName(me.name)}`));
 
     const card = el("section", "balance-card");
     card.style.setProperty("--accent", Phone.colors[me.id]);
@@ -53,7 +54,7 @@
     for (const p of others) {
       const chip = el("button", "chip" + (p.id === recipient ? " active" : ""));
       chip.type = "button";
-      chip.append(avatar(p), el("span", null, p.name));
+      chip.append(avatar(p), el("span", null, firstName(p.name)));
       chip.addEventListener("click", () => {
         recipient = p.id;
         chips.querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === chip));
@@ -94,7 +95,7 @@
       info.append(el("div", "tx-name", `${outgoing ? "To" : "From"} ${nameOf(other)}`));
       const time = p.created_at.slice(11, 16);
       info.append(el("div", "tx-meta", p.note ? `${p.note} · ${time}` : time));
-      row.append(avatar({ id: other }), info,
+      row.append(avatar({ id: other, name: nameOf(other) }), info,
         el("div", "tx-amount " + (outgoing ? "out" : "in"), `${outgoing ? "−" : "+"}${czk(p.amount)}`));
       rows.push(row);
     }

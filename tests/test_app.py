@@ -18,7 +18,7 @@ def clients(tmp_path):
 
 def test_state(clients):
     s = clients[1].get("/api/state").json()
-    assert s["me"] == {"id": 1, "name": "Person 1"}
+    assert s["me"] == {"id": 1, "name": "Štěpán Pressl"}
     assert s["balance"] == 10000
     assert len(s["people"]) == 4
     assert s["history"] == []
@@ -30,8 +30,8 @@ def test_payment_notifies_recipient(clients):
         assert r.status_code == 200
         ev = ws2.receive_json()
         assert ev["type"] == "payment_received"
-        assert ev["text"] == "Person 1 sent you 250 CZK"
-        assert ev["from"] == "Person 1"
+        assert ev["text"] == "Štěpán Pressl sent you 250 CZK"
+        assert ev["from"] == "Štěpán Pressl"
         assert ev["payment"]["note"] == "lunch"
         assert ws1.receive_json()["type"] == "payment_sent"
     assert clients[2].get("/api/state").json()["balance"] == 10250

@@ -4,12 +4,12 @@ Mockup of a distributed bank app: four phones, one per person, each on its own p
 When one person does something (e.g. sends money), a hidden orchestrator pushes it to
 the others, and their phone shows a notification.
 
-| Port | Person   |
-|------|----------|
-| 3001 | Person 1 |
-| 3002 | Person 2 |
-| 3003 | Person 3 |
-| 3004 | Person 4 |
+| Port | Person         |
+|------|----------------|
+| 3001 | Štěpán Pressl  |
+| 3002 | Jirka Měřínský |
+| 3003 | Pepa Hřebec    |
+| 3004 | Petr Šafář     |
 
 ## Run
 

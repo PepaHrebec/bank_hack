@@ -4,7 +4,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
 
-PEOPLE = {1: "Person 1", 2: "Person 2", 3: "Person 3", 4: "Person 4"}
+PEOPLE = {1: "Štěpán Pressl", 2: "Jirka Měřínský", 3: "Pepa Hřebec", 4: "Petr Šafář"}
 START_BALANCE = 10000
 
 
@@ -37,7 +37,8 @@ def init_db(path):
         )
         for pid, name in PEOPLE.items():
             conn.execute(
-                "INSERT OR IGNORE INTO accounts (id, name, balance) VALUES (?, ?, ?)",
+                "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
+                " ON CONFLICT(id) DO UPDATE SET name = excluded.name",
                 (pid, name, START_BALANCE),
             )
 

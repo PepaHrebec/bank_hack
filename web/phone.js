@@ -3,6 +3,7 @@
 //   Phone.onEvent(fn)                   receive every event the orchestrator pushes
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
+//   Phone.initials(name)                "Petr Šafář" -> "PŠ"
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -34,11 +35,15 @@
 
   // ---- notifications ----
 
+  function initials(name) {
+    return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  }
+
   function noteContent(n) {
     const icon = document.createElement("div");
     icon.className = "note-icon";
     icon.style.background = n.color;
-    icon.textContent = (n.title || "?").trim().slice(-1);
+    icon.textContent = initials(n.title || "?");
 
     const text = document.createElement("div");
     text.className = "note-text";
@@ -209,6 +214,7 @@
   const Phone = {
     me: null,
     colors: PERSON_COLORS,
+    initials,
     notify,
     onEvent(fn) { handlers.push(fn); },
     ready: null,
