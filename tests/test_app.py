@@ -307,3 +307,10 @@ def test_expense_from_history_api(clients):
     assert again.status_code == 400
     for bad in [{"source": "x"}, {"source": {"kind": "card", "id": "1"}}, {"source": {"kind": "card"}}]:
         assert clients[1].post(f"/api/groups/{gid}/expenses", json=bad).status_code == 400
+
+
+def test_pages_and_scripts_are_never_cached(clients):
+    # The demo changes often; a reload must always pick up the newest page code.
+    for path in ["/", "/static/phone.js", "/static/app.js"]:
+        assert clients[1].get(path).headers.get("cache-control") == "no-store"
+    assert "cache-control" not in clients[1].get("/api/state").headers
