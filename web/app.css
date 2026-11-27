@@ -158,6 +158,10 @@ button {
   color: #fff;
 }
 
+.to-be-paid-icon {
+  background: #f5a623;
+}
+
 /* Chatbot window: intentionally empty for now. */
 .chat {
   flex: 1;

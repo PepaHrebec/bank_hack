@@ -64,11 +64,11 @@ make the frontend work.
   The recipient's balance and history update live.
 - App screens (updated 2026-11-27):
   - Main: balance card with a history icon (tap opens History), a Contacts
-    button, and a large chat window, empty for now; the smart chatbot comes
-    later.
-  - Contacts: Settle Up and To be paid icons (To be paid will list the
-    requests created by Settle Up; neither is implemented yet) above the
-    other three people. Tapping a person opens Send money for them (amount, note).
+    button, a To be paid button (will list the requests created by Group
+    Payment; not implemented yet), and a large chat window, empty for now;
+    the smart chatbot comes later.
+  - Contacts: a Group Payment icon (not implemented yet) above the other
+    three people. Tapping a person opens Send money for them (amount, note).
   - History: payments from the database, newest first. The history stays in
     the database for other uses.
 - Data persists across restarts (SQLite file). A reset command restores the
