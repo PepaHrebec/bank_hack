@@ -6,17 +6,17 @@
 <title>Geoff</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..900&display=swap" rel="stylesheet">
 <style>
 :root {
-  --fog: #E3E8E0;
-  --ink: #1B2620;
-  --moss: #3D5C48;
-  --amber: #F2AE2B;
-  --foam: #FBF8EF;
+  --fog: #EEF4FD;
+  --ink: #0B1F42;
+  --moss: #2870ED;
+  --amber: #2870ED;
+  --foam: #F7F9FD;
   --glare: #FFFFFF;
   --pink: #FF3B7A;
-  --blue: #3D5BFF;
+  --blue: #7B2FF7;
   --bg: var(--fog);
   --ease: cubic-bezier(.2, .8, .2, 1);
   --ph: min(76vh, 720px);
@@ -26,7 +26,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-optical-sizing: auto;
   transition: background-color .9s var(--ease);
   -webkit-font-smoothing: antialiased;
@@ -64,18 +64,16 @@ button { font: inherit; color: inherit; }
 
 h1, h2, p { margin: 0; }
 .display {
-  font-size: clamp(3rem, 8.4vw, 9.5rem);
-  font-weight: 760;
-  font-variation-settings: "wdth" 78;
-  line-height: .9;
-  letter-spacing: -.035em;
+  font-size: clamp(2.6rem, 6.6vw, 7.6rem);
+  font-weight: 800;
+  line-height: .98;
+  letter-spacing: -.045em;
 }
 .h {
-  font-size: clamp(2.2rem, 5.2vw, 5.6rem);
-  font-weight: 700;
-  font-variation-settings: "wdth" 82;
-  line-height: .95;
-  letter-spacing: -.03em;
+  font-size: clamp(2rem, 4.3vw, 4.8rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.04em;
 }
 .lede {
   font-size: clamp(1.1rem, 1.7vw, 1.65rem);
@@ -89,22 +87,19 @@ h1, h2, p { margin: 0; }
 
 /* ---------- 1 intro ---------- */
 #s-intro .wordmark {
-  font-size: clamp(6rem, 26vw, 30rem);
+  font-size: clamp(5rem, 21vw, 24rem);
   font-weight: 800;
   line-height: .8;
-  letter-spacing: -.06em;
-  font-variation-settings: "wdth" 75;
-  transition: font-variation-settings 2.4s var(--ease);
+  letter-spacing: 0;
+  transition: letter-spacing 2.4s var(--ease);
 }
-#s-intro.active .wordmark { font-variation-settings: "wdth" 100; }
+#s-intro.active .wordmark { letter-spacing: -.065em; }
 #s-intro .wordmark .dot { color: var(--amber); }
 #s-intro .lede { margin-top: .6em; font-size: clamp(1.3rem, 2.4vw, 2.4rem); max-width: none; }
-.hint { position: absolute; left: 7vw; bottom: 7vh; font-size: .95rem; }
-kbd { font: inherit; font-weight: 600; padding: .1em .45em; border-radius: .35em; border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent); }
 
 /* ---------- 2 chaos ---------- */
 #s-chaos { z-index: 4; align-items: flex-start; }
-#s-chaos .h { font-size: clamp(2.4rem, 6.6vw, 7.4rem); }
+#s-chaos .h { font-size: clamp(2.2rem, 5.4vw, 6.2rem); }
 #s-chaos .r > span > span { background: var(--glare); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 0 .12em; }
 .noise { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
 .chip {
@@ -113,7 +108,7 @@ kbd { font: inherit; font-weight: 600; padding: .1em .45em; border-radius: .35em
   padding: .7em .95em;
   border-radius: 1.1em;
   background: #fff;
-  box-shadow: 0 10px 30px -8px rgba(30, 20, 80, .28), 0 0 0 1px rgba(30, 20, 80, .06);
+  box-shadow: 0 10px 30px -8px rgba(11, 31, 66, .28), 0 0 0 1px rgba(11, 31, 66, .06);
   font: 600 clamp(.72rem, 1vw, .98rem)/1.25 system-ui, -apple-system, sans-serif;
   color: #1a1a2e;
   white-space: nowrap;
@@ -141,7 +136,7 @@ kbd { font: inherit; font-weight: 600; padding: .1em .45em; border-radius: .35em
 .evening { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3vw; margin-top: 7vh; max-width: 1200px; }
 .moment { border-top: 2px solid var(--ink); padding-top: 1.1rem; }
 .moment .time { font-weight: 500; font-variant-numeric: tabular-nums; }
-.moment .place { font-size: clamp(1.6rem, 2.8vw, 3rem); font-weight: 700; letter-spacing: -.02em; font-variation-settings: "wdth" 85; margin: .2em 0 .1em; }
+.moment .place { font-size: clamp(1.5rem, 2.4vw, 2.6rem); font-weight: 800; letter-spacing: -.02em; margin: .2em 0 .1em; }
 .moment .what { color: color-mix(in srgb, var(--ink) 70%, transparent); font-size: clamp(1rem, 1.25vw, 1.2rem); }
 .ring { display: flex; align-items: center; gap: .6em; margin-top: 1.2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .ring svg { width: 2.4rem; height: 2.4rem; transform: rotate(-90deg); }
@@ -158,7 +153,7 @@ kbd { font: inherit; font-weight: 600; padding: .1em .45em; border-radius: .35em
 .flow svg { width: 100%; height: auto; overflow: visible; }
 .flow .path { fill: none; stroke: var(--moss); stroke-width: 2.5; stroke-dasharray: 600; stroke-dashoffset: 600; }
 .flow .bead { fill: var(--amber); opacity: 0; }
-.flow text { font-family: "Bricolage Grotesque", sans-serif; fill: var(--ink); }
+.flow text { font-family: "Inter", sans-serif; fill: var(--ink); }
 .flow .node-label { font-size: 17px; font-weight: 500; opacity: .7; }
 .flow .node-value { font-size: 30px; font-weight: 720; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .flow .in-box { fill: var(--ink); }
@@ -168,13 +163,13 @@ kbd { font: inherit; font-weight: 600; padding: .1em .45em; border-radius: .35em
 
 /* ---------- 5 four things ---------- */
 .four { list-style: none; padding: 0; margin: 5vh 0 0; }
-.four li { font-size: clamp(1.5rem, 2.9vw, 3rem); font-weight: 650; letter-spacing: -.02em; line-height: 1.12; font-variation-settings: "wdth" 88; }
+.four li { font-size: clamp(1.4rem, 2.5vw, 2.6rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.12; }
 .four li + li { margin-top: .25em; }
 .four li .muted { font-weight: 400; }
 
 /* feature slides */
 .kicker { font-weight: 600; color: var(--moss); font-size: clamp(1rem, 1.3vw, 1.25rem); margin-bottom: 1.2rem; }
-.big-stat { font-size: clamp(2.6rem, 5vw, 5.4rem); font-weight: 760; letter-spacing: -.03em; font-variant-numeric: tabular-nums; font-variation-settings: "wdth" 80; line-height: 1; }
+.big-stat { font-size: clamp(2.3rem, 4.2vw, 4.6rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
 .math { display: grid; grid-template-columns: auto 1fr; column-gap: 1.2rem; row-gap: .2rem; margin-top: 4.5vh; align-items: baseline; }
 .math .big-stat { text-align: right; }
 .math .lbl { font-size: clamp(1rem, 1.4vw, 1.35rem); color: color-mix(in srgb, var(--ink) 65%, transparent); }
@@ -206,16 +201,16 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .phone {
   position: absolute; inset: 0;
   border-radius: calc(var(--ph) * .085);
-  background: #10140F;
+  background: #0B1220;
   padding: calc(var(--ph) * .014);
-  box-shadow: 0 40px 80px -30px rgba(20, 40, 25, .55), 0 0 0 1.5px #39413A inset;
+  box-shadow: 0 40px 80px -30px rgba(11, 31, 66, .45), 0 0 0 1.5px #2A3650 inset;
 }
 .screen {
   position: relative; width: 100%; height: 100%;
   border-radius: calc(var(--ph) * .072);
   overflow: hidden;
   background: var(--foam);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: calc(var(--ph) * .0215);
   color: var(--ink);
 }
@@ -250,9 +245,9 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .bal .v { font-size: 2.35em; font-weight: 700; letter-spacing: -.03em; margin-top: .25em; font-variant-numeric: tabular-nums; position: relative; z-index: 1; }
 .bal .s { font-size: .82em; opacity: .6; margin-top: .9em; }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: .7em; margin-top: .8em; }
-.tile { background: #fff; border-radius: 1.2em; padding: 1em; font-weight: 600; box-shadow: 0 0 0 1px rgba(27, 38, 32, .07); }
+.tile { background: #fff; border-radius: 1.2em; padding: 1em; font-weight: 600; box-shadow: 0 0 0 1px rgba(11, 31, 66, .07); }
 .tile svg { width: 1.6em; height: 1.6em; display: block; margin-bottom: .9em; color: var(--moss); }
-.ask { margin-top: auto; border-radius: 99px; background: #fff; padding: .9em 1.2em; box-shadow: 0 0 0 1px rgba(27, 38, 32, .1); display: flex; justify-content: space-between; align-items: center; }
+.ask { margin-top: auto; border-radius: 99px; background: #fff; padding: .9em 1.2em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .1); display: flex; justify-content: space-between; align-items: center; }
 .ask .ph { opacity: .45; }
 .ask .go { width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--ink); display: grid; place-items: center; color: var(--foam); flex: none; }
 .ask .go svg { width: 1em; height: 1em; }
@@ -265,25 +260,25 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .row .amt.pos { color: var(--moss); }
 .row .sub { display: block; font-weight: 400; font-size: .82em; opacity: .55; }
 .av { flex: none; width: 2.3em; height: 2.3em; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .85em; color: #fff; }
-.tap { background: rgba(61, 92, 72, .14) !important; }
+.tap { background: rgba(40, 112, 237, .14) !important; }
 .press { animation: press .35s ease; }
 @keyframes press { 50% { transform: scale(.94); } }
 .quick { display: grid; grid-template-columns: 1fr 1fr; gap: .6em; margin-bottom: 1em; }
-.quick div { background: #fff; border-radius: 1em; padding: .75em .8em; font-weight: 600; font-size: .92em; box-shadow: 0 0 0 1px rgba(27, 38, 32, .07); }
+.quick div { background: #fff; border-radius: 1em; padding: .75em .8em; font-weight: 600; font-size: .92em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .07); }
 
 .who { display: flex; flex-direction: column; align-items: center; gap: .5em; margin: .4em 0 1.2em; font-weight: 600; font-size: 1.1em; }
 .who .av { width: 3.6em; height: 3.6em; font-size: 1em; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; background: rgba(27, 38, 32, .07); border-radius: 99px; padding: .25em; margin-bottom: .8em; font-weight: 600; font-size: .92em; text-align: center; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: rgba(11, 31, 66, .07); border-radius: 99px; padding: .25em; margin-bottom: .8em; font-weight: 600; font-size: .92em; text-align: center; }
 .seg span { padding: .5em; border-radius: 99px; }
 .seg span.on { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
-.field { background: #fff; border-radius: .9em; padding: .85em 1em; margin-bottom: .6em; box-shadow: 0 0 0 1px rgba(27, 38, 32, .1); min-height: 2.9em; display: flex; align-items: center; }
+.field { background: #fff; border-radius: .9em; padding: .85em 1em; margin-bottom: .6em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .1); min-height: 2.9em; display: flex; align-items: center; }
 .field.big { font-size: 1.6em; font-weight: 700; letter-spacing: -.02em; min-height: 2.1em; padding: .4em .7em; }
 .field .ph { opacity: .4; font-weight: 400; }
 .field.focus { box-shadow: 0 0 0 2px var(--moss); }
 .caret::after { content: ""; display: inline-block; width: 2px; height: 1.05em; background: var(--moss); margin-left: 2px; vertical-align: -.15em; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .btn { margin-top: .4em; background: var(--ink); color: var(--foam); border-radius: 99px; padding: .95em; text-align: center; font-weight: 700; }
-.btn.amber { background: var(--amber); color: var(--ink); }
+.btn.amber { background: var(--amber); color: #fff; }
 
 .done { position: absolute; inset: 0; background: var(--foam); display: grid; place-content: center; justify-items: center; gap: .6em; opacity: 0; transition: opacity .35s; text-align: center; }
 .done.on { opacity: 1; }
@@ -309,14 +304,14 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .banner.on { transform: none; opacity: 1; }
 .banner .top { display: flex; align-items: center; gap: .5em; font-size: .82em; opacity: .65; margin-bottom: .35em; }
 .banner .top .ago { margin-left: auto; }
-.gmark { width: 1.5em; height: 1.5em; border-radius: .4em; background: var(--ink); color: var(--amber); display: grid; place-items: center; font-weight: 800; font-size: .95em; font-family: "Bricolage Grotesque", sans-serif; }
+.gmark { width: 1.5em; height: 1.5em; border-radius: .4em; background: var(--moss); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: .95em; font-family: "Inter", sans-serif; }
 .banner b { display: block; font-size: 1em; }
 .banner .txt { font-size: .95em; }
 .banner .acts { display: grid; grid-template-columns: 1fr; gap: .4em; margin-top: .75em; }
 .banner .acts div { background: var(--ink); color: var(--foam); text-align: center; padding: .65em; border-radius: .9em; font-weight: 700; font-size: .95em; }
 
 /* qr */
-.qr-card { background: #fff; border-radius: 1.4em; padding: 1.4em 1.4em 1.1em; box-shadow: 0 0 0 1px rgba(27, 38, 32, .07); text-align: center; margin-bottom: 1em; }
+.qr-card { background: #fff; border-radius: 1.4em; padding: 1.4em 1.4em 1.1em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .07); text-align: center; margin-bottom: 1em; }
 .qr-card svg { width: 100%; height: auto; display: block; }
 .qr-card .cap { margin-top: .9em; font-weight: 600; min-height: 1.3em; }
 
@@ -324,7 +319,7 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .chipx { background: color-mix(in srgb, var(--amber) 30%, #fff); border-radius: .9em; padding: .7em 1em; margin-bottom: .9em; font-weight: 600; display: flex; justify-content: space-between; }
 .chipx span { font-weight: 400; opacity: .7; }
 .sect { font-size: .85em; font-weight: 600; opacity: .5; margin: .2em 0 .3em .3em; }
-.box { width: 1.4em; height: 1.4em; border-radius: .45em; box-shadow: 0 0 0 2px rgba(27, 38, 32, .25) inset; display: grid; place-items: center; transition: background .25s, box-shadow .25s; flex: none; }
+.box { width: 1.4em; height: 1.4em; border-radius: .45em; box-shadow: 0 0 0 2px rgba(11, 31, 66, .25) inset; display: grid; place-items: center; transition: background .25s, box-shadow .25s; flex: none; }
 .box svg { width: .9em; height: .9em; color: #fff; opacity: 0; transition: opacity .2s; }
 .row.picked .box { background: var(--moss); box-shadow: none; }
 .row.picked .box svg { opacity: 1; }
@@ -333,9 +328,9 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .gsum div { display: flex; flex-direction: column; }
 .gsum small { opacity: .6; font-size: .78em; }
 .gsum b { font-size: 1.25em; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-.st { font-size: .78em; font-weight: 700; padding: .3em .65em; border-radius: 99px; background: rgba(27, 38, 32, .08); transition: background .3s, color .3s; white-space: nowrap; }
+.st { font-size: .78em; font-weight: 700; padding: .3em .65em; border-radius: 99px; background: rgba(11, 31, 66, .08); transition: background .3s, color .3s; white-space: nowrap; }
 .st.paid { background: var(--moss); color: #fff; }
-.meter { height: .45em; background: rgba(27, 38, 32, .08); border-radius: 99px; overflow: hidden; margin: .2em 0 .9em; }
+.meter { height: .45em; background: rgba(11, 31, 66, .08); border-radius: 99px; overflow: hidden; margin: .2em 0 .9em; }
 .meter i { display: block; height: 100%; width: 0; background: var(--amber); border-radius: 99px; transition: width .6s var(--ease); }
 
 /* chat */
@@ -343,7 +338,7 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .bub { max-width: 84%; padding: .75em 1em; border-radius: 1.2em; line-height: 1.35; opacity: 0; transform: translateY(10px) scale(.96); transition: opacity .35s, transform .45s cubic-bezier(.3, 1.4, .5, 1); }
 .bub.on { opacity: 1; transform: none; }
 .bub.me { align-self: flex-end; background: var(--ink); color: var(--foam); border-bottom-right-radius: .35em; }
-.bub.geoff { align-self: flex-start; background: #fff; box-shadow: 0 0 0 1px rgba(27, 38, 32, .08); border-bottom-left-radius: .35em; }
+.bub.geoff { align-self: flex-start; background: #fff; box-shadow: 0 0 0 1px rgba(11, 31, 66, .08); border-bottom-left-radius: .35em; }
 .bub.dots { display: flex; gap: .3em; padding: .9em 1em; }
 .bub.dots i { width: .45em; height: .45em; border-radius: 50%; background: var(--ink); opacity: .35; animation: dot 1s infinite; }
 .bub.dots i:nth-child(2) { animation-delay: .15s; }
@@ -351,7 +346,7 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 @keyframes dot { 50% { opacity: 1; transform: translateY(-2px); } }
 .bars { display: flex; align-items: flex-end; gap: .55em; height: 5.5em; margin: .8em 0 .35em; }
 .bars div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: .3em; font-size: .72em; }
-.bars i { width: 100%; border-radius: .35em .35em .15em .15em; background: rgba(61, 92, 72, .3); height: 0; transition: height .8s var(--ease); }
+.bars i { width: 100%; border-radius: .35em .35em .15em .15em; background: rgba(40, 112, 237, .3); height: 0; transition: height .8s var(--ease); }
 .bars div.now i { background: var(--amber); }
 .bars span { opacity: .6; }
 
@@ -380,7 +375,6 @@ body.show-notes .notes { display: block; }
   body[data-phone="on"] .stage { transform: translateX(-50%); }
   .evening { grid-template-columns: 1fr; gap: 1.6rem; margin-top: 4vh; }
   #s-banker { grid-template-columns: 1fr; }
-  .hint { display: none; }
   .hud { padding: 0 16px 2.6vh; }
   .ticks, .notes { left: 16px; right: 16px; }
 }
@@ -392,11 +386,10 @@ body.show-notes .notes { display: block; }
 <body data-phone="off">
 
 <!-- 1 -->
-<section class="slide" id="s-intro" data-dur="10" data-bg="#E3E8E0"
+<section class="slide" id="s-intro" data-dur="10" data-bg="#EEF4FD"
   data-notes="Tohle je Geoff. Banka, na kterou můžete zapomenout.">
   <h1 class="wordmark"><span class="r"><span>Geoff<span class="dot">.</span></span></span></h1>
   <p class="lede"><span class="r"><span style="--d:3">Banka, na kterou můžete zapomenout.</span></span></p>
-  <p class="hint muted f" style="--d:6"><kbd>Mezerník</kbd> další &nbsp; <kbd>P</kbd> přehrát celé &nbsp; <kbd>N</kbd> poznámky &nbsp; <kbd>F</kbd> celá obrazovka</p>
 </section>
 
 <!-- 2 -->
@@ -410,7 +403,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 3 -->
-<section class="slide" id="s-calm" data-dur="22" data-bg="#E3E8E0"
+<section class="slide" id="s-calm" data-dur="22" data-bg="#EEF4FD"
   data-notes="Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím na barové stoličce, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.">
   <h2 class="h">
     <span class="r"><span style="--d:0">Já chci být s přáteli,</span></span>
@@ -440,7 +433,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 4 -->
-<section class="slide" id="s-banker" data-dur="16" data-bg="#E3E8E0"
+<section class="slide" id="s-banker" data-dur="16" data-bg="#EEF4FD"
   data-notes="Dřív byl účet v bance služba. Měli jste bankéře, který se o všechno postaral, a do banky jste vlastně nechodili. Dnešní technologie umožňují, aby banka zase fungovala takhle: výplata přijde a Geoff ji sám rozdělí mezi účet, spoření a stavebko.">
   <div>
     <h2 class="h">
@@ -483,7 +476,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 5 -->
-<section class="slide with-phone" id="s-geoff" data-dur="12" data-bg="#E3E8E0" data-phone="on"
+<section class="slide with-phone" id="s-geoff" data-dur="12" data-bg="#EEF4FD" data-phone="on"
   data-notes="Věci jdou dělat jednoduše, jen jsme na to rezignovali. Nepřicházíme s deseti novými funkcemi ani s bankovnictvím v lednici. Přicházíme s Geoffem a se čtyřmi věcmi, které opravdu potřebujete.">
   <div class="copy">
     <h2 class="h"><span class="r"><span style="--d:0">Proto Geoff.</span></span></h2>
@@ -497,7 +490,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 6 -->
-<section class="slide with-phone" id="s-balance" data-dur="14" data-bg="#E3E8E0" data-phone="on"
+<section class="slide with-phone" id="s-balance" data-dur="14" data-bg="#EEF4FD" data-phone="on"
   data-notes="Otevřete Geoffa a vidíte jedno číslo: kolik máte peněz. Žádné bannery, žádné nabídky. Historie je o jedno klepnutí dál. A zavřete.">
   <div class="copy">
     <p class="kicker f">Kolik máte peněz</p>
@@ -511,7 +504,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 7 -->
-<section class="slide with-phone" id="s-pay" data-dur="18" data-bg="#E3E8E0" data-phone="on"
+<section class="slide with-phone" id="s-pay" data-dur="18" data-bg="#EEF4FD" data-phone="on"
   data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když peníze přijdou vám, dozvíte se to z notifikace. Aplikaci ani nemusíte otevírat.">
   <div class="copy">
     <p class="kicker f">Peníze mezi přáteli</p>
@@ -524,7 +517,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 8 -->
-<section class="slide with-phone" id="s-qr" data-dur="12" data-bg="#E3E8E0" data-phone="on"
+<section class="slide with-phone" id="s-qr" data-dur="12" data-bg="#EEF4FD" data-phone="on"
   data-notes="Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.">
   <div class="copy">
     <p class="kicker f">QR kódy</p>
@@ -537,7 +530,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 9 -->
-<section class="slide with-phone" id="s-beers" data-dur="26" data-bg="#E3E8E0" data-phone="on"
+<section class="slide with-phone" id="s-beers" data-dur="26" data-bg="#EEF4FD" data-phone="on"
   data-notes="A teď ten večer. Nabídli jste se, že tentokrát těch šestnáct piv vezmete vy. Zaplatíte kartou a rovnou v notifikaci je tlačítko Rozdělit. Zaškrtnete přátele, Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
   <div class="copy">
     <p class="kicker f">Rozdělení účtu</p>
@@ -555,7 +548,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 10 -->
-<section class="slide with-phone" id="s-chat" data-dur="16" data-bg="#E3E8E0" data-phone="on"
+<section class="slide with-phone" id="s-chat" data-dur="16" data-bg="#EEF4FD" data-phone="on"
   data-notes="A věci, na které zapomenout nechcete, třeba občas graf nebo statistiku? Jednoduše se Geoffa zeptejte. V základu vám nebude nutit nic, co běžný den nepotřebujete.">
   <div class="copy">
     <p class="kicker f">Všechno ostatní</p>
@@ -568,7 +561,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 11 -->
-<section class="slide" id="s-outro" data-dur="12" data-bg="#E3E8E0"
+<section class="slide" id="s-outro" data-dur="12" data-bg="#EEF4FD"
   data-notes="A to je všechno, co Geoff nabízí. Protože svět je komplikovaný už teď.">
   <h2 class="display">
     <span class="r"><span style="--d:0">A to je všechno,</span></span>
@@ -614,9 +607,9 @@ body.show-notes .notes { display: block; }
         <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Historie</h3></div>
         <div class="list">
           <div class="row"><span class="av" style="background:#E0684B">ŠP</span><span class="nm">Štěpán<span class="sub">Kebab · dnes</span></span><span class="amt pos">+120 Kč</span></div>
-          <div class="row"><span class="av" style="background:#3D5C48">K</span><span class="nm">Kartou<span class="sub">Albert · včera</span></span><span class="amt neg">−412 Kč</span></div>
+          <div class="row"><span class="av" style="background:#2870ED">K</span><span class="nm">Kartou<span class="sub">Albert · včera</span></span><span class="amt neg">−412 Kč</span></div>
           <div class="row"><span class="av" style="background:#5B6CF0">JM</span><span class="nm">Jirka<span class="sub">Benzín · úterý</span></span><span class="amt neg">−300 Kč</span></div>
-          <div class="row"><span class="av" style="background:#1B2620">Z</span><span class="nm">Zaměstnavatel<span class="sub">Výplata · 15. 11.</span></span><span class="amt pos">+28 000 Kč</span></div>
+          <div class="row"><span class="av" style="background:#0B1F42">Z</span><span class="nm">Zaměstnavatel<span class="sub">Výplata · 15. 11.</span></span><span class="amt pos">+28 000 Kč</span></div>
         </div>
       </div>
 
@@ -788,25 +781,46 @@ body.show-notes .notes { display: block; }
     ["<i>🎮</i>Úroveň 4 · 120 XP do další"], ["Výdaje", "", spark("#3D5BFF")], ["12", "badge"], ["3", "badge"], ["99+", "badge"], ["<i>🔔</i>Nezapomněli jste na nás?"],
     ["<i>📈</i>Portfolio −2,4 % dnes", "cool"], ["<i>🍀</i>Kolo štěstí: zatočte si!"],
   ];
-  // spread over a jittered grid so chips cover the screen without piling up
-  const cols = 6, rows = 4;
-  items.forEach(([html, cls, extra], i) => {
+  items.forEach(([html, cls, extra]) => {
     const c = document.createElement("div");
     c.className = "chip " + (cls || "");
     c.innerHTML = html + (extra || "");
-    const gx = i % cols, gy = Math.floor(i / cols) % rows;
-    const x = (gx + .1 + Math.random() * .55) / cols * 100 - 2;
-    const y = (gy + .12 + Math.random() * .5) / rows * 100;
-    c.style.left = `${Math.max(1, Math.min(84, x))}vw`;
-    c.style.top = `${Math.max(2, Math.min(88, y))}vh`;
-    c.style.setProperty("--rot", `${(Math.random() - .5) * 10}deg`);
+    c.style.setProperty("--rot", `${(Math.random() - .5) * 8}deg`);
     c.style.setProperty("--jd", `${-Math.random() * 2.6}s`);
-    c.style.setProperty("--sd", `${(1 - x / 100) * .3 + Math.random() * .15}s`);
     c.style.setProperty("--sy", `${(Math.random() - .5) * 20}vh`);
-    c.dataset.order = i;
     noise.append(c);
   });
   const chips = $$(".chip", noise).sort(() => Math.random() - .5);
+
+  // Place chips at random spots that touch neither the headline nor each other.
+  // A chip that finds no free spot after many tries sits this one out.
+  function placeChips() {
+    const W = innerWidth, H = innerHeight, gap = 14;
+    const box = (x, y, w, h, m) => ({ x: x - m, y: y - m, w: w + 2 * m, h: h + 2 * m });
+    const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    // text lines: horizontal extent of the highlighted text, vertical extent of the
+    // (untransformed) line wrapper, so it works while the lines are still sliding in
+    const taken = $$("#s-chaos .r").map((r) => {
+      const line = r.getBoundingClientRect(), text = r.querySelector(":scope > span > span").getBoundingClientRect();
+      return box(text.left, line.top, text.width, line.height, 18);
+    });
+    for (const c of chips) {
+      c.style.display = "";
+      const w = c.offsetWidth, h = c.offsetHeight;
+      let spot = null;
+      for (let k = 0; k < 300 && !spot; k++) {
+        const x = W * .015 + Math.random() * (W * .97 - w), y = H * .03 + Math.random() * (H * .9 - h);
+        const b = box(x, y, w, h, gap);
+        if (!taken.some((t) => hit(b, t))) spot = { x, y, b };
+      }
+      if (!spot) { c.style.display = "none"; continue; }
+      taken.push(spot.b);
+      c.style.left = `${spot.x}px`;
+      c.style.top = `${spot.y}px`;
+      c.style.setProperty("--sd", `${(1 - spot.x / W) * .3 + Math.random() * .15}s`);
+    }
+  }
+  addEventListener("resize", () => { if (slides[cur] && slides[cur].id === "s-chaos") placeChips(); });
   function clearNoise() { noise.classList.remove("on", "swept"); chips.forEach((c) => c.classList.remove("in")); }
 
   /* ---- QR pattern (decorative, deterministic) ---- */
@@ -824,13 +838,14 @@ body.show-notes .notes { display: block; }
       else on = rnd() > .52;
       if (on) out += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
     }
-    svg.innerHTML = `<g fill="#1B2620">${out}</g>`;
+    svg.innerHTML = `<g fill="#0B1F42">${out}</g>`;
   })();
 
   /* ---- scenes ---- */
   const scenes = {
     "s-chaos"() {
       clearNoise();
+      placeChips();
       noise.classList.add("on");
       chips.forEach((c, i) => at(700 + i * (reduce ? 0 : 160), () => c.classList.add("in")));
     },
