@@ -342,11 +342,17 @@ def _group_dict(conn, g):
         "SELECT person FROM settle_members WHERE group_id = ? ORDER BY person", (g["id"],))]
     expenses = [dict(r) for r in conn.execute(
         "SELECT * FROM expenses WHERE group_id = ? ORDER BY id DESC", (g["id"],))]
+    requests_sent = conn.execute(
+        "SELECT COUNT(*) FROM requests r JOIN request_groups rg ON rg.id = r.group_id"
+        " WHERE rg.settle_group_id = ?",
+        (g["id"],),
+    ).fetchone()[0]
     return {
         **dict(g),
         "members": members,
         "expenses": expenses,
         "total": sum(e["amount"] for e in expenses),
+        "requests_sent": requests_sent,
     }
 
 

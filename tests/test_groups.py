@@ -123,3 +123,12 @@ def test_reset_clears_groups(db):
     add_expense(db, g["id"], 1, 10, "x")
     reset_db(db)
     assert groups_for(db, 1) == []
+
+
+def test_group_reports_how_many_requests_were_sent(db):
+    g = create_group(db, 1, "Chata", [2, 3])
+    assert groups_for(db, 3)[0]["requests_sent"] == 0
+    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 300)])
+    # Pepa is neither payer nor payee, and Jirka's request may later be paid: both still see it was sent.
+    assert groups_for(db, 3)[0]["requests_sent"] == 1
+    assert groups_for(db, 2)[0]["requests_sent"] == 1

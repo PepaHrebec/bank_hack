@@ -333,18 +333,21 @@
       for (const r of group) {
         const box = el("div", "card-list group-card");
         const g = r.group;
+        // A settled group can owe several people; this card is only about what's owed to r.requester.
+        const sameBill = g.members.filter((m) => m.requester === r.requester);
+        const total = sameBill.reduce((sum, m) => sum + m.amount, 0);
         const head = el("div", "group-head");
         head.append(el("div", "group-title", g.title),
-          el("div", "group-meta", `${nameOf(g.requester)} · total ${czk(g.total)}`));
+          el("div", "group-meta", `To ${nameOf(r.requester)} · total ${czk(total)}`));
         const members = el("div", "group-members");
-        for (const m of g.members) {
+        for (const m of sameBill) {
           const chip = el("span", `member ${m.status}`);
           chip.append(avatar({ id: m.payer, name: nameOf(m.payer) }),
             el("span", null, m.payer === me.id ? "You" : nameOf(m.payer).split(" ")[0]),
             el("small", null, m.status === "paid" ? "✓ paid" : m.status === "declined" ? "declined" : czk(m.amount)));
           members.append(chip);
         }
-        box.append(head, members, requestRow(r, "Your share"));
+        box.append(head, members, requestRow(r, `Your share to ${nameOf(r.requester).split(" ")[0]}`));
         blocks.push(box);
       }
     }
@@ -489,9 +492,7 @@
     } else if (isOpen) {
       approve.push(el("div", "approve-hint", `Waiting for ${firstName(g.creator)} to approve.`));
     } else {
-      const sent = (state.requested || []).some((r) => r.group && r.group.settle_group_id === g.id)
-        || (state.to_pay || []).some((r) => r.group && r.group.settle_group_id === g.id);
-      approve.push(el("div", "approve-hint", sent
+      approve.push(el("div", "approve-hint", g.requests_sent > 0
         ? "Approved: payment requests were sent. Check To be paid."
         : "Approved: split algorithm not implemented yet, so no requests were sent."));
     }
@@ -566,12 +567,15 @@
     if (groups.size) {
       blocks.push(el("h3", "topay-section", "Group"));
       for (const g of groups.values()) {
+        // Only the rows owed to me; a settled group can also hold debts between other members.
+        const owedToMe = g.members.filter((m) => m.requester === state.me.id);
+        const total = owedToMe.reduce((sum, m) => sum + m.amount, 0);
         const box = el("div", "card-list group-card");
         const head = el("div", "group-head");
-        const paid = g.members.filter((m) => m.status === "paid").reduce((sum, m) => sum + m.amount, 0);
-        head.append(el("div", "group-title", g.title), el("div", "group-meta", `${czk(paid)} of ${czk(g.total)} paid`));
+        const paid = owedToMe.filter((m) => m.status === "paid").reduce((sum, m) => sum + m.amount, 0);
+        head.append(el("div", "group-title", g.title), el("div", "group-meta", `${czk(paid)} of ${czk(total)} paid`));
         const list = el("div", "group-rows");
-        for (const m of g.members) {
+        for (const m of owedToMe) {
           const row = el("div", "req-top group-row");
           const right = el("div", "req-right");
           right.append(el("div", "tx-amount", czk(m.amount)), el("span", `status ${m.status}`, STATUS[m.status]));
