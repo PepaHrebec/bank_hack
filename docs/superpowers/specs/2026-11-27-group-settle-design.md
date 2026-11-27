@@ -11,8 +11,8 @@ what they paid for the group. When the creator approves, the group is settled:
 who owes whom is worked out and turned into ordinary payment requests, so the
 money moves through To be paid like any other request.
 
-The split algorithm (equal split) is the next piece of work. This step builds
-everything around it and leaves one clearly marked slot for it.
+The split algorithm (equal split, fewest transfers) lives in one clearly
+marked slot, `server/settle.py`; everything else is built around it.
 
 ## Goals
 
@@ -77,9 +77,12 @@ everything around it and leaves one clearly marked slot for it.
   a link to its settle group, and its requests may have different requesters
   (today a group request has one requester).
 - The split slot: `server/settle.py`, `settle(members, expenses)` returning a
-  list of (payer, payee, amount). Until the algorithm exists it returns an
-  empty list, so approving locks the group and creates no requests; the group
-  screen says so ("Approved: split algorithm not implemented yet").
+  list of (payer, payee, amount). It splits the total equally (the first
+  `total % n` members by id owe 1 CZK more) and settles the balances with the
+  fewest transfers (most disjoint zero-sum groups, found by exact search over
+  subsets). When everyone is already even it returns an empty list, so
+  approving locks the group and creates no requests; the group screen says so
+  ("Approved: everyone is already even, no requests needed.").
 - `/api/state` gains `groups`: every group I'm in with members, expenses,
   totals, status, creator.
 - Live updates over the existing WebSocket: members refresh when a group they
