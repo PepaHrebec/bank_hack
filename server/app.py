@@ -1,5 +1,6 @@
 """One phone's server: the page, the payments API and the live connection for one person."""
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from server import db
+from server import chat, db
 from server.orchestrator import Orchestrator
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -42,7 +43,26 @@ def _note(body):
     return note
 
 
-def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
+CHAT_MAX_MESSAGES = 20
+CHAT_MAX_CHARS = 1000
+
+
+def _chat_messages(body):
+    messages = body.get("messages")
+    if not isinstance(messages, list) or not 1 <= len(messages) <= CHAT_MAX_MESSAGES:
+        raise BadInput(f"Pošli 1 až {CHAT_MAX_MESSAGES} zpráv")
+    clean = []
+    for m in messages:
+        if (not isinstance(m, dict) or m.get("role") not in ("user", "assistant")
+                or not isinstance(m.get("content"), str) or not 0 < len(m["content"]) <= CHAT_MAX_CHARS):
+            raise BadInput(f"Každá zpráva musí mít text do {CHAT_MAX_CHARS} znaků")
+        clean.append({"role": m["role"], "content": m["content"]})
+    if clean[-1]["role"] != "user":
+        raise BadInput("Poslední zpráva musí být od uživatele")
+    return clean
+
+
+def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=None) -> FastAPI:
     app = FastAPI(title=f"Phone of {db.PEOPLE[person_id]}")
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 
@@ -313,6 +333,26 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             })
         await group_changed(group)
         return group
+
+    @app.post("/api/chat")
+    async def chat_endpoint(request: Request):
+        try:
+            body = await _json_object(request)
+            messages = _chat_messages(body)
+        except BadInput as e:
+            return _bad(str(e))
+        # Read per request so the key can be set or removed without restarting.
+        complete = chat_complete or chat.openrouter_from_env()
+        if complete is None:
+            return JSONResponse(
+                {"detail": "Chat není nastavený (chybí OPENROUTER_API_KEY nebo OPENROUTER_MODEL)."},
+                status_code=503,
+            )
+        try:
+            reply = await chat.run(db_path, person_id, messages, complete)
+        except (chat.UpstreamError, asyncio.TimeoutError):
+            return JSONResponse({"detail": "Geoff teď neodpovídá, zkus to prosím znovu."}, status_code=502)
+        return {"reply": reply}
 
     @app.websocket("/ws")
     async def ws(websocket: WebSocket):
