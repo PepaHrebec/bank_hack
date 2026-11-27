@@ -1,8 +1,9 @@
 // Placeholder bank app.
 //   main     balance card (tap -> history), Contacts button, chat window (empty for now)
-//   contacts Group Settle and To be paid (requests from Group Settle; both not implemented
-//            yet) and the other three people (tap -> pay)
-//   pay      send money to one contact
+//   contacts Group Settle (not implemented yet), To be paid, and the other three people
+//            (tap -> pay)
+//   pay      Payment (send money) or Request (ask for money) with one contact
+//   tobepaid open requests to me: individual ones and shares of group requests
 //   history  payments from the database
 // Talks to the shell only through window.Phone, so it can be swapped for the real app.
 // Every screen is built once; refreshes only touch balance and history, so a person
@@ -12,6 +13,7 @@
   let state = null;
   let ui = null; // elements updated on refresh / navigation
   let payTo = null; // contact id on the pay screen
+  let mode = "payment"; // "payment" | "request" on the pay screen
 
   const ICONS = {
     back: '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -92,10 +94,12 @@
     // contacts
     const contacts = el("section", "view");
     const actions = el("div", "quick-actions");
-    actions.append(
-      button("settle", icon("settle", "settle-icon"), el("span", null, "Group Settle")),
-      button("settle", icon("request", "settle-icon"), el("span", null, "To be paid")),
-    );
+    const toPayBadge = el("span", "badge");
+    const toPayIcon = icon("request", "settle-icon");
+    toPayIcon.append(toPayBadge);
+    const toPayBtn = button("settle", toPayIcon, el("span", null, "To be paid"));
+    toPayBtn.addEventListener("click", () => show("tobepaid"));
+    actions.append(button("settle", icon("settle", "settle-icon"), el("span", null, "Group Settle")), toPayBtn);
     const list = el("div", "card-list");
     for (const p of others) {
       const row = button("contact", avatar(p), el("span", "contact-name", p.name), icon("chevron", "chev"));
@@ -107,7 +111,17 @@
 
     // pay
     const pay = el("section", "view");
+    const payHeader = header("Send money", "contacts");
     const payWho = el("div", "pay-who");
+    const modes = el("div", "segmented");
+    const modeButtons = {
+      payment: button("seg active", "Payment"),
+      request: button("seg", "Request"),
+    };
+    for (const [key, b] of Object.entries(modeButtons)) {
+      b.addEventListener("click", () => setMode(key));
+      modes.append(b);
+    }
     const form = el("form", "pay-form");
     const amount = el("input", "field");
     Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Amount (CZK)" });
@@ -118,9 +132,9 @@
     const sendBtn = el("button", "send-btn", "Send");
     sendBtn.type = "submit";
     const msg = el("div", "form-msg");
-    form.append(amount, note, sendBtn, msg);
+    form.append(modes, amount, note, sendBtn, msg);
     form.addEventListener("submit", (e) => { e.preventDefault(); send(); });
-    pay.append(header("Send money", "contacts"), payWho, form);
+    pay.append(payHeader, payWho, form);
     views.pay = pay;
 
     // history
@@ -129,8 +143,17 @@
     history.append(header("History", "main"), historyList);
     views.history = history;
 
+    // to be paid
+    const tobepaid = el("section", "view");
+    const toPayList = el("div", "topay-list");
+    tobepaid.append(header("To be paid", "contacts"), toPayList);
+    views.tobepaid = tobepaid;
+
     root.replaceChildren(...Object.values(views));
-    ui = { views, balance, payWho, amount, note, sendBtn, msg, historyList };
+    ui = {
+      views, balance, payWho, amount, note, sendBtn, msg, historyList,
+      payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge,
+    };
     show("main");
   }
 
@@ -145,9 +168,17 @@
     ui.payWho.replaceChildren(avatar(person), el("div", "pay-name", person.name));
     ui.amount.value = "";
     ui.note.value = "";
-    setMsg(null, "");
+    setMode("payment");
     show("pay");
     ui.amount.focus();
+  }
+
+  function setMode(next) {
+    mode = next;
+    for (const [key, b] of Object.entries(ui.modeButtons)) b.classList.toggle("active", key === mode);
+    ui.payTitle.textContent = mode === "payment" ? "Send money" : "Request money";
+    ui.sendBtn.textContent = mode === "payment" ? "Send" : "Request";
+    setMsg(null, "");
   }
 
   function refresh() {
@@ -169,6 +200,84 @@
       rows.push(row);
     }
     ui.historyList.replaceChildren(...rows);
+    renderToPay();
+  }
+
+  function renderToPay() {
+    const { me } = state;
+    const toPay = state.to_pay || []; // older servers don't send it
+    ui.toPayBadge.textContent = toPay.length ? String(toPay.length) : "";
+    ui.toPayBadge.hidden = toPay.length === 0;
+
+    const individual = toPay.filter((r) => !r.group);
+    const group = toPay.filter((r) => r.group);
+    const blocks = [];
+    if (toPay.length === 0) blocks.push(el("div", "empty topay-empty", "Nothing to pay 🎉"));
+    if (individual.length) {
+      blocks.push(el("h3", "topay-section", "Individual"));
+      const box = el("div", "card-list");
+      for (const r of individual) box.append(requestRow(r));
+      blocks.push(box);
+    }
+    if (group.length) {
+      blocks.push(el("h3", "topay-section", "Group"));
+      for (const r of group) {
+        const box = el("div", "card-list group-card");
+        const g = r.group;
+        const head = el("div", "group-head");
+        head.append(el("div", "group-title", g.title),
+          el("div", "group-meta", `${nameOf(g.requester)} · total ${czk(g.total)}`));
+        const members = el("div", "group-members");
+        for (const m of g.members) {
+          const chip = el("span", `member ${m.status}`);
+          chip.append(avatar({ id: m.payer, name: nameOf(m.payer) }),
+            el("span", null, m.payer === me.id ? "You" : nameOf(m.payer).split(" ")[0]),
+            el("small", null, m.status === "paid" ? "✓ paid" : m.status === "declined" ? "declined" : czk(m.amount)));
+          members.append(chip);
+        }
+        box.append(head, members, requestRow(r, "Your share"));
+        blocks.push(box);
+      }
+    }
+    ui.toPayList.replaceChildren(...blocks);
+  }
+
+  function requestRow(r, label) {
+    const row = el("div", "req");
+    const info = el("div", "tx-info");
+    info.append(el("div", "tx-name", label || nameOf(r.requester)));
+    if (r.note) info.append(el("div", "tx-meta", r.note));
+    const top = el("div", "req-top");
+    top.append(label ? icon("request", "req-icon") : avatar({ id: r.requester, name: nameOf(r.requester) }),
+      info, el("div", "tx-amount", czk(r.amount)));
+    const actions = el("div", "req-actions");
+    const decline = button("req-btn decline", "Decline");
+    const payBtn = button("req-btn pay", "Pay");
+    const msg = el("div", "form-msg error");
+    decline.addEventListener("click", () => answer(r.id, "decline", msg, [decline, payBtn]));
+    payBtn.addEventListener("click", () => answer(r.id, "pay", msg, [decline, payBtn]));
+    actions.append(decline, payBtn);
+    row.append(top, actions, msg);
+    return row;
+  }
+
+  async function answer(id, action, msg, buttons) {
+    buttons.forEach((b) => { b.disabled = true; });
+    msg.textContent = "";
+    try {
+      const r = await fetch(`/api/requests/${id}/${action}`, { method: "POST" });
+      if (!r.ok) {
+        let body = {};
+        try { body = await r.json(); } catch { /* non-JSON error page */ }
+        msg.textContent = body.detail || `Failed (${r.status})`;
+        buttons.forEach((b) => { b.disabled = false; });
+        return;
+      }
+      await load();
+    } catch {
+      msg.textContent = "Can't reach the bank. Try again.";
+      buttons.forEach((b) => { b.disabled = false; });
+    }
   }
 
   function setMsg(kind, text) {
@@ -181,10 +290,13 @@
     ui.sendBtn.disabled = true;
     const amount = ui.amount.value === "" ? null : Number(ui.amount.value);
     try {
-      const r = await fetch("/api/payments", {
+      const requesting = mode === "request";
+      const r = await fetch(requesting ? "/api/requests" : "/api/payments", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ recipient: payTo, amount, note: ui.note.value }),
+        body: JSON.stringify(requesting
+          ? { payer: payTo, amount, note: ui.note.value }
+          : { recipient: payTo, amount, note: ui.note.value }),
       });
       let body = {};
       try { body = await r.json(); } catch { /* non-JSON error page */ }
@@ -194,7 +306,9 @@
       }
       ui.amount.value = "";
       ui.note.value = "";
-      setMsg("ok", `Sent ${czk(body.amount)} to ${nameOf(body.recipient)}`);
+      setMsg("ok", requesting
+        ? `Requested ${czk(body.amount)} from ${nameOf(body.payer)}`
+        : `Sent ${czk(body.amount)} to ${nameOf(body.recipient)}`);
       await load();
     } catch {
       setMsg("error", "Can't reach the bank. Try again.");
@@ -208,7 +322,12 @@
       const note = event.payment.note ? `\n${event.payment.note}` : "";
       Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[event.payment.sender] });
       load();
-    } else if (event.type === "payment_sent" || event.type === "connected") {
+    } else if (event.type === "request_received" || event.type === "request_declined") {
+      const sender = event.type === "request_received" ? event.request.requester : event.request.payer;
+      const note = event.request.note ? `\n${event.request.note}` : "";
+      Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[sender] });
+      load();
+    } else if (["payment_sent", "request_sent", "requests_changed", "connected"].includes(event.type)) {
       load();
     }
   });

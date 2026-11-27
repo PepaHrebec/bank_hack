@@ -18,6 +18,30 @@ def _bad(msg):
     return JSONResponse({"detail": msg}, status_code=400)
 
 
+class BadInput(Exception):
+    pass
+
+
+async def _json_object(request):
+    # Validate by hand so "250" or 2.5 are rejected instead of coerced.
+    try:
+        body = json.loads(await request.body())
+    except ValueError:
+        raise BadInput("Invalid JSON")
+    if not isinstance(body, dict):
+        raise BadInput("Expected a JSON object")
+    return body
+
+
+def _note(body):
+    note = body.get("note", "")
+    if note is None:
+        return ""
+    if not isinstance(note, str):
+        raise BadInput("Note must be text")
+    return note
+
+
 def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
     app = FastAPI(title=f"Phone of {db.PEOPLE[person_id]}")
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
@@ -33,29 +57,20 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "people": [{"id": i, "name": n} for i, n in db.PEOPLE.items()],
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
+            "to_pay": db.open_requests_for(db_path, person_id),
         }
 
     @app.post("/api/payments")
     async def pay(request: Request):
-        # Validate by hand so "250" or 2.5 are rejected instead of coerced.
         try:
-            body = json.loads(await request.body())
-        except ValueError:
-            return _bad("Invalid JSON")
-        if not isinstance(body, dict):
-            return _bad("Expected a JSON object")
-        recipient, amount, note = body.get("recipient"), body.get("amount"), body.get("note", "")
-        if type(recipient) is not int:
-            return _bad("Pick a recipient")
-        if note is None:
-            note = ""
-        if not isinstance(note, str):
-            return _bad("Note must be text")
-        try:
+            body = await _json_object(request)
+            recipient, amount, note = body.get("recipient"), body.get("amount"), _note(body)
+            if type(recipient) is not int:
+                raise BadInput("Pick a recipient")
             payment = await run_in_threadpool(
                 db.send_payment, db_path, person_id, recipient, amount, note
             )
-        except db.PaymentError as e:
+        except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
 
         sender_name = db.PEOPLE[person_id]
@@ -67,6 +82,88 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
         })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
+
+    me = db.PEOPLE[person_id]
+
+    async def announce_request(req, title=None):
+        text = f"{me} requests {req['amount']} CZK" + (f" for {title}" if title else "")
+        await orch.send(req["payer"], {"type": "request_received", "request": req, "from": me, "text": text})
+
+    @app.post("/api/requests")
+    async def request_money(request: Request):
+        try:
+            body = await _json_object(request)
+            payer, amount, note = body.get("payer"), body.get("amount"), _note(body)
+            if type(payer) is not int:
+                raise BadInput("Pick a contact")
+            req = await run_in_threadpool(db.create_request, db_path, person_id, payer, amount, note)
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        await announce_request(req)
+        await orch.send(person_id, {"type": "request_sent", "request": req})
+        return req
+
+    @app.post("/api/requests/group")
+    async def request_group(request: Request):
+        # For Group Settle: {"title": str, "shares": {"<person id>": amount, ...}, "note": str}
+        try:
+            body = await _json_object(request)
+            title, shares, note = body.get("title", ""), body.get("shares"), _note(body)
+            if not isinstance(title, str):
+                raise BadInput("Title must be text")
+            if not isinstance(shares, dict) or not all(k.isdigit() for k in shares):
+                raise BadInput("Shares must map person ids to amounts")
+            group = await run_in_threadpool(
+                db.create_group_request, db_path, person_id, title,
+                {int(k): v for k, v in shares.items()}, note,
+            )
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        for req in group["requests"]:
+            await announce_request(req, group["title"])
+        await orch.send(person_id, {"type": "request_sent", "group": group})
+        return group
+
+    async def notify_group(group_id, skip):
+        # Other members' group cards show who has paid; tell them to refresh.
+        if group_id is None:
+            return
+        for p in db.PEOPLE:
+            if p not in skip:
+                await orch.send(p, {"type": "requests_changed", "group_id": group_id})
+
+    @app.post("/api/requests/{request_id}/pay")
+    async def pay_request(request_id: int):
+        try:
+            payment = await run_in_threadpool(db.pay_request, db_path, request_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        req = await run_in_threadpool(db.get_request, db_path, request_id)
+        await orch.send(payment["recipient"], {
+            "type": "payment_received",
+            "payment": payment,
+            "from": me,
+            "text": f"{me} paid your request: {payment['amount']} CZK",
+        })
+        await orch.send(person_id, {"type": "payment_sent", "payment": payment})
+        await notify_group(req["group_id"], {person_id, payment["recipient"]})
+        return payment
+
+    @app.post("/api/requests/{request_id}/decline")
+    async def decline_request(request_id: int):
+        try:
+            req = await run_in_threadpool(db.decline_request, db_path, request_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await orch.send(req["requester"], {
+            "type": "request_declined",
+            "request": req,
+            "from": me,
+            "text": f"{me} declined your request: {req['amount']} CZK",
+        })
+        await orch.send(person_id, {"type": "requests_changed"})
+        await notify_group(req["group_id"], {person_id, req["requester"]})
+        return req
 
     @app.websocket("/ws")
     async def ws(websocket: WebSocket):

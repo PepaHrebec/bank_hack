@@ -76,9 +76,17 @@ make the frontend work.
   - Main: balance card with a history icon (tap opens History), a Contacts
     button, and a large chat window, empty for now; the smart chatbot comes
     later.
-  - Contacts: Group Settle and To be paid icons side by side (To be paid
-    will list the requests created by Group Settle; neither is implemented
-    yet) above the other three people. Tapping a person opens Send money for them (amount, note).
+  - Contacts: Group Settle (not implemented yet) and To be paid icons side
+    by side (To be paid shows a red count of open requests), above the other
+    three people. Tapping a person opens a screen with a Payment | Request
+    switch above amount and note: Payment sends money, Request asks that
+    person for it.
+  - To be paid: open requests to me, split into Individual (from Request)
+    and Group (shares of a group request, showing the group title, total and
+    every member's status). Each has Pay (moves the money, notifies the
+    requester) and Decline (notifies the requester).
+  - Group requests are created through `POST /api/requests/group` with a
+    title and per-person shares; Group Settle will be the UI for it.
   - History: payments from the database, newest first. The history stays in
     the database for other uses.
 - Data persists across restarts (SQLite file). A reset command restores the

@@ -340,3 +340,161 @@ button {
 }
 
 .tx-amount.in { color: #1f9d5c; }
+
+/* ---- payment / request switch ---- */
+
+.segmented {
+  display: flex;
+  padding: 0.2em;
+  margin-bottom: 0.8em;
+  border-radius: 0.8em;
+  background: #f2f3f7;
+}
+
+.seg {
+  flex: 1;
+  padding: 0.5em;
+  border: none;
+  border-radius: 0.65em;
+  background: none;
+  font-size: 0.9em;
+  font-weight: 600;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.seg.active {
+  background: #fff;
+  opacity: 1;
+  box-shadow: 0 0.08em 0.3em rgba(0, 0, 0, 0.12);
+}
+
+/* ---- to be paid ---- */
+
+.settle-icon {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: -0.35em;
+  right: -0.45em;
+  min-width: 1.5em;
+  height: 1.5em;
+  padding: 0 0.35em;
+  border-radius: 0.75em;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1.5em;
+  text-align: center;
+}
+
+.badge[hidden] { display: none; }
+
+.topay-section {
+  margin: 0.6em 0 0.5em 0.2em;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
+}
+
+.topay-list .card-list {
+  margin-bottom: 0.8em;
+}
+
+.topay-empty {
+  text-align: center;
+  padding: 2em 0;
+}
+
+.req {
+  padding: 0.75em 0;
+  border-top: 0.06em solid #eee;
+}
+
+.card-list > .req:first-child { border-top: none; }
+
+.req-top {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+}
+
+.req-icon {
+  width: 2.2em;
+  height: 2.2em;
+  padding: 0.5em;
+  border-radius: 50%;
+  background: #f2f3f7;
+}
+
+.req-actions {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.6em;
+}
+
+.req-btn {
+  flex: 1;
+  padding: 0.55em;
+  border: none;
+  border-radius: 0.75em;
+  font-size: 0.88em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.req-btn.decline { background: #f2f3f7; }
+.req-btn.pay { background: #111; color: #fff; }
+.req-btn:disabled { opacity: 0.5; }
+
+.req .form-msg { min-height: 0; margin-top: 0.3em; }
+.req .form-msg:empty { display: none; }
+
+.group-head {
+  padding-top: 0.7em;
+}
+
+.group-title {
+  font-weight: 700;
+}
+
+.group-meta {
+  font-size: 0.75em;
+  opacity: 0.55;
+}
+
+.group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin: 0.6em 0 0.3em;
+}
+
+.member {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.2em 0.55em 0.2em 0.2em;
+  border-radius: 1em;
+  background: #f2f3f7;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.member .avatar {
+  width: 1.7em;
+  height: 1.7em;
+  font-size: 0.7em;
+}
+
+.member small {
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.member.paid small { color: #1f9d5c; opacity: 1; }
+.member.declined { opacity: 0.5; }

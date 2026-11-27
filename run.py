@@ -1,4 +1,4 @@
-"""Start the four phone servers (ports 3001-3004) sharing one orchestrator and database."""
+"""Start the four phone servers (ports 3001-3004 by default) sharing one orchestrator and database."""
 
 import argparse
 import asyncio
@@ -35,19 +35,19 @@ def display_host(ip):
     return ip.replace(".", "-") + ".nip.io"
 
 
-async def serve(db_path, host, shown_host):
+async def serve(db_path, host, shown_host, base_port=BASE_PORT):
     orch = Orchestrator()
     servers = []
     for person_id in PEOPLE:
         config = uvicorn.Config(
             create_app(person_id, orch, db_path),
             host=host,
-            port=BASE_PORT + person_id,
+            port=base_port + person_id,
             log_level="warning",
         )
         servers.append(uvicorn.Server(config))
     for person_id, name in PEOPLE.items():
-        print(f"{name}: http://{shown_host}:{BASE_PORT + person_id}", flush=True)
+        print(f"{name}: http://{shown_host}:{base_port + person_id}", flush=True)
     await asyncio.gather(*(s.serve() for s in servers))
 
 
@@ -56,6 +56,8 @@ def main():
     parser.add_argument("--db", default="bank.db", help="SQLite file (default: bank.db)")
     parser.add_argument("--host", default="0.0.0.0",
                         help="address to listen on (default: all, so other devices on the network can connect)")
+    parser.add_argument("--base-port", type=int, default=BASE_PORT,
+                        help="person N is served on base-port + N (default: 3000)")
     parser.add_argument("--reset", action="store_true", help="restore starting balances and exit")
     args = parser.parse_args()
 
@@ -65,7 +67,7 @@ def main():
         return
     init_db(args.db)
     shown_host = display_host(lan_ip() if args.host == "0.0.0.0" else args.host)
-    asyncio.run(serve(args.db, args.host, shown_host))
+    asyncio.run(serve(args.db, args.host, shown_host, args.base_port))
 
 
 if __name__ == "__main__":
