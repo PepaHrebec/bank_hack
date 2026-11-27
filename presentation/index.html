@@ -184,7 +184,7 @@ h1, h2, p { margin: 0; }
 #s-outro .sign { position: absolute; right: 7vw; bottom: 8vh; font-size: clamp(2rem, 4vw, 4rem); font-weight: 800; letter-spacing: -.05em; }
 #s-outro .sign span { color: var(--amber); }
 
-/* ---------- phone ---------- */
+/* ---------- phone: mirrors the real Geoff app (web/app.css, web/phone.css) ---------- */
 .stage {
   position: fixed;
   right: max(7vw, calc(50vw - 640px));
@@ -201,154 +201,225 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .phone {
   position: absolute; inset: 0;
   border-radius: calc(var(--ph) * .085);
-  background: #0B1220;
+  background: #1c1d22;
   padding: calc(var(--ph) * .014);
-  box-shadow: 0 40px 80px -30px rgba(11, 31, 66, .45), 0 0 0 1.5px #2A3650 inset;
+  box-shadow: 0 40px 80px -30px rgba(11, 31, 66, .45), 0 0 0 1.5px #3a3b42 inset;
 }
 .screen {
+  --acc: #3b6cff;
   position: relative; width: 100%; height: 100%;
   border-radius: calc(var(--ph) * .072);
   overflow: hidden;
-  background: var(--foam);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: calc(var(--ph) * .0215);
-  color: var(--ink);
+  background: #f2f3f7;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+  font-size: calc(var(--ph) * .0205);
+  letter-spacing: 0;
 }
-.island { position: absolute; top: 1.6%; left: 50%; width: 30%; height: 3.6%; transform: translateX(-50%); background: #000; border-radius: 99px; z-index: 30; }
-.status { position: absolute; top: 0; left: 0; right: 0; height: 7%; display: flex; justify-content: space-between; align-items: center; padding: 0 9% 0 10%; font-weight: 600; font-size: 1.05em; z-index: 25; }
-.status .sig { display: flex; gap: .18em; align-items: flex-end; }
-.status .sig i { width: .22em; background: currentColor; border-radius: 1px; }
-.homebar { position: absolute; bottom: 1.2%; left: 50%; width: 36%; height: .5%; min-height: 4px; transform: translateX(-50%); background: var(--ink); border-radius: 99px; z-index: 30; opacity: .85; }
+.island { position: absolute; top: 1.6%; left: 50%; width: 30%; height: 3.6%; transform: translateX(-50%); background: #000; border-radius: 99px; z-index: 70; }
+.sbar { position: absolute; top: 0; left: 0; right: 0; height: 7%; display: flex; justify-content: space-between; align-items: center; padding: 0 9% 0 10%; font-weight: 600; font-size: 1.05em; z-index: 65; transition: color .3s; }
+.sbar .sig { display: flex; gap: .18em; align-items: flex-end; }
+.sbar .sig i { width: .22em; background: currentColor; border-radius: 1px; }
+.homebar { position: absolute; bottom: 1.2%; left: 50%; width: 36%; height: .5%; min-height: 4px; transform: translateX(-50%); background: #111; border-radius: 99px; z-index: 70; transition: background .3s; }
+.screen.at-home .sbar { color: #fff; }
+.screen.at-home .homebar { background: #fff; }
 
-.scr {
-  position: absolute; inset: 7% 0 0 0;
-  padding: 1.2em 1.25em 2em;
+/* home screen with the Geoff widget */
+.home {
+  position: absolute; inset: 0;
+  padding: 4.2em 1.4em 1em;
   display: flex; flex-direction: column;
-  opacity: 0; transform: translateX(14%);
-  transition: opacity .45s ease, transform .55s var(--ease);
-  pointer-events: none;
+  color: #fff;
+  background:
+    radial-gradient(circle at 20% 15%, #ff7eb3 0%, transparent 45%),
+    radial-gradient(circle at 85% 40%, #6a8bff 0%, transparent 50%),
+    radial-gradient(circle at 30% 90%, #3ad1c5 0%, transparent 50%),
+    linear-gradient(160deg, #3b2a8f, #12123a);
+}
+.widget {
+  height: 50%; flex: none;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 1.2em 1.3em 1.2em;
+  border-radius: 1.6em;
+  background: rgba(255, 255, 255, .18);
+  backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow: inset 0 0 0 .06em rgba(255, 255, 255, .25);
+}
+.w-head { display: flex; align-items: center; gap: .5em; font-weight: 600; }
+.gicon { flex: none; width: 1.7em; height: 1.7em; border-radius: .42em; display: grid; place-items: center; background: linear-gradient(135deg, #3b6cff, #2a4fd6); color: #fff; font-weight: 800; }
+.w-label { font-size: .85em; opacity: .85; }
+.w-bal { font-size: 2.1em; font-weight: 700; letter-spacing: -.01em; margin-top: .1em; font-variant-numeric: tabular-nums; }
+.chg { display: inline-block; margin-top: .5em; padding: .25em .7em; border-radius: 1em; font-size: .8em; font-weight: 600; background: rgba(255, 255, 255, .2); }
+.chg.up { background: rgba(43, 214, 120, .35); }
+.chg.down { background: rgba(255, 80, 90, .35); }
+.w-rec { margin: .8em 0 .4em; padding: .55em; border-radius: 1.1em; font-size: .85em; font-weight: 600; text-align: center; background: rgba(255, 255, 255, .25); transition: background .3s; }
+.w-rec.recording { background: rgba(217, 54, 54, .85); }
+.rec-info { display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: .9em; font-size: .85em; font-weight: 600; }
+.rec-info[hidden] { display: none; }
+.widget .rec-info { margin: 0; font-size: .75em; justify-content: flex-start; }
+.rec-dot { width: .7em; height: .7em; border-radius: 50%; background: #e5303a; animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: .3; transform: scale(.7); } }
+.icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: .9em; margin-top: 1.4em; text-align: center; }
+.app-ic { width: 3.2em; height: 3.2em; border-radius: .8em; margin: 0 auto .3em; box-shadow: 0 .2em .6em rgba(0, 0, 0, .2); }
+.app-ic.gicon { font-size: 1.85em; width: 1.73em; height: 1.73em; border-radius: .43em; }
+.icons span { font-size: .68em; }
+.dock { margin-top: auto; margin-bottom: 1.2em; padding: .8em; border-radius: 1.8em; background: rgba(255, 255, 255, .2); display: grid; grid-template-columns: repeat(4, 1fr); gap: .9em; }
+.dock .app-ic { margin: 0 auto; }
+
+/* the app window opens out of the Geoff icon */
+.app {
+  position: absolute; inset: 0; z-index: 5;
+  background: #f2f3f7;
+  transform-origin: 84% 61%;
+  transform: scale(.1); opacity: 0; border-radius: 4em;
+  transition: transform .45s cubic-bezier(.2, .9, .3, 1), opacity .3s, border-radius .45s;
+}
+.app.open { transform: none; opacity: 1; border-radius: 0; }
+.scr {
+  position: absolute; inset: 3.6em 0 0;
+  padding: .4em 1.1em 2.2em;
+  display: flex; flex-direction: column;
+  opacity: 0; transform: translateX(1.2em);
+  transition: opacity .3s ease, transform .35s ease-out;
 }
 .scr.on { opacity: 1; transform: none; }
-.scr.off-left { opacity: 0; transform: translateX(-14%); }
-.p-head { display: flex; align-items: center; gap: .5em; margin-bottom: 1em; }
-.p-head h3 { margin: 0; font-size: 1.45em; letter-spacing: -.02em; }
-.p-back { width: 1.1em; height: 1.1em; color: var(--moss); }
-.greet { font-size: 1em; opacity: .55; margin: .4em 0 .6em; }
+.vh { display: flex; align-items: center; gap: .3em; margin: .4em 0 .9em -.4em; }
+.vh .back { width: 2.2em; height: 2.2em; padding: .55em; color: var(--acc); }
+.vh h3 { margin: 0; font-size: 1.35em; }
+.ico svg, .vh .back svg { width: 100%; height: 100%; display: block; }
 
-.bal {
-  border-radius: 1.4em; padding: 1.2em 1.3em 1.1em;
-  background: var(--ink); color: var(--foam);
-  position: relative; overflow: hidden;
-}
-.bal::after { content: ""; position: absolute; right: -2.5em; top: -2.5em; width: 7em; height: 7em; border-radius: 50%; background: var(--amber); opacity: .9; }
-.bal .l { font-size: .9em; opacity: .7; position: relative; z-index: 1; }
-.bal .v { font-size: 2.35em; font-weight: 700; letter-spacing: -.03em; margin-top: .25em; font-variant-numeric: tabular-nums; position: relative; z-index: 1; }
-.bal .s { font-size: .82em; opacity: .6; margin-top: .9em; }
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: .7em; margin-top: .8em; }
-.tile { background: #fff; border-radius: 1.2em; padding: 1em; font-weight: 600; box-shadow: 0 0 0 1px rgba(11, 31, 66, .07); }
-.tile svg { width: 1.6em; height: 1.6em; display: block; margin-bottom: .9em; color: var(--moss); }
-.ask { margin-top: auto; border-radius: 99px; background: #fff; padding: .9em 1.2em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .1); display: flex; justify-content: space-between; align-items: center; }
-.ask .ph { opacity: .45; }
-.ask .go { width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--ink); display: grid; place-items: center; color: var(--foam); flex: none; }
-.ask .go svg { width: 1em; height: 1em; }
+.bcard { padding: 1.1em 1.2em; border-radius: 1.3em; color: #fff; margin: .6em 0 .9em; background: linear-gradient(135deg, var(--acc), color-mix(in srgb, var(--acc) 55%, #0b0d2a)); box-shadow: 0 .6em 1.6em color-mix(in srgb, var(--acc) 35%, transparent); }
+.b-top { display: flex; justify-content: space-between; align-items: center; font-size: .85em; }
+.b-top > span:first-child { opacity: .85; }
+.hist-ico { width: 2.35em; height: 2.35em; padding: .45em; border-radius: 50%; background: rgba(255, 255, 255, .2); }
+.b-val { font-size: 2em; font-weight: 700; letter-spacing: -.01em; margin-top: .15em; font-variant-numeric: tabular-nums; }
+.tiles2 { display: grid; grid-template-columns: 1fr 1fr; gap: .7em; }
+.tile2 { display: flex; align-items: center; gap: .7em; padding: .85em 1em; margin-bottom: .9em; border-radius: 1.1em; background: #fff; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); font-weight: 600; }
+.ti { flex: none; width: 2.1em; height: 2.1em; padding: .4em; border-radius: .65em; background: #3b6cff; color: #fff; }
+.ti.dark { background: #111; }
+.rec-btn { padding: .75em; margin-bottom: .6em; border-radius: 1.1em; background: #111; color: #fff; font-weight: 600; text-align: center; transition: background .3s; }
+.rec-btn.recording { background: #d93636; }
 
-.list { display: flex; flex-direction: column; gap: .2em; }
-.row { display: flex; align-items: center; gap: .8em; padding: .65em .4em; border-radius: .9em; transition: background .25s; }
-.row .nm { font-weight: 600; flex: 1; }
-.row .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
-.row .amt.neg { color: var(--ink); }
-.row .amt.pos { color: var(--moss); }
-.row .sub { display: block; font-weight: 400; font-size: .82em; opacity: .55; }
-.av { flex: none; width: 2.3em; height: 2.3em; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .85em; color: #fff; }
-.tap { background: rgba(40, 112, 237, .14) !important; }
-.press { animation: press .35s ease; }
-@keyframes press { 50% { transform: scale(.94); } }
-.quick { display: grid; grid-template-columns: 1fr 1fr; gap: .6em; margin-bottom: 1em; }
-.quick div { background: #fff; border-radius: 1em; padding: .75em .8em; font-weight: 600; font-size: .92em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .07); }
+.chat { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: .5em; padding: .7em; border-radius: 1.3em; background: #fff; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
+.chat-list { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: .4em; }
+.chat-empty { margin: auto; color: #8a8f9a; font-size: .85em; }
+.chat-empty[hidden] { display: none; }
+.cmsg { max-width: 85%; padding: .45em .75em; border-radius: 1em; font-size: .85em; line-height: 1.35; animation: cpop .35s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes cpop { from { opacity: 0; transform: translateY(6px) scale(.96); } }
+.cmsg.user { align-self: flex-end; background: var(--acc); color: #fff; }
+.cmsg.bot { align-self: flex-start; background: #eceef2; color: #1c1e24; }
+.chat-chips { display: flex; flex-wrap: wrap; gap: .4em; }
+.chat-chips span { padding: .3em .7em; border-radius: 1em; background: #eceef2; color: #1c1e24; font-size: .78em; }
+.chat-form { display: flex; gap: .4em; }
+.chat-input { flex: 1; min-width: 0; padding: .45em .8em; border: 1px solid #d8dbe2; border-radius: 1em; font-size: .85em; }
+.chat-send { padding: .45em .9em; border-radius: 1em; background: var(--acc); color: #fff; font-size: .85em; }
 
-.who { display: flex; flex-direction: column; align-items: center; gap: .5em; margin: .4em 0 1.2em; font-weight: 600; font-size: 1.1em; }
-.who .av { width: 3.6em; height: 3.6em; font-size: 1em; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; background: rgba(11, 31, 66, .07); border-radius: 99px; padding: .25em; margin-bottom: .8em; font-weight: 600; font-size: .92em; text-align: center; }
-.seg span { padding: .5em; border-radius: 99px; }
-.seg span.on { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
-.field { background: #fff; border-radius: .9em; padding: .85em 1em; margin-bottom: .6em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .1); min-height: 2.9em; display: flex; align-items: center; }
-.field.big { font-size: 1.6em; font-weight: 700; letter-spacing: -.02em; min-height: 2.1em; padding: .4em .7em; }
-.field .ph { opacity: .4; font-weight: 400; }
-.field.focus { box-shadow: 0 0 0 2px var(--moss); }
-.caret::after { content: ""; display: inline-block; width: 2px; height: 1.05em; background: var(--moss); margin-left: 2px; vertical-align: -.15em; animation: blink 1s steps(1) infinite; }
+.clist { background: #fff; border-radius: 1.3em; padding: .3em 1em; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
+.crow { display: flex; align-items: center; gap: .75em; padding: .6em 0; border-bottom: 1px solid #eef0f4; transition: background .2s; }
+.crow:last-child { border-bottom: 0; }
+.crow.compact { padding: .42em 0; }
+.crow .nm { flex: 1; min-width: 0; font-weight: 600; font-size: .95em; }
+.crow .sub { display: block; margin-top: .1em; font-weight: 400; font-size: .78em; color: #8a8f9a; }
+.crow .amt { font-weight: 700; font-size: .95em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.crow .amt.pos { color: #1f9d5c; }
+.av { flex: none; width: 2.2em; height: 2.2em; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: .8em; }
+.av.ico { background: #5b6275; }
+.av.ico svg { width: 1.2em; height: 1.2em; }
+.av.inc { background: #1f9d5c; }
+.chev { width: 1em; height: 1em; color: #c0c4cc; }
+.qa { display: flex; gap: 1.6em; margin: 0 0 1em .3em; }
+.qa > div { display: flex; flex-direction: column; align-items: center; gap: .4em; }
+.qa .circ { position: relative; width: 2.7em; height: 2.7em; padding: .7em; border-radius: 50%; background: #111; color: #fff; }
+.qa small { font-size: .72em; font-weight: 600; }
+.nbadge { position: absolute; top: -.25em; right: -.25em; width: 1.3em; height: 1.3em; border-radius: 50%; background: #ff3b30; color: #fff; display: grid; place-items: center; font-size: .65em; font-weight: 700; }
+.tap { background: #eef3ff; }
+
+.pcard { background: #fff; border-radius: 1.3em; padding: 1em; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
+.pay-who { display: flex; align-items: center; gap: .7em; margin-bottom: .9em; font-weight: 600; font-size: 1.05em; }
+.pay-who .av { width: 2.6em; height: 2.6em; }
+.segm { display: flex; padding: .2em; margin-bottom: .8em; border-radius: .8em; background: #f2f3f7; }
+.segm span { flex: 1; padding: .5em; border-radius: .65em; text-align: center; font-size: .9em; font-weight: 600; opacity: .6; }
+.segm span.on { background: #fff; opacity: 1; box-shadow: 0 .08em .3em rgba(0, 0, 0, .12); }
+.field { display: flex; align-items: center; min-height: 2.6em; margin-bottom: .55em; padding: .7em .8em; border-radius: .8em; background: #f2f3f7; transition: box-shadow .2s; }
+.field.big { font-size: 1.3em; font-weight: 700; min-height: 2.1em; padding: .4em .6em; }
+.field .ph { color: #9aa0aa; font-weight: 400; }
+.field.focus { box-shadow: 0 0 0 2px var(--acc); }
+.caret::after { content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -.15em; background: var(--acc); animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
-.btn { margin-top: .4em; background: var(--ink); color: var(--foam); border-radius: 99px; padding: .95em; text-align: center; font-weight: 700; }
-.btn.amber { background: var(--amber); color: #fff; }
-
-.done { position: absolute; inset: 0; background: var(--foam); display: grid; place-content: center; justify-items: center; gap: .6em; opacity: 0; transition: opacity .35s; text-align: center; }
-.done.on { opacity: 1; }
-.done .ck { width: 4.4em; height: 4.4em; border-radius: 50%; background: var(--moss); display: grid; place-items: center; transform: scale(.4); transition: transform .5s cubic-bezier(.3, 1.6, .5, 1); }
-.done.on .ck { transform: scale(1); }
-.done .ck svg { width: 2em; height: 2em; color: #fff; }
-.done b { font-size: 1.4em; letter-spacing: -.02em; }
-.done span { opacity: .6; }
+.sbtn { padding: .75em; border-radius: .9em; background: #111; color: #fff; font-weight: 600; text-align: center; }
+.fmsg { min-height: 1.2em; margin-top: .6em; font-size: .85em; font-weight: 600; color: #1f9d5c; opacity: 0; transition: opacity .3s; }
+.fmsg.on { opacity: 1; }
+.press { animation: press .3s ease; }
+@keyframes press { 50% { transform: scale(.95); } }
+.tapfx { position: absolute; z-index: 80; width: 2.6em; height: 2.6em; margin: -1.3em 0 0 -1.3em; border-radius: 50%; background: rgba(59, 108, 255, .4); pointer-events: none; animation: tapfx .55s ease-out forwards; }
+@keyframes tapfx { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
 
 /* notification banner */
 .banner {
-  position: absolute; left: 3.5%; right: 3.5%; top: 6.5%;
-  z-index: 20;
-  background: rgba(255, 255, 255, .86);
-  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border-radius: 1.5em;
-  padding: .9em 1em;
-  box-shadow: 0 12px 34px -10px rgba(20, 30, 25, .35);
-  transform: translateY(calc(-100% - 4em));
-  opacity: 0;
-  transition: transform .6s var(--ease), opacity .3s ease;
+  position: absolute; top: 3.2em; left: .6em; right: .6em; z-index: 60;
+  display: flex; gap: .7em; align-items: flex-start;
+  padding: .75em .9em;
+  border-radius: 1.3em;
+  background: rgba(250, 250, 252, .92);
+  backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: 0 .6em 2em rgba(0, 0, 0, .22);
+  color: #111; font-size: .88em;
+  transform: translateY(-140%); opacity: 0;
+  transition: transform .45s cubic-bezier(.2, .9, .25, 1.15), opacity .3s;
 }
 .banner.on { transform: none; opacity: 1; }
-.banner .top { display: flex; align-items: center; gap: .5em; font-size: .82em; opacity: .65; margin-bottom: .35em; }
-.banner .top .ago { margin-left: auto; }
-.gmark { width: 1.5em; height: 1.5em; border-radius: .4em; background: var(--moss); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: .95em; font-family: "Inter", sans-serif; }
-.banner b { display: block; font-size: 1em; }
-.banner .txt { font-size: .95em; }
-.banner .acts { display: grid; grid-template-columns: 1fr; gap: .4em; margin-top: .75em; }
-.banner .acts div { background: var(--ink); color: var(--foam); text-align: center; padding: .65em; border-radius: .9em; font-weight: 700; font-size: .95em; }
+.banner .gicon { width: 2.3em; height: 2.3em; border-radius: .6em; }
+.n-text { flex: 1; min-width: 0; }
+.n-head { display: flex; justify-content: space-between; gap: .5em; }
+.n-head b { font-weight: 600; }
+.n-head span { opacity: .5; font-size: .9em; }
+.n-acts { display: flex; gap: .4em; margin-top: .5em; }
+.n-acts:empty { display: none; }
+.n-acts span { padding: .35em .9em; border-radius: .9em; background: #3b6cff; color: #fff; font-weight: 600; }
+.n-acts span.sec { background: rgba(120, 120, 128, .2); color: inherit; }
+.n-res { margin-top: .4em; font-weight: 600; color: #1f9d5c; }
+.n-res:empty { display: none; }
 
 /* qr */
-.qr-card { background: #fff; border-radius: 1.4em; padding: 1.4em 1.4em 1.1em; box-shadow: 0 0 0 1px rgba(11, 31, 66, .07); text-align: center; margin-bottom: 1em; }
-.qr-card svg { width: 100%; height: auto; display: block; }
-.qr-card .cap { margin-top: .9em; font-weight: 600; min-height: 1.3em; }
+.qr-card { margin-bottom: .9em; padding: 1.2em 1.2em 1em; border-radius: 1.3em; background: #fff; text-align: center; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
+.qr-card svg { display: block; width: 80%; height: auto; margin: 0 auto; }
+.qr-card .cap { margin-top: .7em; min-height: 1.3em; font-weight: 600; }
 
-/* group */
-.chipx { background: color-mix(in srgb, var(--amber) 30%, #fff); border-radius: .9em; padding: .7em 1em; margin-bottom: .9em; font-weight: 600; display: flex; justify-content: space-between; }
-.chipx span { font-weight: 400; opacity: .7; }
-.sect { font-size: .85em; font-weight: 600; opacity: .5; margin: .2em 0 .3em .3em; }
-.box { width: 1.4em; height: 1.4em; border-radius: .45em; box-shadow: 0 0 0 2px rgba(11, 31, 66, .25) inset; display: grid; place-items: center; transition: background .25s, box-shadow .25s; flex: none; }
-.box svg { width: .9em; height: .9em; color: #fff; opacity: 0; transition: opacity .2s; }
-.row.picked .box { background: var(--moss); box-shadow: none; }
-.row.picked .box svg { opacity: 1; }
-.row.compact { padding: .42em .4em; }
-.gsum { display: flex; justify-content: space-between; background: var(--ink); color: var(--foam); border-radius: 1.2em; padding: .95em 1.1em; margin-bottom: .8em; }
-.gsum div { display: flex; flex-direction: column; }
-.gsum small { opacity: .6; font-size: .78em; }
-.gsum b { font-size: 1.25em; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-.st { font-size: .78em; font-weight: 700; padding: .3em .65em; border-radius: 99px; background: rgba(11, 31, 66, .08); transition: background .3s, color .3s; white-space: nowrap; }
-.st.paid { background: var(--moss); color: #fff; }
-.meter { height: .45em; background: rgba(11, 31, 66, .08); border-radius: 99px; overflow: hidden; margin: .2em 0 .9em; }
-.meter i { display: block; height: 100%; width: 0; background: var(--amber); border-radius: 99px; transition: width .6s var(--ease); }
+/* stop popup: sheet over the whole screen */
+.sheet-bg { position: absolute; inset: 0; z-index: 50; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .45); opacity: 0; transition: opacity .3s; }
+.sheet-bg.on { opacity: 1; }
+.sheet { width: 100%; padding: 1.2em 1.1em 2.2em; border-radius: 1.6em 1.6em 0 0; background: #f2f3f7; color: #111; transform: translateY(100%); transition: transform .45s cubic-bezier(.2, .9, .3, 1); }
+.sheet-bg.on .sheet { transform: none; }
+.sheet h4 { margin: 0 0 .7em; font-size: 1.15em; }
+.prow { display: flex; justify-content: space-between; align-items: center; padding: .3em 0; }
+.prow b { font-weight: 600; }
+.prow small { display: block; font-size: .75em; color: #8a8f9a; }
+.prow .amt { font-weight: 700; }
+.ptotal { margin: .5em 0 .9em; text-align: right; font-weight: 700; }
+.psub { margin: 1em 0 .4em; font-size: .85em; opacity: .7; }
+.pbtn { margin-bottom: .5em; padding: .7em; border-radius: .9em; background: #fff; text-align: center; font-weight: 600; }
+.pbtn.sec { margin-top: .8em; background: rgba(120, 120, 128, .2); }
 
-/* chat */
-.msgs { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: .6em; padding-bottom: .8em; }
-.bub { max-width: 84%; padding: .75em 1em; border-radius: 1.2em; line-height: 1.35; opacity: 0; transform: translateY(10px) scale(.96); transition: opacity .35s, transform .45s cubic-bezier(.3, 1.4, .5, 1); }
-.bub.on { opacity: 1; transform: none; }
-.bub.me { align-self: flex-end; background: var(--ink); color: var(--foam); border-bottom-right-radius: .35em; }
-.bub.geoff { align-self: flex-start; background: #fff; box-shadow: 0 0 0 1px rgba(11, 31, 66, .08); border-bottom-left-radius: .35em; }
-.bub.dots { display: flex; gap: .3em; padding: .9em 1em; }
-.bub.dots i { width: .45em; height: .45em; border-radius: 50%; background: var(--ink); opacity: .35; animation: dot 1s infinite; }
-.bub.dots i:nth-child(2) { animation-delay: .15s; }
-.bub.dots i:nth-child(3) { animation-delay: .3s; }
-@keyframes dot { 50% { opacity: 1; transform: translateY(-2px); } }
-.bars { display: flex; align-items: flex-end; gap: .55em; height: 5.5em; margin: .8em 0 .35em; }
-.bars div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: .3em; font-size: .72em; }
-.bars i { width: 100%; border-radius: .35em .35em .15em .15em; background: rgba(40, 112, 237, .3); height: 0; transition: height .8s var(--ease); }
-.bars div.now i { background: var(--amber); }
-.bars span { opacity: .6; }
+/* groups */
+.ng-exp { margin-bottom: .8em; padding: .6em .8em; border-radius: .8em; background: #e5edff; color: #2a4fd6; font-size: .85em; font-weight: 600; }
+.sect { margin: .3em 0 .5em .2em; font-size: .72em; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8a8f9a; }
+.box { flex: none; width: 1.3em; height: 1.3em; border-radius: .4em; display: grid; place-items: center; box-shadow: 0 0 0 2px #c9cdd6 inset; transition: background .25s, box-shadow .25s; }
+.box svg { width: .85em; height: .85em; color: #fff; opacity: 0; transition: opacity .2s; }
+.crow.picked .box { background: var(--acc); box-shadow: none; }
+.crow.picked .box svg { opacity: 1; }
+.gcard { margin-bottom: .8em; padding: 1em; border-radius: 1.3em; background: #fff; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
+.gcard small { font-size: .78em; color: #8a8f9a; }
+.gtop { display: flex; justify-content: space-between; align-items: flex-start; }
+.gtot { font-size: 1.7em; font-weight: 700; letter-spacing: -.01em; }
+.pill { padding: .1em .55em; border-radius: .8em; font-size: .7em; font-weight: 600; white-space: nowrap; background: #fff4d6; color: #a06a00; transition: background .3s, color .3s; }
+.pill.open { background: #e5edff; color: #3b6cff; }
+.pill.paid { background: #dff5e9; color: #1f9d5c; }
+.members { display: flex; flex-wrap: wrap; gap: .35em; margin-top: .6em; }
+.member { display: flex; align-items: center; gap: .3em; padding: .15em .5em .15em .15em; border-radius: 1em; background: #f2f3f7; font-size: .78em; font-weight: 600; }
+.member .av { width: 1.7em; height: 1.7em; font-size: .7em; }
+.meter { height: .45em; margin: .2em 0 .7em; border-radius: 99px; overflow: hidden; background: #e3e6ee; }
+.meter i { display: block; width: 0; height: 100%; border-radius: 99px; background: var(--acc); transition: width .6s var(--ease); }
+#gReq[hidden], #gApprove[hidden], #gExp[hidden] { display: none; }
 
 /* ---------- hud ---------- */
 .hud { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 7vw 3.2vh; display: flex; align-items: center; gap: 1.2rem; font-size: .9rem; font-variant-numeric: tabular-nums; opacity: .0; transition: opacity .4s; }
@@ -393,7 +464,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 2 -->
-<section class="slide" id="s-chaos" data-dur="20" data-bg="#FFFFFF"
+<section class="slide" id="s-chaos" data-dur="18" data-bg="#FFFFFF"
   data-notes="Svět a to, jak s ním interagujeme, se každým dnem komplikuje. Každá služba zápasí o každou minutu naší pozornosti, a nevyhýbá se to ani financím. Chcete jen zjistit, kolik máte na účtu, a dostanete tucty grafů, upozornění a odznaků, které vás mají udržet u obrazovky.">
   <h2 class="h">
     <span class="r"><span style="--d:0"><span>Chtěli jste jen vědět,</span></span></span>
@@ -403,7 +474,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 3 -->
-<section class="slide" id="s-calm" data-dur="22" data-bg="#EEF4FD"
+<section class="slide" id="s-calm" data-dur="20" data-bg="#EEF4FD"
   data-notes="Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím na barové stoličce, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.">
   <h2 class="h">
     <span class="r"><span style="--d:0">Já chci být s přáteli,</span></span>
@@ -491,33 +562,33 @@ body.show-notes .notes { display: block; }
 
 <!-- 6 -->
 <section class="slide with-phone" id="s-balance" data-dur="14" data-bg="#EEF4FD" data-phone="on"
-  data-notes="Otevřete Geoffa a vidíte jedno číslo: kolik máte peněz. Žádné bannery, žádné nabídky. Historie je o jedno klepnutí dál. A zavřete.">
+  data-notes="Kolik máte peněz, vidíte hned na ploše, i s tím, o kolik se to dnes změnilo. Žádné bannery, žádné nabídky. Klepnete a jste v aplikaci. Historie, i s výplatou, je o jedno klepnutí dál.">
   <div class="copy">
     <p class="kicker f">Kolik máte peněz</p>
     <h2 class="h">
-      <span class="r"><span style="--d:0">Otevřete.</span></span>
-      <span class="r"><span style="--d:1">Podíváte se.</span></span>
-      <span class="r"><span style="--d:2">Zavřete.</span></span>
+      <span class="r"><span style="--d:0">Odemknout.</span></span>
+      <span class="r"><span style="--d:1">Podívat se.</span></span>
+      <span class="r"><span style="--d:2">Hotovo.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:4">Jedno číslo, žádné nabídky. Historie je o klepnutí dál.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:4">Zůstatek a dnešní změna rovnou na ploše. Historie je o klepnutí dál.</span></span></p>
   </div>
 </section>
 
 <!-- 7 -->
 <section class="slide with-phone" id="s-pay" data-dur="18" data-bg="#EEF4FD" data-phone="on"
-  data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když peníze přijdou vám, dozvíte se to z notifikace. Aplikaci ani nemusíte otevírat.">
+  data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, zaplatíte rovnou z notifikace. Aplikaci ani nemusíte otevírat.">
   <div class="copy">
     <p class="kicker f">Peníze mezi přáteli</p>
     <h2 class="h">
       <span class="r"><span style="--d:0">Jméno, částka,</span></span>
       <span class="r"><span style="--d:1">odeslat.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Přátelé, ne čísla účtů. A když peníze přijdou vám, stačí notifikace.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte rovnou z notifikace.</span></span></p>
   </div>
 </section>
 
 <!-- 8 -->
-<section class="slide with-phone" id="s-qr" data-dur="12" data-bg="#EEF4FD" data-phone="on"
+<section class="slide with-phone" id="s-qr" data-dur="10" data-bg="#EEF4FD" data-phone="on"
   data-notes="Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.">
   <div class="copy">
     <p class="kicker f">QR kódy</p>
@@ -530,33 +601,33 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 9 -->
-<section class="slide with-phone" id="s-beers" data-dur="26" data-bg="#EEF4FD" data-phone="on"
-  data-notes="A teď ten večer. Nabídli jste se, že tentokrát těch šestnáct piv vezmete vy. Zaplatíte kartou a rovnou v notifikaci je tlačítko Rozdělit. Zaškrtnete přátele, Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
+<section class="slide with-phone" id="s-beers" data-dur="32" data-bg="#EEF4FD" data-phone="on"
+  data-notes="A teď ten večer. Nabídli jste se, že tentokrát pivo platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dvě rundy u Tygra, šestnáct piv. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
   <div class="copy">
-    <p class="kicker f">Rozdělení účtu</p>
+    <p class="kicker f">Skupinová platba</p>
     <h2 class="h">
-      <span class="r"><span style="--d:0">Tentokrát platíte vy.</span></span>
-      <span class="r"><span style="--d:1">Vrátí se vám to samo.</span></span>
+      <span class="r"><span style="--d:0">Spustit na baru.</span></span>
+      <span class="r"><span style="--d:1">Rozdělit v tramvaji.</span></span>
     </h2>
     <div class="math">
-      <div class="row" data-m="1"><span class="big-stat">16</span><span class="lbl">piv u Tygra</span></div>
-      <div class="row" data-m="2"><span class="big-stat">960 Kč</span><span class="lbl">zaplaceno kartou</span></div>
-      <div class="row" data-m="3"><span class="big-stat">6</span><span class="lbl">lidí u stolu</span></div>
-      <div class="row" data-m="4"><span class="big-stat amber" id="backStat">0 Kč</span><span class="lbl">zpátky na účtu</span></div>
+      <div class="row"><span class="big-stat">16</span><span class="lbl">piv u Tygra</span></div>
+      <div class="row"><span class="big-stat">2</span><span class="lbl">platby kartou, zaznamenané samy</span></div>
+      <div class="row"><span class="big-stat">6</span><span class="lbl">lidí u stolu</span></div>
+      <div class="row"><span class="big-stat amber" id="backStat">0 Kč</span><span class="lbl">zpátky na účtu</span></div>
     </div>
   </div>
 </section>
 
 <!-- 10 -->
 <section class="slide with-phone" id="s-chat" data-dur="16" data-bg="#EEF4FD" data-phone="on"
-  data-notes="A věci, na které zapomenout nechcete, třeba občas graf nebo statistiku? Jednoduše se Geoffa zeptejte. V základu vám nebude nutit nic, co běžný den nepotřebujete.">
+  data-notes="A věci, na které zapomenout nechcete, třeba občas přehled nebo statistiku? Jednoduše se Geoffa zeptejte, jedním klepnutím nebo vlastními slovy. Odpoví česky z vašich plateb a sám s penězi nikdy nepohne. V základu vám nebude nutit nic, co běžný den nepotřebujete.">
   <div class="copy">
     <p class="kicker f">Všechno ostatní</p>
     <h2 class="h">
-      <span class="r"><span style="--d:0">Chcete graf?</span></span>
+      <span class="r"><span style="--d:0">Chcete přehled?</span></span>
       <span class="r"><span style="--d:1">Zeptejte se.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Statistiky a přehledy jsou tu, když si o ně řeknete. Jinak vás nechají být.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Geoff odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.</span></span></p>
   </div>
 </section>
 
@@ -573,129 +644,191 @@ body.show-notes .notes { display: block; }
 
 <div class="noise" id="noise" aria-hidden="true"></div>
 
-<!-- the one phone that stays on stage -->
+<!-- the one phone that stays on stage; it mirrors the real Geoff app -->
 <div class="stage" aria-hidden="true">
   <div class="phone">
-    <div class="screen" id="screen">
+    <div class="screen at-home" id="screen">
       <div class="island"></div>
-      <div class="status"><span id="clock">21:40</span><span class="sig"><i style="height:.35em"></i><i style="height:.55em"></i><i style="height:.75em"></i><i style="height:.95em"></i></span></div>
+      <div class="sbar"><span id="clock">21:40</span><span class="sig"><i style="height:.35em"></i><i style="height:.55em"></i><i style="height:.75em"></i><i style="height:.95em"></i></span></div>
 
       <div class="banner" id="banner">
-        <div class="top"><span class="gmark">G</span>Geoff<span class="ago">teď</span></div>
-        <b id="bnTitle"></b>
-        <div class="txt" id="bnText"></div>
-        <div class="acts" id="bnActs"></div>
-      </div>
-
-      <!-- home -->
-      <div class="scr" data-s="home">
-        <div class="greet">Dobrý večer, Pepo</div>
-        <div class="bal" id="balCard">
-          <div class="l">Zůstatek</div>
-          <div class="v" id="balance">24 380 Kč</div>
-          <div class="s">Klepněte pro historii</div>
-        </div>
-        <div class="tiles">
-          <div class="tile"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path d="M2.5 19.5c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="currentColor"/><circle cx="17" cy="9" r="2.8" fill="currentColor" opacity=".5"/><path d="M15.8 13.7c3.3-.3 5.7 1.9 5.7 5.3h-4.3c0-2-.5-3.8-1.4-5.3z" fill="currentColor" opacity=".5"/></svg>Kontakty</div>
-          <div class="tile"><svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></g><g fill="currentColor"><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/><rect x="18" y="14" width="3" height="2"/><rect x="14" y="19" width="2" height="2"/></g></svg>QR kód</div>
-        </div>
-        <div class="ask"><span class="ph">Zeptejte se Geoffa…</span><span class="go"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
-      </div>
-
-      <!-- history -->
-      <div class="scr" data-s="history">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Historie</h3></div>
-        <div class="list">
-          <div class="row"><span class="av" style="background:#E0684B">ŠP</span><span class="nm">Štěpán<span class="sub">Kebab · dnes</span></span><span class="amt pos">+120 Kč</span></div>
-          <div class="row"><span class="av" style="background:#2870ED">K</span><span class="nm">Kartou<span class="sub">Albert · včera</span></span><span class="amt neg">−412 Kč</span></div>
-          <div class="row"><span class="av" style="background:#5B6CF0">JM</span><span class="nm">Jirka<span class="sub">Benzín · úterý</span></span><span class="amt neg">−300 Kč</span></div>
-          <div class="row"><span class="av" style="background:#0B1F42">Z</span><span class="nm">Zaměstnavatel<span class="sub">Výplata · 15. 11.</span></span><span class="amt pos">+28 000 Kč</span></div>
+        <span class="gicon">G</span>
+        <div class="n-text">
+          <div class="n-head"><b>Geoff</b><span>teď</span></div>
+          <div id="nBody"></div>
+          <div class="n-acts" id="nActs"></div>
+          <div class="n-res" id="nRes"></div>
         </div>
       </div>
 
-      <!-- contacts -->
-      <div class="scr" data-s="contacts">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Kontakty</h3></div>
-        <div class="quick"><div>Rozdělit účet</div><div>K zaplacení</div></div>
-        <div class="list">
-          <div class="row" data-c="jirka"><span class="av" style="background:#5B6CF0">JM</span><span class="nm">Jirka Měřínský</span></div>
-          <div class="row"><span class="av" style="background:#E0684B">ŠP</span><span class="nm">Štěpán Pressl</span></div>
-          <div class="row"><span class="av" style="background:#C2410C">PŠ</span><span class="nm">Petr Šafář</span></div>
-          <div class="row"><span class="av" style="background:#0E8A7E">OK</span><span class="nm">Ondra Kubát</span></div>
-          <div class="row"><span class="av" style="background:#B04FC6">BN</span><span class="nm">Bára Nováková</span></div>
+      <!-- home screen -->
+      <div class="home">
+        <div class="widget" id="widget">
+          <div class="w-head"><span class="gicon">G</span>Geoff</div>
+          <div>
+            <div class="w-label">Zůstatek</div>
+            <div class="w-bal" id="wBal">31 615 Kč</div>
+            <div class="chg up" id="wChg">+110 Kč dnes</div>
+            <div class="w-rec" id="wRec">Spustit skupinovou platbu</div>
+            <div class="rec-info" id="wRecInfo" hidden><span class="rec-dot"></span><span></span></div>
+          </div>
+        </div>
+        <div class="icons">
+          <div><div class="app-ic" style="background:linear-gradient(135deg,#ffb36b,#ff6b6b)"></div><span>Fotky</span></div>
+          <div><div class="app-ic" style="background:linear-gradient(135deg,#7be0a0,#2bb673)"></div><span>Mapy</span></div>
+          <div><div class="app-ic" style="background:linear-gradient(135deg,#ffd76b,#f5a623)"></div><span>Poznámky</span></div>
+          <div><div class="app-ic gicon">G</div><span>Geoff</span></div>
+        </div>
+        <div class="dock">
+          <div class="app-ic" style="background:linear-gradient(135deg,#8fd3ff,#3b9bff)"></div>
+          <div class="app-ic" style="background:linear-gradient(135deg,#9af0b0,#34c759)"></div>
+          <div class="app-ic" style="background:linear-gradient(135deg,#d0a8ff,#8b5cf6)"></div>
+          <div class="app-ic" style="background:linear-gradient(135deg,#ffa8c8,#e5487a)"></div>
         </div>
       </div>
 
-      <!-- pay -->
-      <div class="scr" data-s="pay">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Poslat peníze</h3></div>
-        <div class="who"><span class="av" style="background:#5B6CF0">JM</span>Jirka Měřínský</div>
-        <div class="seg"><span class="on">Platba</span><span>Žádost</span></div>
-        <div class="field big" id="payAmt"></div>
-        <div class="field" id="payNote"></div>
-        <div class="btn" id="paySend">Odeslat</div>
-        <div class="done" id="payDone">
-          <div class="ck"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <b>Odesláno</b><span>350 Kč pro Jirku</span>
+      <!-- the app -->
+      <div class="app" id="app">
+        <!-- main -->
+        <div class="scr" data-s="main">
+          <div class="bcard" id="balCard">
+            <div class="b-top"><span>Zůstatek</span><span class="hist-ico ico" data-ico="history"></span></div>
+            <div class="b-val" id="balance">31 615 Kč</div>
+            <div class="chg up" id="bChg">+110 Kč dnes</div>
+          </div>
+          <div class="tiles2">
+            <div class="tile2" id="tContacts"><span class="ti ico" data-ico="contacts"></span>Kontakty</div>
+            <div class="tile2" id="tQr"><span class="ti dark ico" data-ico="qr"></span>QR kód</div>
+          </div>
+          <div class="rec-btn" id="aRec">Spustit skupinovou platbu</div>
+          <div class="rec-info" id="aRecInfo" hidden><span class="rec-dot"></span><span></span></div>
+          <div class="chat">
+            <div class="chat-list" id="chatList"><div class="chat-empty" id="chatEmpty">Zeptej se mě na své platby.</div></div>
+            <div class="chat-chips"><span>Dnes</span><span id="chipMonth">Tento měsíc</span><span id="chipOwe">Kolik dlužím?</span><span>Kdo dluží mně?</span><span>Moje skupiny</span></div>
+            <div class="chat-form"><span class="chat-input"><span class="ph" style="color:#9aa0aa">Napiš zprávu…</span></span><span class="chat-send">Poslat</span></div>
+          </div>
         </div>
-      </div>
 
-      <!-- qr -->
-      <div class="scr" data-s="qr">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>QR kód</h3></div>
-        <div class="qr-card"><svg id="qrSvg" viewBox="0 0 29 29" shape-rendering="crispEdges"></svg><div class="cap" id="qrCap">Naskenujte a zaplaťte</div></div>
-        <div class="field" id="qrAmt"></div>
-        <div class="field" id="qrNote"></div>
-      </div>
-
-      <!-- new group -->
-      <div class="scr" data-s="newgroup">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Rozdělit účet</h3></div>
-        <div class="field">Pivnice U Tygra</div>
-        <div class="chipx">960 Kč <span>zaplatili jste vy</span></div>
-        <div class="sect">Kdo byl s vámi</div>
-        <div class="list" id="picks">
-          <div class="row compact"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="av" style="background:#5B6CF0">JM</span><span class="nm">Jirka</span></div>
-          <div class="row compact"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="av" style="background:#E0684B">ŠP</span><span class="nm">Štěpán</span></div>
-          <div class="row compact"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="av" style="background:#C2410C">PŠ</span><span class="nm">Petr</span></div>
-          <div class="row compact"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="av" style="background:#0E8A7E">OK</span><span class="nm">Ondra</span></div>
-          <div class="row compact"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="av" style="background:#B04FC6">BN</span><span class="nm">Bára</span></div>
+        <!-- history -->
+        <div class="scr" data-s="history">
+          <div class="vh"><span class="back ico" data-ico="back" id="histBack"></span><h3>Historie</h3></div>
+          <div class="clist">
+            <div class="crow"><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Od Štěpán Pressl<span class="sub">kebab · 27.11.2026 20:12</span></span><span class="amt pos">+120 Kč</span></div>
+            <div class="crow"><span class="av ico" data-ico="card"></span><span class="nm">Karta · Albert<span class="sub">27.11.2026 18:05</span></span><span class="amt">−412 Kč</span></div>
+            <div class="crow"><span class="av ico" data-ico="card"></span><span class="nm">Karta · Bolt<span class="sub">27.11.2026 09:53</span></span><span class="amt">−120 Kč</span></div>
+            <div class="crow"><span class="av" style="background:#2bb673">JM</span><span class="nm">Pro Jirka Měřínský<span class="sub">benzín · 26.11.2026 17:32</span></span><span class="amt">−300 Kč</span></div>
+            <div class="crow"><span class="av ico" data-ico="card"></span><span class="nm">Karta · Lidl<span class="sub">26.11.2026 07:33</span></span><span class="amt">−150 Kč</span></div>
+            <div class="crow"><span class="av inc ico" data-ico="arrowin"></span><span class="nm">Výplata<span class="sub">25.11.2026 08:00</span></span><span class="amt pos">+34 500 Kč</span></div>
+            <div class="crow"><span class="av" style="background:#e5487a">PŠ</span><span class="nm">Od Petr Šafář<span class="sub">jízdenky · 24.11.2026 07:09</span></span><span class="amt pos">+200 Kč</span></div>
+            <div class="crow"><span class="av ico" data-ico="card"></span><span class="nm">Karta · Kaufland<span class="sub">23.11.2026 19:41</span></span><span class="amt">−860 Kč</span></div>
+          </div>
         </div>
-        <div class="btn amber" id="ngGo" style="margin-top:auto">Rozdělit mezi 6 lidí</div>
-      </div>
 
-      <!-- group result -->
-      <div class="scr" data-s="group">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Pivnice U Tygra</h3></div>
-        <div class="gsum"><div><small>Celkem</small><b>960 Kč</b></div><div><small>Na osobu</small><b>160 Kč</b></div><div><small>Vráceno</small><b id="gBack">0 Kč</b></div></div>
-        <div class="meter"><i id="gMeter"></i></div>
-        <div class="sect">Žádosti odeslány</div>
-        <div class="list" id="gRows">
-          <div class="row compact"><span class="av" style="background:#5B6CF0">JM</span><span class="nm">Jirka</span><span class="st">Čeká</span></div>
-          <div class="row compact"><span class="av" style="background:#E0684B">ŠP</span><span class="nm">Štěpán</span><span class="st">Čeká</span></div>
-          <div class="row compact"><span class="av" style="background:#C2410C">PŠ</span><span class="nm">Petr</span><span class="st">Čeká</span></div>
-          <div class="row compact"><span class="av" style="background:#0E8A7E">OK</span><span class="nm">Ondra</span><span class="st">Čeká</span></div>
-          <div class="row compact"><span class="av" style="background:#B04FC6">BN</span><span class="nm">Bára</span><span class="st">Čeká</span></div>
+        <!-- contacts -->
+        <div class="scr" data-s="contacts">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>Kontakty</h3></div>
+          <div class="qa">
+            <div><span class="circ ico" data-ico="settle"></span><small>Skupinové vyrovnání</small></div>
+            <div><span class="circ ico" data-ico="request"><span class="nbadge">1</span></span><small>K zaplacení</small></div>
+          </div>
+          <div class="clist">
+            <div class="crow"><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán Pressl</span><span class="chev ico" data-ico="chevron"></span></div>
+            <div class="crow" id="cJirka"><span class="av" style="background:#2bb673">JM</span><span class="nm">Jirka Měřínský</span><span class="chev ico" data-ico="chevron"></span></div>
+            <div class="crow"><span class="av" style="background:#e5487a">PŠ</span><span class="nm">Petr Šafář</span><span class="chev ico" data-ico="chevron"></span></div>
+            <div class="crow"><span class="av" style="background:#8b5cf6">OK</span><span class="nm">Ondra Kubát</span><span class="chev ico" data-ico="chevron"></span></div>
+            <div class="crow"><span class="av" style="background:#14b8a6">BN</span><span class="nm">Bára Nováková</span><span class="chev ico" data-ico="chevron"></span></div>
+          </div>
         </div>
-      </div>
 
-      <!-- chat -->
-      <div class="scr" data-s="chat">
-        <div class="p-head"><svg class="p-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Geoff</h3></div>
-        <div class="msgs">
-          <div class="bub me" id="cQ">Kolik jsem tento měsíc utratil za pivo?</div>
-          <div class="bub geoff dots" id="cDots"><i></i><i></i><i></i></div>
-          <div class="bub geoff" id="cA">
-            <b>1 840 Kč</b> za listopad, o 320 Kč méně než v říjnu.
-            <div class="bars" id="cBars">
-              <div><i data-h="72"></i><span>Srp</span></div>
-              <div><i data-h="100"></i><span>Zář</span></div>
-              <div><i data-h="94"></i><span>Říj</span></div>
-              <div class="now"><i data-h="80"></i><span>Lis</span></div>
+        <!-- pay -->
+        <div class="scr" data-s="pay">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>Poslat peníze</h3></div>
+          <div class="pay-who"><span class="av" style="background:#2bb673">JM</span>Jirka Měřínský</div>
+          <div class="pcard">
+            <div class="segm"><span class="on">Platba</span><span>Žádost</span></div>
+            <div class="field big" id="payAmt"></div>
+            <div class="field" id="payNote"></div>
+            <div class="sbtn" id="paySend">Poslat</div>
+            <div class="fmsg" id="payMsg">Odesláno · 350 Kč pro Jirku</div>
+          </div>
+        </div>
+
+        <!-- qr -->
+        <div class="scr" data-s="qr">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>QR kód</h3></div>
+          <div class="qr-card"><svg id="qrSvg" viewBox="0 0 29 29" shape-rendering="crispEdges"></svg><div class="cap" id="qrCap">Naskenuj a zaplať</div></div>
+          <div class="pcard">
+            <div class="field" id="qrAmt"></div>
+            <div class="field" id="qrNote" style="margin-bottom:0"></div>
+          </div>
+        </div>
+
+        <!-- new group -->
+        <div class="scr" data-s="newgroup">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>Nová skupina</h3></div>
+          <div class="pcard">
+            <div class="field" id="ngName"></div>
+            <div class="ng-exp">2 platby · 960 Kč · zaplaceno tebou</div>
+            <div class="sect">Kdo je ve skupině</div>
+            <div id="picks">
+              <div class="crow compact"><span class="box ico" data-ico="check"></span><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán Pressl</span></div>
+              <div class="crow compact"><span class="box ico" data-ico="check"></span><span class="av" style="background:#2bb673">JM</span><span class="nm">Jirka Měřínský</span></div>
+              <div class="crow compact"><span class="box ico" data-ico="check"></span><span class="av" style="background:#e5487a">PŠ</span><span class="nm">Petr Šafář</span></div>
+              <div class="crow compact"><span class="box ico" data-ico="check"></span><span class="av" style="background:#8b5cf6">OK</span><span class="nm">Ondra Kubát</span></div>
+              <div class="crow compact"><span class="box ico" data-ico="check"></span><span class="av" style="background:#14b8a6">BN</span><span class="nm">Bára Nováková</span></div>
+            </div>
+            <div class="sbtn" id="ngGo" style="margin-top:.8em">Vytvořit skupinu</div>
+          </div>
+        </div>
+
+        <!-- one group -->
+        <div class="scr" data-s="group">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>U Tygra</h3></div>
+          <div class="gcard">
+            <div class="gtop"><div><small>Založeno mnou</small><div class="gtot">960 Kč</div><small>utraceno společně</small></div><span class="pill open" id="gStatus">Otevřená</span></div>
+            <div class="members">
+              <span class="member"><span class="av" style="background:#f5a623">PH</span>Ty</span>
+              <span class="member"><span class="av" style="background:#3b6cff">ŠP</span>Štěpán</span>
+              <span class="member"><span class="av" style="background:#2bb673">JM</span>Jirka</span>
+              <span class="member"><span class="av" style="background:#e5487a">PŠ</span>Petr</span>
+              <span class="member"><span class="av" style="background:#8b5cf6">OK</span>Ondra</span>
+              <span class="member"><span class="av" style="background:#14b8a6">BN</span>Bára</span>
+            </div>
+          </div>
+          <div id="gExp">
+            <div class="sect">Výdaje</div>
+            <div class="clist">
+              <div class="crow compact"><span class="av ico" data-ico="card"></span><span class="nm">Pivnice U Tygra<span class="sub">Ty · 21:48</span></span><span class="amt">600 Kč</span></div>
+              <div class="crow compact"><span class="av ico" data-ico="card"></span><span class="nm">Pivnice U Tygra<span class="sub">Ty · 23:20</span></span><span class="amt">360 Kč</span></div>
+            </div>
+          </div>
+          <div class="sbtn" id="gApprove" style="margin-top:.9em">Schválit a rozdělit</div>
+          <div id="gReq" hidden>
+            <div class="sect">Žádosti · 160 Kč na osobu</div>
+            <div class="meter"><i id="gMeter"></i></div>
+            <div class="clist" id="gRows">
+              <div class="crow compact"><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán</span><span class="pill">Čeká</span></div>
+              <div class="crow compact"><span class="av" style="background:#2bb673">JM</span><span class="nm">Jirka</span><span class="pill">Čeká</span></div>
+              <div class="crow compact"><span class="av" style="background:#e5487a">PŠ</span><span class="nm">Petr</span><span class="pill">Čeká</span></div>
+              <div class="crow compact"><span class="av" style="background:#8b5cf6">OK</span><span class="nm">Ondra</span><span class="pill">Čeká</span></div>
+              <div class="crow compact"><span class="av" style="background:#14b8a6">BN</span><span class="nm">Bára</span><span class="pill">Čeká</span></div>
             </div>
           </div>
         </div>
-        <div class="ask"><span id="cInput" class="ph">Zeptejte se Geoffa…</span><span class="go"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </div>
+
+      <!-- Stop Group Payment popup -->
+      <div class="sheet-bg" id="sheet">
+        <div class="sheet">
+          <h4>Skupinová platba ukončena</h4>
+          <div class="prow"><div><b>Pivnice U Tygra</b><small>27.11.2026 21:48</small></div><span class="amt">−600 Kč</span></div>
+          <div class="prow"><div><b>Pivnice U Tygra</b><small>27.11.2026 23:20</small></div><span class="amt">−360 Kč</span></div>
+          <div class="ptotal">Celkem: 960 Kč</div>
+          <div class="sbtn" id="shCreate">Vytvořit skupinové vyrovnání</div>
+          <div class="psub">Nebo přidat do skupiny:</div>
+          <div class="pbtn">Chata Krkonoše</div>
+          <div class="pbtn sec">Nic nedělat</div>
+        </div>
       </div>
 
       <div class="homebar"></div>
@@ -750,24 +883,87 @@ body.show-notes .notes { display: block; }
   function placeholder(el, text) { el.innerHTML = ""; const s = document.createElement("span"); s.className = "ph"; s.textContent = text; el.append(s); el.classList.remove("focus", "caret"); }
   function press(el) { el.classList.remove("press"); void el.offsetWidth; el.classList.add("press"); }
 
-  /* ---- phone ---- */
+  /* ---- phone: a scripted copy of the real Geoff app ---- */
+  const ICONS = {
+    back: '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    contacts: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path d="M2.5 19.5c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="currentColor"/><circle cx="17" cy="9" r="2.8" fill="currentColor" opacity=".55"/><path d="M15.8 13.7c3.3-.3 5.7 1.9 5.7 5.3h-4.3c0-2-.5-3.8-1.4-5.3z" fill="currentColor" opacity=".55"/></svg>',
+    history: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3.5 4v4.5H8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    request: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    qr: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></g><g fill="currentColor"><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/><rect x="18" y="14" width="3" height="2"/><rect x="14" y="19" width="2" height="2"/></g></svg>',
+    card: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    arrowin: '<svg viewBox="0 0 24 24"><path d="M12 4v13M6 11.5l6 6 6-6M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  };
+  $$("[data-ico]").forEach((e) => e.insertAdjacentHTML("afterbegin", ICONS[e.dataset.ico]));
+
+  const scr = $("#screen"), app = $("#app"), banner = $("#banner"), sheet = $("#sheet"), clock = $("#clock");
   const scrs = Object.fromEntries($$(".scr").map((s) => [s.dataset.s, s]));
   let shown = null;
+  // "home" closes the app back into its icon; any other name opens the app on that screen.
   function screen(name) {
+    if (name === "home") { app.classList.remove("open"); scr.classList.add("at-home"); return; }
+    scr.classList.remove("at-home"); app.classList.add("open");
     if (shown === name) return;
-    if (shown) { const old = scrs[shown]; old.classList.remove("on"); old.classList.add("off-left"); setTimeout(() => old.classList.remove("off-left"), 600); }
-    scrs[name].classList.add("on");
+    for (const [k, s] of Object.entries(scrs)) s.classList.toggle("on", k === name);
     shown = name;
   }
-  const banner = $("#banner");
-  function notify(title, text, actions = []) {
-    $("#bnTitle").textContent = title; $("#bnText").textContent = text;
-    $("#bnActs").replaceChildren(...actions.map((a) => Object.assign(document.createElement("div"), { textContent: a })));
+  // A visible touch: ripple where the finger lands, plus a small press on the element.
+  function tap(el) {
+    press(el);
+    const s = scr.getBoundingClientRect(), r = el.getBoundingClientRect();
+    const f = Object.assign(document.createElement("span"), { className: "tapfx" });
+    f.style.left = `${r.left + r.width / 2 - s.left}px`;
+    f.style.top = `${r.top + r.height / 2 - s.top}px`;
+    scr.append(f);
+    setTimeout(() => f.remove(), 600);
+  }
+  function notify(body, acts = []) {
+    $("#nBody").textContent = body;
+    $("#nActs").replaceChildren(...acts.map((a, i) => Object.assign(document.createElement("span"), { textContent: a, className: i ? "sec" : "" })));
+    $("#nRes").textContent = "";
     banner.classList.add("on");
   }
   const hideBanner = () => banner.classList.remove("on");
-  const clock = $("#clock");
-  const setBalance = (n) => { $("#balance").textContent = czk(n); };
+  const dnes = (n) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${czk(Math.abs(n))} dnes`;
+  function setMoney(bal, chg) {
+    $("#wBal").textContent = $("#balance").textContent = czk(bal);
+    for (const e of [$("#wChg"), $("#bChg")]) { e.textContent = dnes(chg); e.className = "chg " + (chg > 0 ? "up" : chg < 0 ? "down" : ""); }
+  }
+  const plateb = (n) => (n === 1 ? "1 platba" : n >= 2 && n <= 4 ? `${n} platby` : `${n} plateb`);
+  // Start / Stop Group Payment, in the widget and on the app's main screen at once.
+  function setRec(rec) {
+    for (const b of [$("#wRec"), $("#aRec")]) {
+      b.textContent = rec ? "Ukončit skupinovou platbu" : "Spustit skupinovou platbu";
+      b.classList.toggle("recording", !!rec);
+    }
+    for (const i of [$("#wRecInfo"), $("#aRecInfo")]) {
+      i.hidden = !rec;
+      if (rec) i.lastElementChild.textContent = `Zaznamenáno: ${plateb(rec.n)} · ${czk(rec.total)}`;
+    }
+  }
+  const chatList = $("#chatList"), chatEmpty = $("#chatEmpty");
+  function chatReset() { chatList.replaceChildren(chatEmpty); chatEmpty.hidden = false; }
+  function bubble(cls, text) {
+    chatEmpty.hidden = true;
+    const b = Object.assign(document.createElement("div"), { className: `cmsg ${cls}`, textContent: text });
+    chatList.append(b);
+    return b;
+  }
+  // Chip -> question bubble -> "…" -> answer, like the real chat.
+  function ask(chip, question, answer, t0) {
+    at(t0, () => tap(chip));
+    at(t0 + 250, () => bubble("user", question));
+    let wait;
+    at(t0 + 600, () => { wait = bubble("bot", "…"); });
+    at(t0 + 2300, () => { wait.textContent = answer; });
+  }
+  // Every scene starts from the same calm state, so slides can be entered in any order.
+  function resetPhone(time, bal = 31615, chg = 110) {
+    hideBanner(); sheet.classList.remove("on"); setRec(null); setMoney(bal, chg); chatReset();
+    clock.textContent = time;
+  }
 
   /* ---- noise for the chaos slide ---- */
   const noise = $("#noise");
@@ -873,73 +1069,98 @@ body.show-notes .notes { display: block; }
       });
       at(5600, () => $$(".flow .bead").forEach((b) => (b.style.opacity = 0)));
     },
-    "s-geoff"() { hideBanner(); clock.textContent = "21:40"; setBalance(24380); screen("home"); },
+    "s-geoff"() { resetPhone("21:40"); screen("home"); },
     "s-balance"() {
-      hideBanner(); clock.textContent = "21:40"; screen("home");
-      tween($("#balance"), 0, 24380, 1400);
-      at(4200, () => press($("#balCard")));
-      at(4500, () => screen("history"));
-      at(9500, () => screen("home"));
+      resetPhone("21:40"); screen("home");
+      tween($("#wBal"), 0, 31615, 1400);
+      at(4000, () => tap($("#widget")));
+      at(4300, () => screen("main"));
+      at(7600, () => tap($("#balCard")));
+      at(7900, () => screen("history"));
+      at(12000, () => tap($("#histBack")));
+      at(12300, () => screen("main"));
     },
     "s-pay"() {
-      hideBanner(); clock.textContent = "22:15"; setBalance(24380);
-      const amt = $("#payAmt"), note = $("#payNote"), done = $("#payDone"), row = $('[data-c="jirka"]');
-      placeholder(amt, "0 Kč"); placeholder(note, "Poznámka"); done.classList.remove("on"); row.classList.remove("tap");
-      screen("contacts");
-      at(1600, () => row.classList.add("tap"));
-      at(2100, () => { screen("pay"); row.classList.remove("tap"); });
-      let t = type(amt, "350 Kč", 2700, 110);
-      at(t + 200, () => amt.classList.remove("focus", "caret"));
-      t = type(note, "Lístek na koncert", t + 400, 55);
-      at(t + 300, () => note.classList.remove("focus", "caret"));
-      at(t + 700, () => press($("#paySend")));
-      at(t + 1000, () => { done.classList.add("on"); setBalance(24030); });
-      at(t + 3200, () => { notify("Štěpán vám poslal 120 Kč", "Za kebab, díky!"); });
-      at(t + 6800, hideBanner);
+      resetPhone("22:15"); screen("main");
+      const amt = $("#payAmt"), note = $("#payNote"), msg = $("#payMsg");
+      placeholder(amt, "Částka (Kč)"); placeholder(note, "Poznámka (nepovinná)"); msg.classList.remove("on");
+      at(900, () => tap($("#tContacts")));
+      at(1200, () => screen("contacts"));
+      at(2300, () => { tap($("#cJirka")); $("#cJirka").classList.add("tap"); });
+      at(2700, () => { screen("pay"); $("#cJirka").classList.remove("tap"); });
+      let t = type(amt, "350", 3300, 150);
+      at(t + 150, () => amt.classList.remove("focus", "caret"));
+      t = type(note, "lístek na koncert", t + 350, 50);
+      at(t + 250, () => note.classList.remove("focus", "caret"));
+      at(t + 600, () => tap($("#paySend")));
+      at(t + 900, () => { msg.classList.add("on"); setMoney(31265, -240); });
+      // a friend asks for money: pay it straight from the notification
+      at(8600, () => notify("Štěpán Pressl žádá 120 Kč · kebab", ["Zaplatit", "Odmítnout"]));
+      at(11400, () => tap($("#nActs span")));
+      at(11700, () => { $("#nActs").replaceChildren(); $("#nRes").textContent = "Zaplaceno"; setMoney(31145, -360); });
+      at(14800, hideBanner);
     },
     "s-qr"() {
-      hideBanner(); clock.textContent = "22:40"; screen("qr");
+      resetPhone("22:40", 31145, -360); screen("main");
       const a = $("#qrAmt"), n = $("#qrNote"), cap = $("#qrCap");
-      placeholder(a, "Částka (Kč)"); placeholder(n, "Poznámka"); cap.textContent = "Naskenujte a zaplaťte";
-      let t = type(a, "160", 1400, 140);
+      placeholder(a, "Částka (Kč)"); placeholder(n, "Poznámka (nepovinná)"); cap.textContent = "Naskenuj a zaplať";
+      at(600, () => tap($("#tQr")));
+      at(900, () => screen("qr"));
+      let t = type(a, "160", 2000, 140);
       at(t + 50, () => { cap.textContent = "160 Kč"; a.classList.remove("focus", "caret"); });
-      t = type(n, "Za pivo", t + 400, 80);
-      at(t + 50, () => { cap.textContent = "160 Kč · Za pivo"; n.classList.remove("focus", "caret"); });
+      t = type(n, "za pivo", t + 400, 80);
+      at(t + 50, () => { cap.textContent = "160 Kč · za pivo"; n.classList.remove("focus", "caret"); });
     },
     "s-beers"() {
-      hideBanner(); clock.textContent = "23:31"; setBalance(24030); screen("home");
+      resetPhone("21:05", 31145, 0); screen("home");
       const mrows = $$("#s-beers .math .row"); mrows.forEach((r) => r.classList.remove("on"));
       $("#backStat").textContent = "0 Kč";
-      const picks = $$("#picks .row"); picks.forEach((r) => r.classList.remove("picked"));
-      const sts = $$("#gRows .st"); sts.forEach((s) => { s.textContent = "Čeká"; s.classList.remove("paid"); });
-      $("#gBack").textContent = "0 Kč"; $("#gMeter").style.width = "0";
-      at(900, () => mrows[0].classList.add("on"));
-      at(1500, () => { notify("Zaplatili jste 960 Kč", "Pivnice U Tygra · kartou", ["Rozdělit s přáteli"]); setBalance(23070); mrows[1].classList.add("on"); });
-      at(4300, () => press($("#bnActs div")));
-      at(4700, () => { hideBanner(); screen("newgroup"); });
-      picks.forEach((r, i) => at(5600 + i * 420, () => r.classList.add("picked")));
-      at(6200, () => mrows[2].classList.add("on"));
-      at(8300, () => press($("#ngGo")));
-      at(8700, () => { screen("group"); mrows[3].classList.add("on"); });
+      const picks = $$("#picks .crow"); picks.forEach((r) => r.classList.remove("picked"));
+      placeholder($("#ngName"), "Název skupiny (např. Chata)");
+      const status = $("#gStatus"); status.textContent = "Otevřená"; status.className = "pill open";
+      $("#gApprove").hidden = false; $("#gReq").hidden = true; $("#gExp").hidden = false;
+      const pills = $$("#gRows .pill"); pills.forEach((p) => { p.textContent = "Čeká"; p.className = "pill"; });
+      $("#gMeter").style.width = "0";
+
+      // start recording right from the home-screen widget
+      at(1400, () => tap($("#wRec")));
+      at(1700, () => setRec({ n: 0, total: 0 }));
+      // every card payment of the evening gets collected
+      at(4000, () => { clock.textContent = "21:48"; notify("Platba kartou 600 Kč · Pivnice U Tygra · přidáno do skupinové platby"); setRec({ n: 1, total: 600 }); setMoney(30545, -600); mrows[0].classList.add("on"); });
+      at(7000, hideBanner);
+      at(8000, () => { clock.textContent = "23:20"; notify("Platba kartou 360 Kč · Pivnice U Tygra · přidáno do skupinové platby"); setRec({ n: 2, total: 960 }); setMoney(30185, -960); mrows[1].classList.add("on"); });
+      at(11000, hideBanner);
+      // stop: the popup offers a Group Settle with everything collected
+      at(12000, () => { clock.textContent = "23:31"; tap($("#wRec")); });
+      at(12300, () => { setRec(null); sheet.classList.add("on"); });
+      at(15000, () => tap($("#shCreate")));
+      at(15300, () => { sheet.classList.remove("on"); screen("newgroup"); });
+      const t = type($("#ngName"), "U Tygra", 16000, 90);
+      at(t + 150, () => $("#ngName").classList.remove("focus", "caret"));
+      picks.forEach((r, i) => at(17000 + i * 380, () => { tap(r.querySelector(".box")); r.classList.add("picked"); }));
+      at(17400, () => mrows[2].classList.add("on"));
+      at(19300, () => tap($("#ngGo")));
+      at(19600, () => screen("group"));
+      // approve: equal split, fewest transfers, one request per friend
+      at(21000, () => tap($("#gApprove")));
+      at(21300, () => {
+        $("#gApprove").hidden = true; $("#gExp").hidden = true; $("#gReq").hidden = false;
+        status.textContent = "Schválená"; status.className = "pill paid";
+        mrows[3].classList.add("on");
+      });
       let back = 0;
-      [10800, 12300, 13200, 15400, 17600].forEach((ms, i) => at(ms, () => {
-        sts[i].textContent = "Zaplaceno"; sts[i].classList.add("paid");
-        tween($("#gBack"), back, back + 160, 500); tween($("#backStat"), back, back + 160, 500);
+      [23000, 24300, 25200, 27000, 28800].forEach((ms, i) => at(ms, () => {
+        pills[i].textContent = "Zaplaceno"; pills[i].className = "pill paid";
+        tween($("#backStat"), back, back + 160, 500);
         back += 160; $("#gMeter").style.width = `${back / 8}%`;
       }));
     },
     "s-chat"() {
-      hideBanner(); clock.textContent = "23:58"; screen("chat");
-      const q = $("#cQ"), d = $("#cDots"), a = $("#cA"), inp = $("#cInput");
-      [q, d, a].forEach((b) => { b.classList.remove("on"); b.style.display = ""; });
-      d.style.display = "none";
-      $$("#cBars i").forEach((i) => (i.style.height = "0"));
-      inp.textContent = "Zeptejte se Geoffa…"; inp.classList.add("ph");
-      const t = type(inp, "Kolik jsem tento měsíc utratil za pivo?", 900, 42);
-      at(t + 300, () => { inp.textContent = "Zeptejte se Geoffa…"; inp.classList.add("ph"); inp.classList.remove("caret", "focus"); q.classList.add("on"); });
-      at(t + 800, () => { d.style.display = "flex"; requestAnimationFrame(() => d.classList.add("on")); });
-      at(t + 2200, () => { d.style.display = "none"; a.classList.add("on"); });
-      at(t + 2600, () => $$("#cBars i").forEach((i, k) => setTimeout(() => (i.style.height = i.dataset.h + "%"), k * 120)));
+      resetPhone("23:58", 30985, -160); screen("main");
+      ask($("#chipMonth"), "Shrň mi platby za tento měsíc.",
+        "Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pivnice U Tygra (1 840 Kč).", 1200);
+      ask($("#chipOwe"), "Komu a kolik dlužím?",
+        "Štěpánovi dlužíš 250 Kč za Chatu Krkonoše. Nikomu dalšímu nic nedlužíš.", 7600);
     },
   };
 
