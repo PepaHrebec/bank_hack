@@ -13,10 +13,10 @@ the others, and their phone shows a notification.
 
 ## Run
 
+Needs [uv](https://docs.astral.sh/uv/).
+
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python run.py
+uv run run.py
 ```
 
 Open each address in its own browser window. On a phone, drag down from the top edge
@@ -27,13 +27,13 @@ of the screen to open the notification panel.
 Every person starts with 10 000 CZK. To wipe all payments and restore that:
 
 ```bash
-.venv/bin/python run.py --reset
+uv run run.py --reset
 ```
 
 ## Tests
 
 ```bash
-.venv/bin/pytest -q
+uv run pytest -q
 ```
 
 ## Layout
