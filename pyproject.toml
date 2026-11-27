@@ -1,0 +1,22 @@
+[project]
+name = "bank-hack"
+version = "0.1.0"
+description = "Four-phone mockup of a distributed bank app"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+]
+
+[dependency-groups]
+dev = [
+    "httpx",
+    "pytest",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
