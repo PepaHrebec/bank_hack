@@ -216,13 +216,39 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
     async def add_expense(group_id: int, request: Request):
         try:
             body = await _json_object(request)
-            expense = await run_in_threadpool(
-                db.add_expense, db_path, group_id, person_id, body.get("amount"), body.get("description")
-            )
+            if "source" in body:
+                # One of my payments picked from history: {"kind": "card" | "transfer", "id": int}
+                source = body["source"]
+                if not isinstance(source, dict) or type(source.get("id")) is not int:
+                    raise BadInput("Pick a payment from your history")
+                expense = await run_in_threadpool(
+                    db.add_expense_from_payment, db_path, group_id, person_id, source.get("kind"), source["id"]
+                )
+            else:
+                expense = await run_in_threadpool(
+                    db.add_expense, db_path, group_id, person_id, body.get("amount"), body.get("description")
+                )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
         await group_changed(await run_in_threadpool(group_of, group_id))
         return expense
+
+    @app.delete("/api/groups/{group_id}")
+    async def delete_group(group_id: int):
+        try:
+            done = await run_in_threadpool(db.delete_group, db_path, group_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        for p in done["members"]:
+            if p != person_id:
+                await orch.send(p, {
+                    "type": "group_deleted",
+                    "group_id": group_id,
+                    "from": me,
+                    "text": f"{me} deleted {done['name']}",
+                })
+        await orch.send(person_id, {"type": "group_changed", "group_id": group_id})
+        return done
 
     @app.delete("/api/groups/{group_id}/expenses/{expense_id}")
     async def delete_expense(group_id: int, expense_id: int):

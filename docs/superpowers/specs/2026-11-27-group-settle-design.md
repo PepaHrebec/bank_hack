@@ -32,10 +32,23 @@ everything around it and leaves one clearly marked slot for it.
   to X, linked to the group: X sees it in Requested from me (Pay / Decline),
   Y in Requested from others. Notifications as for any request.
 
+## Added 2026-11-27
+
+- The creator can delete a group at any time (with a confirmation). It
+  disappears for everyone and members get a notification. Settlement
+  requests from it that are still open become `cancelled` (they leave
+  Requested from me and show as Cancelled in Requested from others); paid
+  ones stay paid, since that money really moved.
+- Besides typing an expense, a member can pick one of their own outgoing
+  payments from history (card payments and transfers they sent). It becomes
+  an expense with that amount and its note (or "Card payment" / "Payment to
+  <name>"). Each payment can be added to a group only once, and only by its
+  payer.
+
 ## Non-goals
 
 - The split algorithm itself (next step).
-- Editing expenses, removing members, leaving or deleting groups, unequal
+- Editing expenses, removing members, leaving groups, unequal
   shares, expenses paid on someone else's behalf, "I'm done" flags.
 
 ## Anti-goals

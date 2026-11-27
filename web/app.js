@@ -20,6 +20,7 @@
   let payTo = null; // contact id on the pay screen
   let mode = "payment"; // "payment" | "request" on the pay screen
   let openGroupId = null; // group shown on the group screen
+  let currentView = null;
   let startExpense = null; // {amount, note} a new group starts with (from a card payment), or null
 
   const ICONS = {
@@ -226,9 +227,10 @@
     const exMsg = el("div", "form-msg");
     expenseForm.append(el("h3", "topay-section", "I paid"), exAmount, exDesc, exBtn, exMsg);
     expenseForm.addEventListener("submit", (e) => { e.preventDefault(); addExpense(); });
+    const pickBox = el("div", "pick-payments");
     const expenseList = el("div", "group-expenses");
     const approveBox = el("div", "approve-box");
-    group.append(groupHeader, groupInfo, expenseForm, expenseList, approveBox);
+    group.append(groupHeader, groupInfo, expenseForm, pickBox, expenseList, approveBox);
     views.group = group;
 
     // qr
@@ -263,12 +265,13 @@
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
-      expenseList, approveBox,
+      expenseList, approveBox, pickBox,
     };
     show("main");
   }
 
   function show(name) {
+    currentView = name;
     for (const [key, view] of Object.entries(ui.views)) view.classList.toggle("active", key === name);
     root.scrollTop = 0;
   }
@@ -367,7 +370,7 @@
     renderRequested();
   }
 
-  const STATUS = { open: "Waiting", paid: "Paid", declined: "Declined" };
+  const STATUS = { open: "Waiting", paid: "Paid", declined: "Declined", cancelled: "Cancelled" };
 
   // ---- Group Settle ----
 
@@ -458,7 +461,11 @@
 
   function renderGroup() {
     const g = (state.groups || []).find((x) => x.id === openGroupId);
-    if (!g) return;
+    if (!g) {
+      // The group was deleted (or the data reset) while it was open: back to the list.
+      if (currentView === "group") show("groups");
+      return;
+    }
     const mine = state.me.id;
     const isOpen = g.status === "open";
     ui.groupTitle.textContent = g.name;
@@ -501,6 +508,8 @@
     rows.push(box);
     ui.expenseList.replaceChildren(...rows);
 
+    ui.pickBox.replaceChildren(...(isOpen ? pickFromHistory(g) : []));
+
     const approve = [];
     if (isOpen && g.creator === mine) {
       const btn = button("send-btn approve-btn", "Approve and settle");
@@ -514,7 +523,66 @@
         ? "Approved: payment requests were sent. Check To be paid."
         : "Approved: split algorithm not implemented yet, so no requests were sent."));
     }
+    if (g.creator === mine) {
+      const del = button("delete-group-btn", "Delete group");
+      const msg = el("div", "form-msg");
+      del.addEventListener("click", () => deleteGroup(g, del, msg));
+      approve.push(del, msg);
+    }
     ui.approveBox.replaceChildren(...approve);
+  }
+
+  // My outgoing payments (card payments and transfers I sent) not yet in this group.
+  function pickFromHistory(g) {
+    const mine = state.me.id;
+    const used = new Set(g.expenses.filter((e) => e.source_kind).map((e) => `${e.source_kind}:${e.source_id}`));
+    const payments = (state.history || []).filter((h) =>
+      (h.kind === "card" || (h.kind === "transfer" && h.sender === mine)) && !used.has(`${h.kind}:${h.id}`));
+    if (payments.length === 0) return [];
+    const box = el("div", "card-list");
+    for (const h of payments.slice(0, 6)) {
+      const row = el("div", "tx");
+      const info = el("div", "tx-info");
+      const label = h.kind === "card"
+        ? (h.note ? `Card · ${h.note}` : "Card payment")
+        : (h.note || `Payment to ${nameOf(h.recipient)}`);
+      info.append(el("div", "tx-name", label), el("div", "tx-meta", time(h.created_at)));
+      const add = button("add-btn", "Add");
+      const msg = el("div", "form-msg error");
+      add.addEventListener("click", () => addFromHistory(h, add, msg));
+      row.append(icon(h.kind === "card" ? "card" : "contacts", "req-icon"), info,
+        el("div", "tx-amount", czk(h.amount)), add);
+      box.append(row, msg);
+    }
+    return [el("h3", "topay-section", "Or pick from my payments"), box];
+  }
+
+  async function addFromHistory(h, btn, msg) {
+    btn.disabled = true;
+    msg.textContent = "";
+    try {
+      await postJson(`/api/groups/${openGroupId}/expenses`, { source: { kind: h.kind, id: h.id } });
+      await load();
+    } catch (err) {
+      msg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      btn.disabled = false;
+    }
+  }
+
+  async function deleteGroup(g, btn, msg) {
+    const sent = g.requests_sent > 0 ? " Payment requests that aren't paid yet will be cancelled." : "";
+    if (!window.confirm(`Delete "${g.name}" for everyone?${sent}`)) return;
+    btn.disabled = true;
+    try {
+      await postJson(`/api/groups/${g.id}`, undefined, "DELETE");
+      openGroupId = null;
+      show("groups");
+      await load();
+    } catch (err) {
+      msg.className = "form-msg error";
+      msg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      btn.disabled = false;
+    }
   }
 
   async function addExpense() {
@@ -698,6 +766,9 @@
         title: "George", body: event.text, color: "#3b6cff",
         action: { label: "Group Settle", onClick: () => openNewGroup(prefill) },
       });
+      load();
+    } else if (event.type === "group_deleted") {
+      Phone.notify({ title: event.from, body: event.text, color: "#8e8e93" });
       load();
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });

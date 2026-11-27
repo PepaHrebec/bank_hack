@@ -146,3 +146,87 @@ def test_create_group_with_invalid_expense_creates_nothing(db):
     with pytest.raises(PaymentError):
         create_group(db, 1, "Hospoda", [2], expense={"amount": 5, "description": " "})
     assert groups_for(db, 1) == []
+
+
+# ---- deleting groups, expenses from history ----
+
+from server.db import (  # noqa: E402
+    add_expense_from_payment,
+    card_payment,
+    delete_group,
+    pay_request,
+    send_payment,
+)
+
+
+def test_only_creator_deletes_group(db):
+    g = create_group(db, 1, "Chata", [2])
+    with pytest.raises(PaymentError):
+        delete_group(db, g["id"], 2)
+    with pytest.raises(PaymentError):
+        delete_group(db, g["id"], 4)
+    done = delete_group(db, g["id"], 1)
+    assert sorted(done["members"]) == [1, 2] and done["cancelled"] == []
+    assert groups_for(db, 1) == [] and groups_for(db, 2) == []
+    with pytest.raises(PaymentError):
+        delete_group(db, g["id"], 1)
+
+
+def test_delete_cancels_open_settlement_requests_and_keeps_paid_ones(db):
+    g = create_group(db, 1, "Chata", [2, 3])
+    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 300), (3, 1, 200)])
+    paid = [r for r in open_requests_for(db, 2)][0]
+    pay_request(db, paid["id"], 2)
+    done = delete_group(db, g["id"], 1)
+    assert [(r["payer"], r["status"]) for r in done["cancelled"]] == [(3, "cancelled")]
+    assert open_requests_for(db, 3) == []
+    statuses = sorted((r["payer"], r["status"]) for r in requests_by(db, 1))
+    assert statuses == [(2, "paid"), (3, "cancelled")]
+    assert get_balance(db, 1) == 10300 and get_balance(db, 2) == 9700
+
+
+def test_cancelled_request_cannot_be_paid(db):
+    g = create_group(db, 1, "Chata", [2])
+    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 300)])
+    rid = open_requests_for(db, 2)[0]["id"]
+    delete_group(db, g["id"], 1)
+    with pytest.raises(PaymentError):
+        pay_request(db, rid, 2)
+
+
+def test_add_expense_from_card_payment(db):
+    g = create_group(db, 1, "Chata", [2])
+    c = card_payment(db, 1, 480, "beers")
+    e = add_expense_from_payment(db, g["id"], 1, "card", c["id"])
+    assert (e["payer"], e["amount"], e["description"]) == (1, 480, "beers")
+    assert e["source_kind"] == "card" and e["source_id"] == c["id"]
+    assert groups_for(db, 1)[0]["total"] == 480
+    with pytest.raises(PaymentError):  # same payment twice in one group
+        add_expense_from_payment(db, g["id"], 1, "card", c["id"])
+
+
+def test_add_expense_from_sent_transfer_and_defaults(db):
+    g = create_group(db, 1, "Chata", [2, 3])
+    t = send_payment(db, 1, 3, 200)
+    c = card_payment(db, 1, 90)
+    e1 = add_expense_from_payment(db, g["id"], 1, "transfer", t["id"])
+    e2 = add_expense_from_payment(db, g["id"], 1, "card", c["id"])
+    assert e1["description"] == "Payment to Pepa Hřebec" and e1["amount"] == 200
+    assert e2["description"] == "Card payment"
+
+
+def test_cannot_add_someone_elses_or_incoming_payment(db):
+    g = create_group(db, 1, "Chata", [2])
+    theirs = card_payment(db, 2, 50, "x")
+    incoming = send_payment(db, 2, 1, 70)
+    for kind, pid in [("card", theirs["id"]), ("transfer", incoming["id"]), ("card", 999), ("bogus", 1)]:
+        with pytest.raises(PaymentError):
+            add_expense_from_payment(db, g["id"], 1, kind, pid)
+
+
+def test_history_expense_only_while_open(db):
+    g = create_group(db, 1, "Chata", [2])
+    c = card_payment(db, 1, 10)
+    approve_group(db, g["id"], 1)
+    with pytest.raises(PaymentError):
+        add_expense_from_payment(db, g["id"], 1, "card", c["id"])

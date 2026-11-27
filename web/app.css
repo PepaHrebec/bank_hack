@@ -701,3 +701,40 @@ button {
   width: 1.2em;
   height: 1.2em;
 }
+
+/* ---- group: pick from history, delete ---- */
+
+.pick-payments .card-list {
+  margin-bottom: 0.4em;
+}
+
+.pick-payments .form-msg:empty { display: none; }
+
+.add-btn {
+  padding: 0.35em 0.8em;
+  border: none;
+  border-radius: 0.8em;
+  background: #111;
+  color: #fff;
+  font-size: 0.8em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-btn:disabled { opacity: 0.5; }
+
+.delete-group-btn {
+  width: 100%;
+  margin-top: 0.8em;
+  padding: 0.75em;
+  border: none;
+  border-radius: 0.9em;
+  background: #fde3e3;
+  color: #c62828;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-group-btn:disabled { opacity: 0.5; }
+
+.status.cancelled { background: #ececef; color: #6b6b73; }

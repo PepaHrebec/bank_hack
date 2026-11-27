@@ -285,3 +285,25 @@ def test_create_group_with_expense_endpoint(clients):
     r = clients[1].post("/api/groups", json={"name": "X", "members": [2], "expense": 5})
     assert r.status_code == 400
     assert len(clients[1].get("/api/state").json()["groups"]) == 1
+
+
+def test_delete_group_api(clients):
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    assert clients[2].delete(f"/api/groups/{gid}").status_code == 400
+    with clients[2].websocket_connect("/ws") as ws2:
+        assert clients[1].delete(f"/api/groups/{gid}").status_code == 200
+        ev = ws2.receive_json()
+        assert ev["type"] == "group_deleted"
+        assert ev["text"] == "Štěpán Pressl deleted Chata"
+    assert clients[2].get("/api/state").json()["groups"] == []
+
+
+def test_expense_from_history_api(clients):
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    cid = clients[1].post("/api/card-payments", json={"amount": 480, "note": "beers"}).json()["id"]
+    r = clients[1].post(f"/api/groups/{gid}/expenses", json={"source": {"kind": "card", "id": cid}})
+    assert r.status_code == 200 and r.json()["amount"] == 480
+    again = clients[1].post(f"/api/groups/{gid}/expenses", json={"source": {"kind": "card", "id": cid}})
+    assert again.status_code == 400
+    for bad in [{"source": "x"}, {"source": {"kind": "card", "id": "1"}}, {"source": {"kind": "card"}}]:
+        assert clients[1].post(f"/api/groups/{gid}/expenses", json=bad).status_code == 400

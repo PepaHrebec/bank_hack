@@ -56,7 +56,7 @@ def init_db(path):
             " group_id INTEGER REFERENCES request_groups(id),"
             " requester INTEGER NOT NULL, payer INTEGER NOT NULL,"
             " amount INTEGER NOT NULL, note TEXT NOT NULL,"
-            " status TEXT NOT NULL DEFAULT 'open',"  # open | paid | declined
+            " status TEXT NOT NULL DEFAULT 'open',"  # open | paid | declined | cancelled
             " payment_id INTEGER REFERENCES payments(id),"
             " created_at TEXT NOT NULL)"
         )
@@ -84,6 +84,11 @@ def init_db(path):
         if "settle_group_id" not in columns:
             # Requests created by approving a settle group point back to it.
             conn.execute("ALTER TABLE request_groups ADD COLUMN settle_group_id INTEGER")
+        columns = [c["name"] for c in conn.execute("PRAGMA table_info(expenses)")]
+        if "source_kind" not in columns:
+            # An expense picked from history points at the payment it came from ("card" | "transfer").
+            conn.execute("ALTER TABLE expenses ADD COLUMN source_kind TEXT")
+            conn.execute("ALTER TABLE expenses ADD COLUMN source_id INTEGER")
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
@@ -426,17 +431,13 @@ def create_group(path, creator, name, members, expense=None):
         return _group_dict(conn, g)
 
 
-def add_expense(path, group_id, payer, amount, description):
-    """Record that `payer` paid `amount` for the group. No money moves."""
-    _check_amount(amount)
-    description = _text(description, EXPENSE_DESC_MAX, "What it was for")
-    with _transaction(path) as conn:
-        _require_open(_group_row(conn, group_id, payer))
-        created_at = _now()
-        expense_id = conn.execute(
-            "INSERT INTO expenses (group_id, payer, amount, description, created_at) VALUES (?, ?, ?, ?, ?)",
-            (group_id, payer, amount, description, created_at),
-        ).lastrowid
+def _insert_expense(conn, group_id, payer, amount, description, source_kind=None, source_id=None):
+    created_at = _now()
+    expense_id = conn.execute(
+        "INSERT INTO expenses (group_id, payer, amount, description, created_at, source_kind, source_id)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (group_id, payer, amount, description, created_at, source_kind, source_id),
+    ).lastrowid
     return {
         "id": expense_id,
         "group_id": group_id,
@@ -444,7 +445,45 @@ def add_expense(path, group_id, payer, amount, description):
         "amount": amount,
         "description": description,
         "created_at": created_at,
+        "source_kind": source_kind,
+        "source_id": source_id,
     }
+
+
+def add_expense(path, group_id, payer, amount, description):
+    """Record that `payer` paid `amount` for the group. No money moves."""
+    _check_amount(amount)
+    description = _text(description, EXPENSE_DESC_MAX, "What it was for")
+    with _transaction(path) as conn:
+        _require_open(_group_row(conn, group_id, payer))
+        return _insert_expense(conn, group_id, payer, amount, description)
+
+
+def add_expense_from_payment(path, group_id, payer, kind, payment_id):
+    """Add one of `payer`'s own outgoing payments (a card payment or a transfer they sent)."""
+    with _transaction(path) as conn:
+        _require_open(_group_row(conn, group_id, payer))
+        if kind == "card":
+            row = conn.execute(
+                "SELECT amount, note FROM card_payments WHERE id = ? AND person = ?", (payment_id, payer)
+            ).fetchone()
+            default = "Card payment"
+        elif kind == "transfer":
+            row = conn.execute(
+                "SELECT amount, note, recipient FROM payments WHERE id = ? AND sender = ?", (payment_id, payer)
+            ).fetchone()
+            default = row and f"Payment to {PEOPLE[row['recipient']]}"
+        else:
+            row = None
+        if row is None:
+            raise PaymentError("Payment not found")
+        if conn.execute(
+            "SELECT 1 FROM expenses WHERE group_id = ? AND source_kind = ? AND source_id = ?",
+            (group_id, kind, payment_id),
+        ).fetchone():
+            raise PaymentError("That payment is already in this group")
+        description = (row["note"] or default)[:EXPENSE_DESC_MAX]
+        return _insert_expense(conn, group_id, payer, row["amount"], description, kind, payment_id)
 
 
 def delete_expense(path, group_id, expense_id, person):
@@ -487,6 +526,34 @@ def approve_group(path, group_id, person, split=None):
         info = _group_dict(conn, conn.execute("SELECT * FROM settle_groups WHERE id = ?", (group_id,)).fetchone())
     info["requests"] = requests
     return info
+
+
+def delete_group(path, group_id, person):
+    """Creator only: remove the group for everyone and cancel its settlement requests still open.
+
+    Paid requests stay paid: that money has really moved.
+    """
+    with _transaction(path) as conn:
+        g = _group_row(conn, group_id, person)
+        if g["creator"] != person:
+            raise PaymentError("Only the group's creator can delete it")
+        info = _group_dict(conn, g)
+        cancelled = [dict(r) for r in conn.execute(
+            "SELECT r.* FROM requests r JOIN request_groups rg ON rg.id = r.group_id"
+            " WHERE rg.settle_group_id = ? AND r.status = 'open' ORDER BY r.id",
+            (group_id,),
+        )]
+        conn.execute(
+            "UPDATE requests SET status = 'cancelled' WHERE status = 'open' AND group_id IN"
+            " (SELECT id FROM request_groups WHERE settle_group_id = ?)",
+            (group_id,),
+        )
+        conn.execute("DELETE FROM expenses WHERE group_id = ?", (group_id,))
+        conn.execute("DELETE FROM settle_members WHERE group_id = ?", (group_id,))
+        conn.execute("DELETE FROM settle_groups WHERE id = ?", (group_id,))
+    for r in cancelled:
+        r["status"] = "cancelled"
+    return {"id": group_id, "name": info["name"], "members": info["members"], "cancelled": cancelled}
 
 
 def groups_for(path, person):
