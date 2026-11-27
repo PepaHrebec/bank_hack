@@ -1,7 +1,7 @@
 // Placeholder bank app.
-//   main     balance card (tap -> history), Contacts button, To be paid button (requests
-//            from Group Payment; not implemented yet), chat window (empty for now)
-//   contacts Group Payment (not implemented yet) and the other three people (tap -> pay)
+//   main     balance card (tap -> history), Contacts button, chat window (empty for now)
+//   contacts Group Settle and To be paid (requests from Group Settle; both not implemented
+//            yet) and the other three people (tap -> pay)
 //   pay      send money to one contact
 //   history  payments from the database
 // Talks to the shell only through window.Phone, so it can be swapped for the real app.
@@ -85,15 +85,17 @@
     card.addEventListener("click", () => show("history"));
     const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Contacts"), icon("chevron", "chev"));
     contactsBtn.addEventListener("click", () => show("contacts"));
-    const toBePaidBtn = button("big-btn", icon("request", "big-btn-icon to-be-paid-icon"), el("span", null, "To be paid"), icon("chevron", "chev"));
     const chat = el("section", "chat"); // the smart chatbot goes here later
-    main.append(card, contactsBtn, toBePaidBtn, chat);
+    main.append(card, contactsBtn, chat);
     views.main = main;
 
     // contacts
     const contacts = el("section", "view");
     const actions = el("div", "quick-actions");
-    actions.append(button("settle", icon("settle", "settle-icon"), el("span", null, "Group Payment")));
+    actions.append(
+      button("settle", icon("settle", "settle-icon"), el("span", null, "Group Settle")),
+      button("settle", icon("request", "settle-icon"), el("span", null, "To be paid")),
+    );
     const list = el("div", "card-list");
     for (const p of others) {
       const row = button("contact", avatar(p), el("span", "contact-name", p.name), icon("chevron", "chev"));

@@ -53,7 +53,9 @@ make the frontend work.
   - Grindr: a dark "Nearby" grid of fictional men with drawn portraits.
   - Spotify: a "now playing" screen for Never Gonna Give You Up that embeds
     the official YouTube video, which plays while the screen is open and
-    stops when it closes. This needs internet.
+    stops when it closes. This needs internet, and the page must be opened
+    by hostname (localhost or the printed nip.io name): YouTube refuses
+    embeds on pages opened by bare IP.
   - Portraits are original SVG illustrations, not photos of real people.
 
 ## Anti-goals
@@ -72,11 +74,11 @@ make the frontend work.
   The recipient's balance and history update live.
 - App screens (updated 2026-11-27):
   - Main: balance card with a history icon (tap opens History), a Contacts
-    button, a To be paid button (will list the requests created by Group
-    Payment; not implemented yet), and a large chat window, empty for now;
-    the smart chatbot comes later.
-  - Contacts: a Group Payment icon (not implemented yet) above the other
-    three people. Tapping a person opens Send money for them (amount, note).
+    button, and a large chat window, empty for now; the smart chatbot comes
+    later.
+  - Contacts: Group Settle and To be paid icons side by side (To be paid
+    will list the requests created by Group Settle; neither is implemented
+    yet) above the other three people. Tapping a person opens Send money for them (amount, note).
   - History: payments from the database, newest first. The history stays in
     the database for other uses.
 - Data persists across restarts (SQLite file). A reset command restores the

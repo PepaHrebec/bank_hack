@@ -23,6 +23,18 @@ def lan_ip():
         return "127.0.0.1"
 
 
+def display_host(ip):
+    # YouTube refuses to play embeds on pages served from a bare IP address, so show a
+    # nip.io name instead: 146-102-217-199.nip.io resolves to 146.102.217.199.
+    if ip in ("127.0.0.1", "localhost"):
+        return "localhost"
+    try:
+        socket.inet_aton(ip)
+    except OSError:
+        return ip  # already a hostname
+    return ip.replace(".", "-") + ".nip.io"
+
+
 async def serve(db_path, host, shown_host):
     orch = Orchestrator()
     servers = []
@@ -52,7 +64,7 @@ def main():
         print("Database reset: every person has 10 000 CZK, no payments.")
         return
     init_db(args.db)
-    shown_host = lan_ip() if args.host == "0.0.0.0" else args.host
+    shown_host = display_host(lan_ip() if args.host == "0.0.0.0" else args.host)
     asyncio.run(serve(args.db, args.host, shown_host))
 
 
