@@ -406,7 +406,9 @@
   function renderRecording() {
     const rec = state.recording;
     const mine = state.me.id;
-    const participant = !!rec && rec.starter !== mine; // someone else leads this session
+    // Someone else leads this session. Only when the server says so: without `starter` the Stop
+    // button must stay, or nobody could end the recording.
+    const participant = !!rec && rec.starter != null && rec.starter !== mine;
     for (const b of ui.recToggles) {
       b.hidden = participant;
       b.textContent = rec ? "Ukončit skupinovou platbu" : "Spustit skupinovou platbu";
@@ -444,16 +446,16 @@
       count.append(el("span", "rec-dot"), el("span", null, `Zaznamenáno: ${payments(rec.payments.length)} · ${czk(rec.total)}`));
       lines.push(count);
       if (participant) {
-        const others = rec.participants.filter((id) => id !== mine && id !== rec.starter);
+        const others = (rec.participants || []).filter((id) => id !== mine && id !== rec.starter);
         if (others.length) lines.push(el("div", "rec-line rec-with", `Také: ${others.map(firstName).join(", ")}`));
       } else {
-        const others = rec.participants.filter((id) => id !== mine);
+        const others = (rec.participants || []).filter((id) => id !== mine);
         if (others.length) {
           const joined = el("div", "rec-line");
           joined.append(avatars(others));
           lines.push(joined);
         }
-        if (rec.invited.length) lines.push(el("div", "rec-line rec-with", `čeká: ${rec.invited.map(firstName).join(", ")}`));
+        if (rec.invited?.length) lines.push(el("div", "rec-line rec-with", `čeká: ${rec.invited.map(firstName).join(", ")}`));
       }
       i.replaceChildren(...lines);
     }
