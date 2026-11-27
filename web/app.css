@@ -680,3 +680,24 @@ button {
   text-align: center;
   margin-bottom: 0.6em;
 }
+
+/* ---- card payments ---- */
+
+.ng-expense {
+  margin: 0.5em 0 0.2em;
+  padding: 0.6em 0.8em;
+  border-radius: 0.8em;
+  background: rgba(59, 108, 255, 0.1);
+  color: #3b6cff;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.card-avatar {
+  background: #5b6478;
+}
+
+.card-avatar svg {
+  width: 1.2em;
+  height: 1.2em;
+}

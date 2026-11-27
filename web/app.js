@@ -20,6 +20,7 @@
   let payTo = null; // contact id on the pay screen
   let mode = "payment"; // "payment" | "request" on the pay screen
   let openGroupId = null; // group shown on the group screen
+  let startExpense = null; // {amount, note} a new group starts with (from a card payment), or null
 
   const ICONS = {
     back: '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -28,6 +29,7 @@
     history: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3.5 4v4.5H8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     request: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     qr: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></g><g fill="currentColor"><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/><rect x="18" y="14" width="3" height="2"/><rect x="14" y="19" width="2" height="2"/></g></svg>',
+    card: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
 
@@ -180,7 +182,7 @@
     // groups
     const groups = el("section", "view");
     const newGroupBtn = button("big-btn", icon("settle", "big-btn-icon"), el("span", null, "New group"), icon("chevron", "chev"));
-    newGroupBtn.addEventListener("click", openNewGroup);
+    newGroupBtn.addEventListener("click", () => openNewGroup());
     const groupsList = el("div", "groups-list");
     groups.append(header("Group Settle", "contacts"), newGroupBtn, groupsList);
     views.groups = groups;
@@ -203,7 +205,9 @@
     const ngBtn = el("button", "send-btn", "Create group");
     ngBtn.type = "submit";
     const ngMsg = el("div", "form-msg");
-    ngForm.append(ngName, el("h3", "topay-section", "Who's in"), ngPeople, ngBtn, ngMsg);
+    const ngExpense = el("div", "ng-expense");
+    ngExpense.hidden = true;
+    ngForm.append(ngName, ngExpense, el("h3", "topay-section", "Who's in"), ngPeople, ngBtn, ngMsg);
     ngForm.addEventListener("submit", (e) => { e.preventDefault(); createGroup(); });
     newgroup.append(header("New group", "groups"), ngForm);
     views.newgroup = newgroup;
@@ -257,7 +261,7 @@
     ui = {
       views, balance, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
-      groupsList, ngName, ngPicks, ngBtn, ngMsg,
+      groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
       expenseList, approveBox,
     };
@@ -295,6 +299,14 @@
     const rows = [];
     if (history.length === 0) rows.push(el("div", "empty", "No payments yet"));
     for (const p of history) {
+      if (p.kind === "card") {
+        const row = el("div", "tx");
+        const info = el("div", "tx-info");
+        info.append(el("div", "tx-name", p.note ? `Card · ${p.note}` : "Card payment"), el("div", "tx-meta", p.created_at.slice(11, 16)));
+        row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
+        rows.push(row);
+        continue;
+      }
       const outgoing = p.sender === me.id;
       const other = outgoing ? p.recipient : p.sender;
       const row = el("div", "tx");
@@ -392,8 +404,12 @@
     ui.groupsList.replaceChildren(...cards);
   }
 
-  function openNewGroup() {
-    ui.ngName.value = "";
+  // prefill = {amount, note} from a card payment: the group starts with that expense, paid by me.
+  function openNewGroup(prefill) {
+    startExpense = prefill || null;
+    ui.ngName.value = prefill ? prefill.note : "";
+    ui.ngExpense.hidden = !prefill;
+    ui.ngExpense.textContent = prefill ? `Expense: ${czk(prefill.amount)} · paid by you` : "";
     for (const box of Object.values(ui.ngPicks)) box.checked = false;
     ui.ngMsg.className = "form-msg";
     ui.ngMsg.textContent = "";
@@ -417,7 +433,9 @@
     const members = Object.entries(ui.ngPicks).filter(([, b]) => b.checked).map(([id]) => Number(id));
     ui.ngBtn.disabled = true;
     try {
-      const g = await postJson("/api/groups", { name: ui.ngName.value, members });
+      const body = { name: ui.ngName.value, members };
+      if (startExpense) body.expense = { amount: startExpense.amount, description: startExpense.note || "Card payment" };
+      const g = await postJson("/api/groups", body);
       await load();
       openGroup(g.id);
     } catch (err) {
@@ -674,11 +692,43 @@
       const note = event.request.note ? `\n${event.request.note}` : "";
       Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[sender] });
       load();
+    } else if (event.type === "card_payment") {
+      const prefill = { amount: event.payment.amount, note: event.payment.note };
+      Phone.notify({
+        title: "George", body: event.text, color: "#3b6cff",
+        action: { label: "Group Settle", onClick: () => openNewGroup(prefill) },
+      });
+      load();
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
       load();
     } else if (["payment_sent", "request_sent", "requests_changed", "group_changed", "connected"].includes(event.type)) {
       load();
+    }
+  });
+
+  // Presenter control (outside the phone): pay by card without opening the bank app.
+  const demoForm = document.getElementById("demoPay");
+  const demoMsg = document.getElementById("demoMsg");
+  demoForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const amount = document.getElementById("demoAmount");
+    const note = document.getElementById("demoNote");
+    const btn = demoForm.querySelector("button");
+    btn.disabled = true;
+    demoMsg.className = "demo-msg";
+    demoMsg.textContent = "";
+    try {
+      await postJson("/api/card-payments", { amount: amount.value === "" ? null : Number(amount.value), note: note.value });
+      amount.value = "";
+      note.value = "";
+      demoMsg.className = "demo-msg ok";
+      demoMsg.textContent = "Paid";
+    } catch (err) {
+      demoMsg.className = "demo-msg error";
+      demoMsg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank." : err.message;
+    } finally {
+      btn.disabled = false;
     }
   });
 

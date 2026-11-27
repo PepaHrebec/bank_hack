@@ -1,5 +1,7 @@
 // Phone shell. Gives the app a small API on window.Phone:
-//   Phone.notify({title, body, color})  show a banner and add it to the pull-down list
+//   Phone.notify({title, body, color, action?: {label, onClick}})
+//                                       show a banner and add it to the pull-down list;
+//                                       the action button runs onClick, then opens George
 //   Phone.onEvent(fn)                   receive every event the orchestrator pushes
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
@@ -67,6 +69,22 @@
     body.className = "note-body";
     body.textContent = n.body;
     text.append(head, body);
+    if (n.action) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "note-action";
+      btn.textContent = n.action.label;
+      // The button is its own target: neither the banner's tap nor its drag may see it.
+      btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        n.action.onClick();
+        openApp(appEl);
+        setOpen(false);
+        bannerLayer.replaceChildren();
+      });
+      text.append(btn);
+    }
 
     return [icon, text];
   }
@@ -111,8 +129,8 @@
     setTimeout(hide, BANNER_MS);
   }
 
-  function notify({ title, body, color }) {
-    const n = { title, body, color: color || "#3b6cff", time: hhmm(new Date()) };
+  function notify({ title, body, color, action }) {
+    const n = { title, body, color: color || "#3b6cff", action, time: hhmm(new Date()) };
     notifications.unshift(n);
     renderShadeList();
     if (!shade.classList.contains("open")) showBanner(n);
