@@ -426,15 +426,56 @@ body {
 
 .demo-pay {
   position: fixed;
-  right: 14px;
-  bottom: 14px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 100;
+  color: #cfd3de;
+  font-size: 12px;
+}
+
+.demo-panel {
+  margin: 8px;
   width: 190px;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(20, 24, 34, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cfd3de;
-  font-size: 12px;
+}
+
+.demo-chip {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  background: rgba(20, 24, 34, 0.85);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.demo-close {
+  float: right;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Narrow windows leave no room beside the phone: the control is a chip until tapped. */
+.demo-pay:not(.open) .demo-panel { display: none; }
+.demo-pay.open .demo-chip { display: none; }
+
+/* Room beside the phone: (100vw - phone width) / 2 >= 240px, the phone being 42.46vh wide
+   when the window's height limits it (see --w). Then the control is always open. */
+@media (min-width: calc(480px + 42.46vh)) {
+  .demo-pay:not(.open) .demo-panel,
+  .demo-pay.open .demo-panel { display: block; }
+  .demo-pay .demo-chip,
+  .demo-pay.open .demo-chip,
+  .demo-pay .demo-close { display: none; }
 }
 
 .demo-pay h4 {
@@ -459,7 +500,7 @@ body {
   font: inherit;
 }
 
-.demo-pay button {
+.demo-pay form button {
   padding: 6px;
   border: 0;
   border-radius: 8px;
@@ -470,7 +511,7 @@ body {
   cursor: pointer;
 }
 
-.demo-pay button:disabled { opacity: 0.5; }
+.demo-pay form button:disabled { opacity: 0.5; }
 
 .demo-msg {
   min-height: 1.2em;

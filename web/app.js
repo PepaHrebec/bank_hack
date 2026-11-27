@@ -407,7 +407,7 @@
   // prefill = {amount, note} from a card payment: the group starts with that expense, paid by me.
   function openNewGroup(prefill) {
     startExpense = prefill || null;
-    ui.ngName.value = prefill ? prefill.note : "";
+    ui.ngName.value = prefill ? prefill.note.slice(0, 40) : "";
     ui.ngExpense.hidden = !prefill;
     ui.ngExpense.textContent = prefill ? `Expense: ${czk(prefill.amount)} · paid by you` : "";
     for (const box of Object.values(ui.ngPicks)) box.checked = false;
@@ -708,6 +708,9 @@
   });
 
   // Presenter control (outside the phone): pay by card without opening the bank app.
+  const demoAside = document.getElementById("demoAside");
+  document.getElementById("demoChip").addEventListener("click", () => demoAside.classList.add("open"));
+  document.getElementById("demoClose").addEventListener("click", () => demoAside.classList.remove("open"));
   const demoForm = document.getElementById("demoPay");
   const demoMsg = document.getElementById("demoMsg");
   demoForm.addEventListener("submit", async (e) => {

@@ -78,10 +78,13 @@
       btn.addEventListener("pointerdown", (e) => e.stopPropagation());
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        n.action.onClick();
         openApp(appEl);
-        setOpen(false);
-        bannerLayer.replaceChildren();
+        try {
+          n.action.onClick();
+        } finally {
+          setOpen(false);
+          bannerLayer.replaceChildren();
+        }
       });
       text.append(btn);
     }
