@@ -291,6 +291,7 @@
     widgetHead.append(logo, el("span", null, "Geoff"));
     const widgetBalance = el("div", "widget-balance");
     const widgetChange = el("div", "widget-change");
+    const widgetRecent = el("div", "widget-recent");
     const widgetBody = el("div", "widget-body");
     widgetBody.append(el("div", "widget-label", "Zůstatek"), widgetBalance, widgetChange);
     const wRecToggle = button("rec-toggle widget-rec");
@@ -299,10 +300,10 @@
     const wRecInfo = el("div", "rec-info");
     wRecInfo.hidden = true;
     widgetBody.append(wRecToggle, wRecInfo);
-    Phone.widget.replaceChildren(widgetHead, widgetBody);
+    Phone.widget.replaceChildren(widgetHead, widgetRecent, widgetBody);
 
     ui = {
-      views, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, payWho, amount, note, sendBtn, msg, historyList,
+      views, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, widgetRecent, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
@@ -336,12 +337,31 @@
     setMsg(null, "");
   }
 
+  // The three latest payments in the home-screen widget, worded like the history list.
+  function renderWidgetRecent() {
+    const d = new Date(); // local date, like the server's timestamps
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const rows = state.history.slice(0, 3).map((p) => {
+      const incoming = p.kind === "income" || (p.kind === "transfer" && p.recipient === state.me.id);
+      const label = p.kind === "card" ? (p.note || "Platba kartou")
+        : p.kind === "income" ? (p.note || "Příchozí platba")
+        : `${incoming ? "Od" : "Pro"} ${nameOf(incoming ? p.sender : p.recipient)}`;
+      const when = p.created_at.slice(0, 10) === today ? p.created_at.slice(11, 16) : stamp(p.created_at).split(" ")[0];
+      const row = el("div", "widget-tx");
+      row.append(el("span", "widget-tx-name", label), el("span", "widget-tx-time", when),
+        el("span", "widget-tx-amount" + (incoming ? " in" : ""), `${incoming ? "+" : "−"}${czk(p.amount)}`));
+      return row;
+    });
+    ui.widgetRecent.replaceChildren(...rows);
+  }
+
   function refresh() {
     const { me, balance, history } = state;
     ui.balance.textContent = czk(balance);
     ui.widgetBalance.textContent = czk(balance);
     showChange(ui.change, state.today_change);
     showChange(ui.widgetChange, state.today_change);
+    renderWidgetRecent();
     renderRecording();
 
     const rows = [];

@@ -175,6 +175,33 @@ button {
   border-radius: 0.45em;
 }
 
+.widget-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  margin: 1em 0 auto; /* sits under the header; the balance stays at the bottom */
+  font-size: 0.85em;
+}
+
+.widget-tx {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.widget-tx-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.widget-tx-time { opacity: 0.7; font-size: 0.9em; }
+.widget-tx-amount { font-weight: 700; white-space: nowrap; }
+.widget-tx-amount.in { color: #7dffb4; }
+
 .widget-label {
   font-size: 0.85em;
   opacity: 0.85;
