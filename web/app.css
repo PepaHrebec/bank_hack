@@ -1,0 +1,180 @@
+/* Placeholder bank app. Sized in em so it scales with the phone. */
+
+#app {
+  padding-left: 1.1em;
+  padding-right: 1.1em;
+}
+
+#app h3 {
+  margin: 0 0 0.7em;
+  font-size: 1.05em;
+}
+
+.avatar {
+  flex: none;
+  width: 2.2em;
+  height: 2.2em;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85em;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 0.6em 0 1em;
+}
+
+.hello {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.balance-card {
+  padding: 1.1em 1.2em;
+  border-radius: 1.3em;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #0b0d2a));
+  box-shadow: 0 0.6em 1.6em color-mix(in srgb, var(--accent) 35%, transparent);
+  margin-bottom: 1.2em;
+}
+
+.balance-label {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.balance-value {
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 0.15em;
+}
+
+.send,
+.history {
+  background: #fff;
+  border-radius: 1.3em;
+  padding: 1em;
+  margin-bottom: 1em;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
+}
+
+.chips {
+  display: flex;
+  gap: 0.45em;
+  margin-bottom: 0.7em;
+}
+
+.chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.55em 0.2em;
+  border: 0.12em solid transparent;
+  border-radius: 0.9em;
+  background: #f2f3f7;
+  font: inherit;
+  font-size: 0.78em;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chip.active {
+  border-color: #111;
+  background: #fff;
+}
+
+.field {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.55em;
+  padding: 0.7em 0.8em;
+  border: none;
+  border-radius: 0.8em;
+  background: #f2f3f7;
+  font: inherit;
+  font-size: 0.95em;
+  color: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.field:focus {
+  outline: 0.12em solid #3b6cff;
+}
+
+.send-btn {
+  width: 100%;
+  padding: 0.75em;
+  border: none;
+  border-radius: 0.9em;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+}
+
+.form-msg {
+  min-height: 1.3em;
+  margin-top: 0.5em;
+  font-size: 0.82em;
+  text-align: center;
+}
+
+.form-msg.error { color: #d93636; }
+.form-msg.ok { color: #1f9d5c; }
+
+.empty {
+  font-size: 0.85em;
+  opacity: 0.5;
+}
+
+.tx {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  padding: 0.55em 0;
+  border-top: 0.06em solid #eee;
+}
+
+.tx:first-of-type {
+  border-top: none;
+}
+
+.tx-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-name {
+  font-size: 0.92em;
+  font-weight: 600;
+}
+
+.tx-meta {
+  font-size: 0.75em;
+  opacity: 0.55;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-amount {
+  font-size: 0.92em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tx-amount.in { color: #1f9d5c; }
