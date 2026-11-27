@@ -104,7 +104,7 @@ def test_openrouter_from_env_request_and_reply(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "k")
     monkeypatch.setenv("OPENROUTER_MODEL", "m")
     complete = chat.openrouter_from_env()
-    assert asyncio.run(complete([{"role": "user", "content": "x"}], []))["content"] == "Ahoj"
+    assert asyncio.run(complete([{"role": "user", "content": "x"}], chat_tools.TOOLS))["content"] == "Ahoj"
     assert seen["auth"] == "Bearer k"
     assert seen["body"]["model"] == "m" and {"messages", "tools"} <= set(seen["body"])
 
@@ -265,3 +265,19 @@ def test_run_arguments_as_dict(db):
         return {"role": "assistant", "content": "ok"}
 
     assert asyncio.run(chat.run(db, 1, [MSG], complete, TODAY)) == "ok"
+
+
+def test_openrouter_omits_tools_key_when_empty(monkeypatch):
+    bodies = []
+
+    def handler(req):
+        bodies.append(json.loads(req.content))
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "{}"}}]})
+
+    _patched_client(monkeypatch, handler)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("OPENROUTER_MODEL", "m")
+    complete = chat.openrouter_from_env()
+    asyncio.run(complete([], []))
+    asyncio.run(complete([], chat_tools.TOOLS))
+    assert "tools" not in bodies[0] and "tools" in bodies[1]

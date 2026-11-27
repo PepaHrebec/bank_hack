@@ -90,11 +90,10 @@ def openrouter_from_env():
     async def complete(messages, tools):
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-                r = await client.post(
-                    URL,
-                    headers={"Authorization": f"Bearer {key}"},
-                    json={**body, "messages": messages, "tools": tools},
-                )
+                payload = {**body, "messages": messages}
+                if tools:  # a plain classification call has no tools; an empty list is invalid
+                    payload["tools"] = tools
+                r = await client.post(URL, headers={"Authorization": f"Bearer {key}"}, json=payload)
             r.raise_for_status()
             message = r.json()["choices"][0]["message"]
         except httpx.HTTPStatusError as e:
