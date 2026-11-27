@@ -11,8 +11,10 @@
 // get "app-open" / "app-close" DOM events. Tapping a notification banner opens Geoff.
 //   Phone.openApp(id | null)            open a window by id, or go home with null
 //   Phone.widget                        the home-screen widget; the app fills it, tapping it opens Geoff
-//   Phone.popup(nodes) -> close()       modal sheet over the whole screen (home or any app) with a
-//                                       dimmed backdrop; tapping the backdrop closes it
+//   Phone.popup(nodes, onBackdrop?) -> close()
+//                                       modal sheet over the whole screen (home or any app) with a
+//                                       dimmed backdrop; tapping the backdrop closes it and calls
+//                                       onBackdrop (not called when close() is called directly)
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -357,7 +359,7 @@
 
   // ---- popup ----
 
-  function popup(nodes) {
+  function popup(nodes, onBackdrop) {
     const backdrop = document.createElement("div");
     backdrop.className = "popup-backdrop";
     const sheet = document.createElement("div");
@@ -366,7 +368,10 @@
     sheet.addEventListener("click", (e) => e.stopPropagation());
     backdrop.append(sheet);
     const close = () => backdrop.remove();
-    backdrop.addEventListener("click", close);
+    backdrop.addEventListener("click", () => {
+      close();
+      if (onBackdrop) onBackdrop();
+    });
     screen.append(backdrop);
     return close;
   }

@@ -405,13 +405,33 @@
 
   function renderRecording() {
     const rec = state.recording;
+    const mine = state.me.id;
+    const participant = !!rec && rec.starter !== mine; // someone else leads this session
     for (const b of ui.recToggles) {
+      b.hidden = participant;
       b.textContent = rec ? "Ukončit skupinovou platbu" : "Spustit skupinovou platbu";
       b.classList.toggle("recording", !!rec);
     }
     for (const i of ui.recInfos) {
       i.hidden = !rec;
-      if (rec) i.replaceChildren(el("span", "rec-dot"), el("span", null, `Zaznamenáno: ${payments(rec.payments.length)} · ${czk(rec.total)}`));
+      if (!rec) continue;
+      const lines = [];
+      if (participant) lines.push(el("div", "rec-line rec-leader", `Skupinovou platbu vede ${firstName(rec.starter)}`));
+      const count = el("div", "rec-line");
+      count.append(el("span", "rec-dot"), el("span", null, `Zaznamenáno: ${payments(rec.payments.length)} · ${czk(rec.total)}`));
+      lines.push(count);
+      const others = rec.participants.filter((id) => id !== mine);
+      if (participant) {
+        if (others.length) lines.push(el("div", "rec-line rec-with", `s ${others.map(firstName).join(", ")}`));
+      } else {
+        if (others.length) {
+          const joined = el("div", "rec-line");
+          joined.append(avatars(others));
+          lines.push(joined);
+        }
+        if (rec.invited.length) lines.push(el("div", "rec-line rec-with", `čeká: ${rec.invited.map(firstName).join(", ")}`));
+      }
+      i.replaceChildren(...lines);
     }
   }
 
@@ -422,12 +442,12 @@
     toggling = true;
     try {
       if (!state.recording) {
-        await postJson("/api/recording/start");
-        await load();
+        showStartPopup();
       } else {
         const result = await postJson("/api/recording/stop");
         await load();
-        showStopPopup(result);
+        if (result.shared) showSharedStopPopup(result);
+        else showStopPopup(result);
       }
     } catch (err) {
       Phone.notify({ title: "Geoff", body: errText(err, false), color: "#d93636" });
@@ -435,6 +455,92 @@
     } finally {
       toggling = false;
     }
+  }
+
+  // Before Start: pick which friends to invite into the shared session (none = solo).
+  function showStartPopup() {
+    const nodes = [el("h3", "popup-title", "Spustit skupinovou platbu")];
+    nodes.push(el("div", "popup-sub", "Koho pozvat? Pozvaní se připojí, až pozvánku přijmou."));
+    const picks = {};
+    const list = el("div", "pick-list");
+    for (const p of state.people.filter((x) => x.id !== state.me.id)) {
+      const box = el("input");
+      box.type = "checkbox";
+      picks[p.id] = box;
+      const row = el("label", "pick");
+      row.append(box, avatar(p), el("span", "contact-name", p.name));
+      list.append(row);
+    }
+    const msg = el("div", "form-msg error");
+    const go = el("button", "send-btn", "Spustit");
+    go.type = "button";
+    const cancel = el("button", "popup-secondary", "Zrušit");
+    cancel.type = "button";
+    nodes.push(list, go, msg, cancel);
+    const close = Phone.popup(nodes);
+    cancel.addEventListener("click", () => close());
+    go.addEventListener("click", async () => {
+      const invite = Object.entries(picks).filter(([, b]) => b.checked).map(([id]) => Number(id));
+      go.disabled = true;
+      try {
+        await postJson("/api/recording/start", { invite });
+        close();
+        await load();
+      } catch (err) {
+        msg.textContent = errText(err);
+        go.disabled = false;
+      }
+    });
+  }
+
+  // After Stop of a shared session: payments of everyone, then a group is created from them
+  // or nothing happens. Any way out except "Vytvořit" discards the ended session so that
+  // nobody stays blocked.
+  function showSharedStopPopup(result) {
+    const nodes = [el("h3", "popup-title", "Skupinová platba ukončena")];
+    const discard = async () => {
+      try { await postJson("/api/recording/discard"); } catch { /* already gone */ }
+      load();
+    };
+    let close;
+    const name = el("input", "field");
+    Object.assign(name, { type: "text", maxLength: 40, value: "Skupinová platba " + new Date().toLocaleDateString("cs-CZ") });
+    if (result.payments.length === 0) {
+      nodes.push(el("p", "popup-empty", "Během záznamu nebyla žádná platba kartou."));
+    } else {
+      const list = el("div", "popup-list");
+      for (const p of result.payments) {
+        const info = el("div", "tx-info");
+        info.append(el("div", "tx-name", p.note || "Platba kartou"),
+          el("div", "tx-meta", `${firstName(p.person)} · ${stamp(p.created_at)}`));
+        const row = el("div", "tx");
+        row.append(avatar({ id: p.person, name: nameOf(p.person) }), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
+        list.append(row);
+      }
+      list.append(el("div", "popup-total", `Celkem: ${czk(result.total)}`));
+      nodes.push(list);
+    }
+    const msg = el("div", "form-msg error");
+    const create = el("button", "send-btn", "Vytvořit skupinové vyrovnání");
+    create.type = "button";
+    create.addEventListener("click", async () => {
+      create.disabled = true;
+      try {
+        const g = await postJson("/api/recording/group", { name: name.value });
+        close();
+        await load();
+        Phone.openApp("app");
+        openGroup(g.id);
+      } catch (err) {
+        msg.textContent = errText(err);
+        create.disabled = false;
+      }
+    });
+    const nothing = el("button", "popup-secondary", "Nic nedělat");
+    nothing.type = "button";
+    nothing.addEventListener("click", () => { close(); discard(); });
+    nodes.push(name, create, msg, nothing);
+    close = Phone.popup(nodes, discard);
   }
 
   // After Stop: offer a new Group Settle, an existing open group, or nothing.
@@ -558,6 +664,40 @@
   function renderGroups() {
     const list = state.groups || [];
     const cards = [];
+    const invites = state.group_invites || [];
+    if (invites.length) {
+      cards.push(el("h3", "topay-section", "Pozvánky"));
+      for (const g of invites) {
+        const card = el("div", "group-tile invite-card");
+        const top = el("div", "req-top");
+        const info = el("div", "tx-info");
+        info.append(el("div", "group-title", g.name), el("div", "group-meta", `Zve tě ${firstName(g.creator)}`));
+        top.append(info);
+        const err = el("div", "form-msg error");
+        const answer = (action) => async (e) => {
+          const btns = card.querySelectorAll("button");
+          btns.forEach((b) => { b.disabled = true; });
+          try {
+            await postJson(`/api/groups/${g.id}/${action}`);
+            await load();
+          } catch (ex) {
+            err.textContent = errText(ex);
+            btns.forEach((b) => { b.disabled = false; });
+          }
+        };
+        const decline = el("button", "popup-secondary invite-btn", "Odmítnout");
+        decline.type = "button";
+        decline.addEventListener("click", answer("decline"));
+        const accept = el("button", "send-btn invite-btn", "Přijmout");
+        accept.type = "button";
+        accept.addEventListener("click", answer("accept"));
+        const row = el("div", "invite-actions");
+        row.append(decline, accept);
+        card.append(top, avatars(g.members), row, err);
+        cards.push(card);
+      }
+      cards.push(el("h3", "topay-section", "Moje skupiny"));
+    }
     if (list.length === 0) cards.push(el("div", "empty topay-empty", "Zatím žádné skupiny"));
     for (const g of list) {
       const card = button("group-tile");
@@ -748,6 +888,12 @@
     for (const id of g.members) {
       const chip = el("span", "member");
       chip.append(avatar({ id, name: nameOf(id) }), el("span", null, id === mine ? "Ty" : firstName(id)));
+      people.append(chip);
+    }
+    for (const id of g.invited || []) {
+      const chip = el("span", "member pending");
+      chip.append(avatar({ id, name: nameOf(id) }), el("span", null, id === mine ? "Ty" : firstName(id)),
+        el("small", null, "čeká na přijetí"));
       people.append(chip);
     }
     info.append(top, people);
@@ -1078,6 +1224,37 @@
       load();
     } else if (event.type === "group_deleted") {
       Phone.notify({ title: event.from, body: event.text, color: "#8e8e93" });
+      load();
+    } else if (event.type === "session_invite") {
+      const answer = (action, done) => async () => {
+        await postJson(`/api/recording/invites/${event.starter}/${action}`);
+        await load();
+        return done;
+      };
+      Phone.notify({
+        title: event.from, body: event.text, color: Phone.colors[event.starter],
+        actions: [
+          { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
+          { label: "Přijmout", onClick: answer("accept", "Přidáno ✓") },
+        ],
+      });
+      load();
+    } else if (event.type === "session_ended") {
+      Phone.notify({ title: event.from, body: event.text, color: "#8e8e93" });
+      load();
+    } else if (event.type === "group_invite") {
+      const answer = (action, done) => async () => {
+        await postJson(`/api/groups/${event.group.id}/${action}`);
+        await load();
+        return done;
+      };
+      Phone.notify({
+        title: event.from, body: event.text, color: Phone.colors[event.group.creator],
+        actions: [
+          { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
+          { label: "Přijmout", onClick: answer("accept", "Přidáno ✓") },
+        ],
+      });
       load();
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });

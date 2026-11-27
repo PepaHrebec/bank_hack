@@ -931,9 +931,9 @@ button {
 
 .rec-info {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.5em;
+  gap: 0.3em;
   margin-bottom: 0.9em;
   font-size: 0.85em;
   font-weight: 600;
@@ -960,7 +960,21 @@ button {
 }
 
 .widget-rec.recording { background: rgba(217, 54, 54, 0.85); }
-.widget .rec-info { margin: 0; font-size: 0.75em; justify-content: flex-start; }
+.widget .rec-info { margin: 0; font-size: 0.75em; align-items: flex-start; }
+.rec-line { display: flex; align-items: center; justify-content: center; gap: 0.5em; }
+.rec-with { font-weight: 500; opacity: 0.75; }
+.rec-leader { font-size: 1.05em; }
+.rec-line .avatar-row { margin: 0; }
+.widget .rec-line { justify-content: flex-start; }
+
+/* ---- group invites ---- */
+
+.invite-card { cursor: default; }
+.invite-actions { display: flex; gap: 0.5em; margin-top: 0.6em; }
+.invite-actions .invite-btn { flex: 1; width: auto; margin: 0; }
+.member.pending { opacity: 0.6; }
+.popup-sheet .pick-list { margin: 0.4em 0 0.8em; }
+.popup-sheet .field { margin-bottom: 0.6em; background: #fff; border: 1px solid rgba(120, 120, 128, 0.25); }
 
 /* ---- stop popup ---- */
 
