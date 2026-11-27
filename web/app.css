@@ -576,3 +576,107 @@ button {
 .segmented .seg {
   font-size: 0.82em;
 }
+
+/* ---- Group Settle ---- */
+
+.groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+}
+
+.group-tile {
+  display: block;
+  width: 100%;
+  padding: 0.9em 1em;
+  border: none;
+  border-radius: 1.3em;
+  background: #fff;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.group-tile:active { transform: scale(0.98); }
+
+.avatar-row {
+  display: flex;
+  margin-top: 0.6em;
+}
+
+.avatar-row .avatar {
+  width: 1.9em;
+  height: 1.9em;
+  font-size: 0.75em;
+  margin-right: -0.35em;
+  box-shadow: 0 0 0 0.15em #fff;
+}
+
+.status.open { background: #e5edff; color: #3b6cff; }
+
+.pick-list {
+  margin-bottom: 0.8em;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.55em 0;
+  border-top: 0.06em solid #eee;
+  cursor: pointer;
+}
+
+.pick:first-child { border-top: none; }
+
+.pick input {
+  width: 1.15em;
+  height: 1.15em;
+  accent-color: #111;
+}
+
+.group-info .card-list {
+  padding: 0.9em 1em 0.6em;
+  margin-bottom: 0.9em;
+}
+
+.group-total {
+  font-size: 1.7em;
+  font-weight: 700;
+}
+
+.expense-form {
+  margin-bottom: 0.4em;
+}
+
+.expense-form[hidden] { display: none; }
+
+.expense-form .topay-section {
+  margin-top: 0;
+}
+
+.group-expenses .tx {
+  gap: 0.65em;
+}
+
+.del-btn {
+  width: 1.9em;
+  height: 1.9em;
+  border: none;
+  border-radius: 50%;
+  background: #f2f3f7;
+  font-size: 0.75em;
+  cursor: pointer;
+}
+
+.approve-box {
+  margin: 0.9em 0 0.5em;
+}
+
+.approve-hint {
+  font-size: 0.8em;
+  opacity: 0.6;
+  text-align: center;
+  margin-bottom: 0.6em;
+}

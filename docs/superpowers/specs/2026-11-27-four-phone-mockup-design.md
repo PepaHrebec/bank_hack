@@ -76,7 +76,7 @@ make the frontend work.
   - Main: balance card with a history icon (tap opens History), Contacts
     and QR code tiles side by side, and a large chat window, empty for now; the smart chatbot comes
     later.
-  - Contacts: Group Settle (not implemented yet) and To be paid icons side
+  - Contacts: Group Settle (see 2026-11-27-group-settle-design.md) and To be paid icons side
     by side (To be paid shows a red count of open requests), above the other
     three people. Tapping a person opens a screen with a Payment | Request
     switch above amount and note: Payment sends money, Request asks that

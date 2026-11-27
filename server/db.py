@@ -239,6 +239,7 @@ def _group_info(conn, group_id):
         "id": g["id"],
         "title": g["title"],
         "requester": g["requester"],
+        "settle_group_id": g["settle_group_id"],
         "total": sum(m["amount"] for m in members),
         "members": [dict(m) for m in members],
     }

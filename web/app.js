@@ -1,7 +1,10 @@
 // Placeholder bank app.
 //   main     balance card (tap -> history), Contacts and QR tiles, chat window (empty for now)
+//   groups   Group Settle: every group I'm in, "+ New group"
+//   newgroup name a group and tick who's in it
+//   group    one group: members, expenses (add / delete own while open), Approve for the creator
 //   qr       a fixed QR code with amount and note fields under it (display only)
-//   contacts Group Settle (not implemented yet), To be paid, and the other three people
+//   contacts Group Settle, To be paid, and the other three people
 //            (tap -> pay)
 //   pay      Payment (send money) or Request (ask for money) with one contact
 //   tobepaid "Requested from me": open requests to me (individual and group shares) to pay
@@ -16,6 +19,7 @@
   let ui = null; // elements updated on refresh / navigation
   let payTo = null; // contact id on the pay screen
   let mode = "payment"; // "payment" | "request" on the pay screen
+  let openGroupId = null; // group shown on the group screen
 
   const ICONS = {
     back: '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -106,7 +110,9 @@
     toPayIcon.append(toPayBadge);
     const toPayBtn = button("settle", toPayIcon, el("span", null, "To be paid"));
     toPayBtn.addEventListener("click", () => show("tobepaid"));
-    actions.append(button("settle", icon("settle", "settle-icon"), el("span", null, "Group Settle")), toPayBtn);
+    const settleBtn = button("settle", icon("settle", "settle-icon"), el("span", null, "Group Settle"));
+    settleBtn.addEventListener("click", () => show("groups"));
+    actions.append(settleBtn, toPayBtn);
     const list = el("div", "card-list");
     for (const p of others) {
       const row = button("contact", avatar(p), el("span", "contact-name", p.name), icon("chevron", "chev"));
@@ -171,6 +177,56 @@
     tobepaid.append(header("To be paid", "contacts"), tabs, toPayList, requestedList);
     views.tobepaid = tobepaid;
 
+    // groups
+    const groups = el("section", "view");
+    const newGroupBtn = button("big-btn", icon("settle", "big-btn-icon"), el("span", null, "New group"), icon("chevron", "chev"));
+    newGroupBtn.addEventListener("click", openNewGroup);
+    const groupsList = el("div", "groups-list");
+    groups.append(header("Group Settle", "contacts"), newGroupBtn, groupsList);
+    views.groups = groups;
+
+    // new group
+    const newgroup = el("section", "view");
+    const ngForm = el("form", "pay-form");
+    const ngName = el("input", "field");
+    Object.assign(ngName, { type: "text", maxLength: 40, placeholder: "Group name (e.g. Chata)" });
+    const ngPeople = el("div", "pick-list");
+    const ngPicks = {};
+    for (const p of others) {
+      const box = el("input");
+      box.type = "checkbox";
+      ngPicks[p.id] = box;
+      const row = el("label", "pick");
+      row.append(box, avatar(p), el("span", "contact-name", p.name));
+      ngPeople.append(row);
+    }
+    const ngBtn = el("button", "send-btn", "Create group");
+    ngBtn.type = "submit";
+    const ngMsg = el("div", "form-msg");
+    ngForm.append(ngName, el("h3", "topay-section", "Who's in"), ngPeople, ngBtn, ngMsg);
+    ngForm.addEventListener("submit", (e) => { e.preventDefault(); createGroup(); });
+    newgroup.append(header("New group", "groups"), ngForm);
+    views.newgroup = newgroup;
+
+    // one group
+    const group = el("section", "view");
+    const groupHeader = header("", "groups");
+    const groupInfo = el("div", "group-info");
+    const expenseForm = el("form", "pay-form expense-form");
+    const exAmount = el("input", "field");
+    Object.assign(exAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Amount (CZK)" });
+    const exDesc = el("input", "field");
+    Object.assign(exDesc, { type: "text", maxLength: 60, placeholder: "What for (e.g. Cabin)" });
+    const exBtn = el("button", "send-btn", "Add expense");
+    exBtn.type = "submit";
+    const exMsg = el("div", "form-msg");
+    expenseForm.append(el("h3", "topay-section", "I paid"), exAmount, exDesc, exBtn, exMsg);
+    expenseForm.addEventListener("submit", (e) => { e.preventDefault(); addExpense(); });
+    const expenseList = el("div", "group-expenses");
+    const approveBox = el("div", "approve-box");
+    group.append(groupHeader, groupInfo, expenseForm, expenseList, approveBox);
+    views.group = group;
+
     // qr
     const qr = el("section", "view");
     const qrCard = el("div", "qr-card");
@@ -201,6 +257,9 @@
     ui = {
       views, balance, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
+      groupsList, ngName, ngPicks, ngBtn, ngMsg,
+      groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
+      expenseList, approveBox,
     };
     show("main");
   }
@@ -249,6 +308,8 @@
     }
     ui.historyList.replaceChildren(...rows);
     renderToPay();
+    renderGroups();
+    renderGroup();
   }
 
   function renderToPay() {
@@ -292,6 +353,190 @@
   }
 
   const STATUS = { open: "Waiting", paid: "Paid", declined: "Declined" };
+
+  // ---- Group Settle ----
+
+  const firstName = (id) => nameOf(id).split(" ")[0];
+  const time = (iso) => iso.slice(11, 16);
+
+  function avatars(ids) {
+    const row = el("div", "avatar-row");
+    for (const id of ids) row.append(avatar({ id, name: nameOf(id) }));
+    return row;
+  }
+
+  function groupStatus(g) {
+    return el("span", `status ${g.status === "open" ? "open" : "paid"}`, g.status === "open" ? "Open" : "Approved");
+  }
+
+  function renderGroups() {
+    const list = state.groups || [];
+    const cards = [];
+    if (list.length === 0) cards.push(el("div", "empty topay-empty", "No groups yet"));
+    for (const g of list) {
+      const card = button("group-tile");
+      const top = el("div", "req-top");
+      const info = el("div", "tx-info");
+      info.append(el("div", "group-title", g.name),
+        el("div", "group-meta", g.creator === state.me.id ? "Created by me" : `Added by ${firstName(g.creator)}`));
+      const right = el("div", "req-right");
+      right.append(el("div", "tx-amount", czk(g.total)), groupStatus(g));
+      top.append(info, right);
+      card.append(top, avatars(g.members));
+      card.addEventListener("click", () => openGroup(g.id));
+      cards.push(card);
+    }
+    ui.groupsList.replaceChildren(...cards);
+  }
+
+  function openNewGroup() {
+    ui.ngName.value = "";
+    for (const box of Object.values(ui.ngPicks)) box.checked = false;
+    ui.ngMsg.className = "form-msg";
+    ui.ngMsg.textContent = "";
+    show("newgroup");
+    ui.ngName.focus();
+  }
+
+  async function postJson(url, body, method = "POST") {
+    const r = await fetch(url, {
+      method,
+      headers: { "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    let data = {};
+    try { data = await r.json(); } catch { /* non-JSON error page */ }
+    if (!r.ok) throw new Error(data.detail || `Failed (${r.status})`);
+    return data;
+  }
+
+  async function createGroup() {
+    const members = Object.entries(ui.ngPicks).filter(([, b]) => b.checked).map(([id]) => Number(id));
+    ui.ngBtn.disabled = true;
+    try {
+      const g = await postJson("/api/groups", { name: ui.ngName.value, members });
+      await load();
+      openGroup(g.id);
+    } catch (err) {
+      ui.ngMsg.className = "form-msg error";
+      ui.ngMsg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+    } finally {
+      ui.ngBtn.disabled = false;
+    }
+  }
+
+  function openGroup(id) {
+    openGroupId = id;
+    ui.exAmount.value = "";
+    ui.exDesc.value = "";
+    ui.exMsg.className = "form-msg";
+    ui.exMsg.textContent = "";
+    renderGroup();
+    show("group");
+  }
+
+  function renderGroup() {
+    const g = (state.groups || []).find((x) => x.id === openGroupId);
+    if (!g) return;
+    const mine = state.me.id;
+    const isOpen = g.status === "open";
+    ui.groupTitle.textContent = g.name;
+
+    const info = el("div", "card-list group-summary");
+    const top = el("div", "req-top");
+    const meta = el("div", "tx-info");
+    meta.append(el("div", "group-meta", g.creator === mine ? "Created by me" : `Created by ${nameOf(g.creator)}`),
+      el("div", "group-total", czk(g.total)), el("div", "group-meta", "spent together"));
+    top.append(meta, groupStatus(g));
+    const people = el("div", "group-members");
+    for (const id of g.members) {
+      const chip = el("span", "member");
+      chip.append(avatar({ id, name: nameOf(id) }), el("span", null, id === mine ? "You" : firstName(id)));
+      people.append(chip);
+    }
+    info.append(top, people);
+    ui.groupInfo.replaceChildren(info);
+
+    ui.expenseForm.hidden = !isOpen;
+
+    const rows = [];
+    rows.push(el("h3", "topay-section", "Expenses"));
+    const box = el("div", "card-list");
+    if (g.expenses.length === 0) box.append(el("div", "empty", "No expenses yet"));
+    for (const e of g.expenses) {
+      const row = el("div", "tx");
+      const text = el("div", "tx-info");
+      text.append(el("div", "tx-name", e.description),
+        el("div", "tx-meta", `${e.payer === mine ? "You" : nameOf(e.payer)} paid · ${time(e.created_at)}`));
+      row.append(avatar({ id: e.payer, name: nameOf(e.payer) }), text, el("div", "tx-amount", czk(e.amount)));
+      if (isOpen && e.payer === mine) {
+        const del = button("del-btn", "✕");
+        del.title = "Delete";
+        del.addEventListener("click", () => deleteExpense(e.id, del));
+        row.append(del);
+      }
+      box.append(row);
+    }
+    rows.push(box);
+    ui.expenseList.replaceChildren(...rows);
+
+    const approve = [];
+    if (isOpen && g.creator === mine) {
+      const btn = button("send-btn approve-btn", "Approve and settle");
+      const msg = el("div", "form-msg");
+      btn.addEventListener("click", () => approveGroup(g.id, btn, msg));
+      approve.push(el("div", "approve-hint", "When everyone has added what they paid, approve to lock the group and send the payment requests."), btn, msg);
+    } else if (isOpen) {
+      approve.push(el("div", "approve-hint", `Waiting for ${firstName(g.creator)} to approve.`));
+    } else {
+      const sent = (state.requested || []).some((r) => r.group && r.group.settle_group_id === g.id)
+        || (state.to_pay || []).some((r) => r.group && r.group.settle_group_id === g.id);
+      approve.push(el("div", "approve-hint", sent
+        ? "Approved: payment requests were sent. Check To be paid."
+        : "Approved: split algorithm not implemented yet, so no requests were sent."));
+    }
+    ui.approveBox.replaceChildren(...approve);
+  }
+
+  async function addExpense() {
+    const amount = ui.exAmount.value === "" ? null : Number(ui.exAmount.value);
+    ui.exBtn.disabled = true;
+    ui.exMsg.className = "form-msg";
+    ui.exMsg.textContent = "";
+    try {
+      await postJson(`/api/groups/${openGroupId}/expenses`, { amount, description: ui.exDesc.value });
+      ui.exAmount.value = "";
+      ui.exDesc.value = "";
+      await load();
+    } catch (err) {
+      ui.exMsg.className = "form-msg error";
+      ui.exMsg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+    } finally {
+      ui.exBtn.disabled = false;
+    }
+  }
+
+  async function deleteExpense(id, btn) {
+    btn.disabled = true;
+    try {
+      await postJson(`/api/groups/${openGroupId}/expenses/${id}`, undefined, "DELETE");
+      await load();
+    } catch {
+      btn.disabled = false;
+    }
+  }
+
+  async function approveGroup(id, btn, msg) {
+    btn.disabled = true;
+    try {
+      await postJson(`/api/groups/${id}/approve`);
+      await load();
+    } catch (err) {
+      msg.className = "form-msg error";
+      msg.textContent = err.message === "Failed to fetch" ? "Can't reach the bank. Try again." : err.message;
+      btn.disabled = false;
+    }
+  }
 
   // Requests I made. Group requests come back as one row per member; show one card per group.
   function renderRequested() {
@@ -425,7 +670,10 @@
       const note = event.request.note ? `\n${event.request.note}` : "";
       Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[sender] });
       load();
-    } else if (["payment_sent", "request_sent", "requests_changed", "connected"].includes(event.type)) {
+    } else if (event.type === "group_added") {
+      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
+      load();
+    } else if (["payment_sent", "request_sent", "requests_changed", "group_changed", "connected"].includes(event.type)) {
       load();
     }
   });
