@@ -792,3 +792,77 @@ button {
 .delete-group-btn:disabled { opacity: 0.5; }
 
 .status.cancelled { background: #ececef; color: #6b6b73; }
+
+/* ---- Start / Stop Group Payment ---- */
+
+.rec-toggle {
+  width: 100%;
+  margin-bottom: 0.6em;
+  padding: 0.75em;
+  border: none;
+  border-radius: 1.1em;
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rec-toggle.recording { background: #d93636; }
+
+.rec-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  margin-bottom: 0.9em;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.rec-dot {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: #e5303a;
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.7); }
+}
+
+.widget-rec {
+  margin: 0.8em 0 0.4em;
+  padding: 0.55em;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.widget-rec.recording { background: rgba(217, 54, 54, 0.85); }
+.widget .rec-info { margin: 0; font-size: 0.75em; justify-content: flex-start; }
+
+/* ---- stop popup ---- */
+
+.popup-title { margin: 0 0 0.7em; font-size: 1.15em; }
+.popup-empty { margin: 0 0 1em; opacity: 0.7; }
+.popup-list { margin-bottom: 0.9em; }
+.popup-total { margin-top: 0.5em; text-align: right; font-weight: 700; }
+.popup-sub { margin: 1em 0 0.4em; font-size: 0.85em; opacity: 0.7; }
+
+.popup-group,
+.popup-secondary {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5em;
+  padding: 0.7em;
+  border: none;
+  border-radius: 0.9em;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.popup-group:disabled { opacity: 0.5; }
+.popup-secondary { margin-top: 0.8em; background: rgba(120, 120, 128, 0.2); }

@@ -114,7 +114,11 @@
     qrBtn.addEventListener("click", () => show("qr"));
     tiles.append(contactsBtn, qrBtn);
     const chat = el("section", "chat"); // the smart chatbot goes here later
-    main.append(card, tiles, chat);
+    const recToggle = button("rec-toggle");
+    recToggle.addEventListener("click", toggleRecording);
+    const recInfo = el("div", "rec-info");
+    recInfo.hidden = true;
+    main.append(card, tiles, recToggle, recInfo, chat);
     views.main = main;
 
     // contacts
@@ -283,10 +287,16 @@
     const widgetChange = el("div", "widget-change");
     const widgetBody = el("div", "widget-body");
     widgetBody.append(el("div", "widget-label", "Zůstatek"), widgetBalance, widgetChange);
+    const wRecToggle = button("rec-toggle widget-rec");
+    // The widget opens Geoff on tap; the toggle must not.
+    wRecToggle.addEventListener("click", (e) => { e.stopPropagation(); toggleRecording(); });
+    const wRecInfo = el("div", "rec-info");
+    wRecInfo.hidden = true;
+    widgetBody.append(wRecToggle, wRecInfo);
     Phone.widget.replaceChildren(widgetHead, widgetBody);
 
     ui = {
-      views, balance, change, widgetBalance, widgetChange, payWho, amount, note, sendBtn, msg, historyList,
+      views, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
@@ -326,6 +336,7 @@
     ui.widgetBalance.textContent = czk(balance);
     showChange(ui.change, state.today_change);
     showChange(ui.widgetChange, state.today_change);
+    renderRecording();
 
     const rows = [];
     if (history.length === 0) rows.push(el("div", "empty", "Zatím žádné platby"));
@@ -361,6 +372,95 @@
     renderToPay();
     renderGroups();
     renderGroup();
+  }
+
+  // Czech plural: 1 platba, 2-4 platby, 5+ plateb
+  const payments = (n) => `${n} ${n === 1 ? "platba" : n >= 2 && n <= 4 ? "platby" : "plateb"}`;
+
+  function renderRecording() {
+    const rec = state.recording;
+    for (const b of ui.recToggles) {
+      b.textContent = rec ? "Ukončit skupinovou platbu" : "Spustit skupinovou platbu";
+      b.classList.toggle("recording", !!rec);
+    }
+    for (const i of ui.recInfos) {
+      i.hidden = !rec;
+      if (rec) i.replaceChildren(el("span", "rec-dot"), el("span", null, `Zaznamenáno: ${payments(rec.payments.length)} · ${czk(rec.total)}`));
+    }
+  }
+
+  async function toggleRecording() {
+    try {
+      if (!state.recording) {
+        await postJson("/api/recording/start");
+        await load();
+      } else {
+        const result = await postJson("/api/recording/stop");
+        await load();
+        showStopPopup(result);
+      }
+    } catch (err) {
+      Phone.notify({ title: "Geoff", body: err.message, color: "#d93636" });
+      load();
+    }
+  }
+
+  // After Stop: offer a new Group Settle, an existing open group, or nothing.
+  function showStopPopup(result) {
+    const nodes = [el("h3", "popup-title", "Skupinová platba ukončena")];
+    let close;
+    if (result.payments.length === 0) {
+      nodes.push(el("p", "popup-empty", "Během záznamu nebyla žádná platba kartou."));
+    } else {
+      const list = el("div", "popup-list");
+      for (const p of result.payments) {
+        const info = el("div", "tx-info");
+        info.append(el("div", "tx-name", p.note || "Platba kartou"), el("div", "tx-meta", stamp(p.created_at)));
+        const row = el("div", "tx");
+        row.append(info, el("div", "tx-amount out", `−${czk(p.amount)}`));
+        list.append(row);
+      }
+      list.append(el("div", "popup-total", `Celkem: ${czk(result.total)}`));
+      nodes.push(list);
+      const sources = result.payments.map((p) => ({ kind: "card", id: p.id }));
+      const create = el("button", "send-btn", "Vytvořit skupinové vyrovnání");
+      create.type = "button";
+      create.addEventListener("click", () => {
+        close();
+        Phone.openApp("app");
+        openNewGroup({ sources, payments: result.payments });
+      });
+      nodes.push(create);
+      const open = (state.groups || []).filter((g) => g.status === "open");
+      if (open.length) {
+        const err = el("div", "form-msg error");
+        nodes.push(el("div", "popup-sub", "Nebo přidat do skupiny:"));
+        for (const g of open) {
+          const b = el("button", "popup-group", g.name);
+          b.type = "button";
+          b.addEventListener("click", async () => {
+            b.disabled = true;
+            try {
+              await postJson(`/api/groups/${g.id}/expenses`, { sources });
+              close();
+              await load();
+              Phone.openApp("app");
+              openGroup(g.id);
+            } catch (e) {
+              err.textContent = e.message;
+              b.disabled = false;
+            }
+          });
+          nodes.push(b);
+        }
+        nodes.push(err);
+      }
+    }
+    const nothing = el("button", "popup-secondary", "Nic nedělat");
+    nothing.type = "button";
+    nothing.addEventListener("click", () => close());
+    nodes.push(nothing);
+    close = Phone.popup(nodes);
   }
 
   function renderToPay() {
@@ -443,12 +543,23 @@
     ui.groupsList.replaceChildren(...cards);
   }
 
-  // prefill = {amount, note} from a card payment: the group starts with that expense, paid by me.
+  // prefill is {amount, note} from one card payment, or {sources, payments} from a stopped
+  // recording. Either way the group starts with those expenses, paid by me.
   function openNewGroup(prefill) {
     startExpense = prefill || null;
-    ui.ngName.value = prefill ? prefill.note.slice(0, 40) : "";
+    let name = "";
+    let info = "";
+    if (prefill && prefill.sources) {
+      const total = prefill.payments.reduce((s, p) => s + p.amount, 0);
+      name = "Skupinová platba " + new Date().toLocaleDateString("cs-CZ");
+      info = `Výdaje: ${payments(prefill.payments.length)} · ${czk(total)}, zaplaceno tebou`;
+    } else if (prefill) {
+      name = prefill.note.slice(0, 40);
+      info = `Výdaj: ${czk(prefill.amount)} · zaplaceno tebou`;
+    }
+    ui.ngName.value = name;
     ui.ngExpense.hidden = !prefill;
-    ui.ngExpense.textContent = prefill ? `Výdaj: ${czk(prefill.amount)} · zaplaceno tebou` : "";
+    ui.ngExpense.textContent = info;
     for (const box of Object.values(ui.ngPicks)) box.checked = false;
     ui.ngMsg.className = "form-msg";
     ui.ngMsg.textContent = "";
@@ -473,7 +584,8 @@
     ui.ngBtn.disabled = true;
     try {
       const body = { name: ui.ngName.value, members };
-      if (startExpense) body.expense = { amount: startExpense.amount, description: startExpense.note || "Platba kartou" };
+      if (startExpense && startExpense.sources) body.sources = startExpense.sources;
+      else if (startExpense) body.expense = { amount: startExpense.amount, description: startExpense.note || "Platba kartou" };
       const g = await postJson("/api/groups", body);
       await load();
       openGroup(g.id);
@@ -813,7 +925,8 @@
       const prefill = { amount: event.payment.amount, note: event.payment.note };
       Phone.notify({
         title: "Geoff", body: event.text, color: "#3b6cff",
-        action: { label: "Skupinové vyrovnání", onClick: () => openNewGroup(prefill) },
+        // While recording, the payments are collected and offered together on Stop.
+        action: event.recording ? undefined : { label: "Skupinové vyrovnání", onClick: () => openNewGroup(prefill) },
       });
       load();
     } else if (event.type === "group_deleted") {
@@ -822,7 +935,7 @@
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
       load();
-    } else if (["payment_sent", "request_sent", "requests_changed", "group_changed", "connected"].includes(event.type)) {
+    } else if (["payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
       load();
     }
   });
