@@ -1,7 +1,9 @@
 import pytest
 
 from server import db as server_db
-from server.db import PaymentError, card_payment, get_balance, history, init_db, reset_db, send_payment
+from server.db import (
+    PaymentError, card_payment, day_change, get_balance, history, init_db, reset_db, send_payment,
+)
 
 
 @pytest.fixture
@@ -185,6 +187,20 @@ def test_card_payment_lowers_balance_and_shows_in_history(db, monkeypatch):
         ("transfer", b["id"]), ("card", c["id"]), ("transfer", a["id"])]
     assert items[1] == {"kind": "card", **c}
     assert history(db, 2)[0]["kind"] == "transfer"
+
+
+def test_day_change_counts_only_today(db, monkeypatch):
+    times = iter(["2026-01-01T23:59:59", "2026-01-02T08:00:00", "2026-01-02T09:00:00",
+                  "2026-01-02T10:00:00", "2026-01-02T12:00:00"])
+    monkeypatch.setattr(server_db, "_now", lambda: next(times))
+    send_payment(db, 1, 2, 1000)  # yesterday
+    send_payment(db, 3, 1, 300)
+    card_payment(db, 1, 120, "Coffee")
+    send_payment(db, 1, 4, 50)
+    assert day_change(db, 1) == 300 - 120 - 50
+    assert day_change(db, 2, "2026-01-01") == 1000
+    assert day_change(db, 4, "2026-01-02") == 50
+    assert day_change(db, 3, "2026-01-03") == 0
 
 
 def test_card_payment_insufficient_funds(db):

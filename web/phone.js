@@ -10,6 +10,7 @@
 // icon whose data-opens is its id, and swiping up from the bottom edge closes it. Windows
 // get "app-open" / "app-close" DOM events. Tapping a notification banner opens George.
 //   Phone.openApp(id | null)            open a window by id, or go home with null
+//   Phone.widget                        the home-screen widget; the app fills it, tapping it opens George
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -271,7 +272,7 @@
 
   // An app grows out of / shrinks into its icon.
   function originAtIcon(win) {
-    const icon = document.querySelector(`[data-opens="${win.id}"]`);
+    const icon = document.querySelector(`.icon[data-opens="${win.id}"]`);
     if (!icon) return;
     const s = screen.getBoundingClientRect();
     const i = icon.getBoundingClientRect();
@@ -359,6 +360,7 @@
     colors: PERSON_COLORS,
     initials,
     openApp: (id) => openApp(id ? document.getElementById(id) : null),
+    widget: document.getElementById("widget"),
     notify,
     onEvent(fn) { handlers.push(fn); },
     ready: null,

@@ -216,6 +216,18 @@ def history(path, person_id):
     return items
 
 
+def day_change(path, person_id, day=None):
+    """How much `person_id`'s balance moved on `day` ("YYYY-MM-DD", default today): in minus out."""
+    day = day or _now()[:10]
+    change = 0
+    for item in history(path, person_id):
+        if item["created_at"][:10] != day:
+            continue
+        incoming = item["kind"] == "transfer" and item["recipient"] == person_id
+        change += item["amount"] if incoming else -item["amount"]
+    return change
+
+
 # ---- payment requests ----
 
 

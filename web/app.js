@@ -1,5 +1,7 @@
 // Placeholder bank app.
-//   main     balance card (tap -> history), Contacts and QR tiles, chat window (empty for now)
+//   main     balance card with today's change (tap -> history), Contacts and QR tiles,
+//            chat window (empty for now)
+// It also fills the home-screen widget (Phone.widget) with the balance and today's change.
 //   groups   Group Settle: every group I'm in, "+ New group"
 //   newgroup name a group and tick who's in it
 //   group    one group: members, expenses (add / delete own while open), Approve for the creator
@@ -35,6 +37,12 @@
   };
 
   const czk = (n) => `${n.toLocaleString("cs-CZ")} CZK`;
+  // Today's balance change, e.g. "+250 CZK today", with a class for its colour.
+  function showChange(e, n) {
+    e.textContent = `${n > 0 ? "+" : n < 0 ? "−" : "±"}${czk(Math.abs(n))} today`;
+    e.classList.toggle("up", n > 0);
+    e.classList.toggle("down", n < 0);
+  }
   const nameOf = (id) => state.people.find((p) => p.id === id).name;
 
   function el(tag, cls, text) {
@@ -91,9 +99,10 @@
     const card = button("balance-card");
     card.style.setProperty("--accent", Phone.colors[me.id]);
     const balance = el("div", "balance-value");
+    const change = el("div", "balance-change");
     const top = el("div", "balance-top");
     top.append(el("span", "balance-label", "Balance"), icon("history", "balance-history"));
-    card.append(top, balance);
+    card.append(top, balance, change);
     card.addEventListener("click", () => show("history"));
     const tiles = el("div", "main-tiles");
     const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Contacts"));
@@ -260,8 +269,21 @@
     views.qr = qr;
 
     root.replaceChildren(...Object.values(views));
+
+    // home-screen widget
+    const widgetHead = el("div", "widget-head");
+    const logo = el("img", "widget-logo");
+    logo.src = "/static/icons/george.png";
+    logo.alt = "";
+    widgetHead.append(logo, el("span", null, "George"));
+    const widgetBalance = el("div", "widget-balance");
+    const widgetChange = el("div", "widget-change");
+    const widgetBody = el("div", "widget-body");
+    widgetBody.append(el("div", "widget-label", "Balance"), widgetBalance, widgetChange);
+    Phone.widget.replaceChildren(widgetHead, widgetBody);
+
     ui = {
-      views, balance, payWho, amount, note, sendBtn, msg, historyList,
+      views, balance, change, widgetBalance, widgetChange, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
@@ -298,6 +320,9 @@
   function refresh() {
     const { me, balance, history } = state;
     ui.balance.textContent = czk(balance);
+    ui.widgetBalance.textContent = czk(balance);
+    showChange(ui.change, state.today_change);
+    showChange(ui.widgetChange, state.today_change);
 
     const rows = [];
     if (history.length === 0) rows.push(el("div", "empty", "No payments yet"));

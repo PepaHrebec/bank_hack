@@ -133,6 +133,60 @@ button {
   margin-top: 0.15em;
 }
 
+/* Today's change: a pill on the balance card and in the home-screen widget. */
+.balance-change,
+.widget-change {
+  display: inline-block;
+  margin-top: 0.5em;
+  padding: 0.25em 0.7em;
+  border-radius: 1em;
+  font-size: 0.8em;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.balance-change.up,
+.widget-change.up { background: rgba(43, 214, 120, 0.35); }
+
+.balance-change.down,
+.widget-change.down { background: rgba(255, 80, 90, 0.35); }
+
+/* ---- home-screen widget (the frame itself is in phone.css) ---- */
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.2em 1.3em 1.4em;
+  cursor: pointer;
+}
+
+.widget-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.widget-logo {
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 0.45em;
+}
+
+.widget-label {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.widget-balance {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 0.1em;
+}
+
 .big-btn {
   display: flex;
   align-items: center;
