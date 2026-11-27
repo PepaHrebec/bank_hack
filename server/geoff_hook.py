@@ -23,8 +23,11 @@ _NUMBER = re.compile(r"\d{2,}")
 _WORDS = re.compile(
     r"\bkc\b|korun|koruny|\bkorun|stovk|stokor|tisic|litr|petk|petik|dluz|vrat|posli mi|poslete mi|"
     r"zaplatil|zaplatim|za tebe|za vas|napul|rozpocit|rozdel|skupin|slozime|slozit se|prispe|"
-    r"mas u me|mam u tebe|doplat|splat|vyrovn"
+    r"mas u me|mam u tebe|doplat|splat|vyrovn|zaplat|penez|penize|pujc|ucet|platb"
 )
+# A lone digit ("za pivo 5", "dal jsem 5") only counts next to one of these.
+_SMALL = re.compile(r"\d")
+_SMALL_CTX = re.compile(r"\b(?:za|dal|dam|dej|pujc\w*)\b")
 
 PROMPT = """\
 Jsi filtr zpráv v bankovní aplikaci. Uživatel {sender} napsal zprávu příteli {recipient}.
@@ -46,7 +49,8 @@ def prefilter(text):
     t = _fold(text)
     if not t:
         return False
-    return bool(_WORDS.search(t) or _NUMBER.search(_TIME.sub(" ", t)))
+    t = _TIME.sub(" ", t)
+    return bool(_WORDS.search(t) or _NUMBER.search(t) or (_SMALL.search(t) and _SMALL_CTX.search(t)))
 
 
 def _parse(content):
@@ -102,6 +106,7 @@ async def suggest(text, sender, recipient, complete=None):
     try:
         complete = complete or chat.openrouter_from_env()
         if complete is None:
+            log.warning("geoff hook: OPENROUTER_API_KEY/OPENROUTER_MODEL not set, skipping")
             return None
         system = PROMPT.format(
             sender=db.PEOPLE[sender], recipient=db.PEOPLE[recipient],

@@ -1021,6 +1021,33 @@
         ] : undefined,
       });
       load();
+    } else if (event.type === "geoff_suggestion") {
+      const sg = event.suggestion;
+      // Czech cases for the four demo people (fall back to the plain name for anyone else).
+      const GENITIVE = { "Štěpán Pressl": "Štěpána Pressla", "Jirka Měřínský": "Jirky Měřínského", "Pepa Hřebec": "Pepy Hřebce", "Petr Šafář": "Petra Šafáře" };
+      const WITH = { Štěpán: "Štěpánem", Jirka: "Jirkou", Pepa: "Pepou", Petr: "Petrem" };
+      let body, confirm, done;
+      if (sg.kind === "request") {
+        body = `Vyžádat ${czk(sg.amount)} od ${GENITIVE[nameOf(sg.payer)] || nameOf(sg.payer)}${sg.note ? ` (${sg.note})` : ""}?`;
+        confirm = () => postJson("/api/requests", { payer: sg.payer, amount: sg.amount, note: sg.note || "" });
+        done = "Vyžádáno ✓";
+      } else {
+        const names = sg.members.map((id) => { const f = nameOf(id).split(" ")[0]; return WITH[f] || f; });
+        const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} a ${names[names.length - 1]}` : names[0];
+        body = `Založit skupinové vyrovnání „${sg.name}“ s ${who}${sg.amount ? ` · ${czk(sg.amount)}` : ""}?`;
+        confirm = () => postJson("/api/groups", {
+          name: sg.name, members: sg.members,
+          ...(sg.amount ? { expense: { amount: sg.amount, description: sg.note || sg.name } } : {}),
+        });
+        done = "Skupina založena ✓";
+      }
+      Phone.notify({
+        title: "Geoff", body, color: "#3b6cff",
+        actions: [
+          { label: "Zamítnout", secondary: true, onClick: async () => "Zamítnuto" },
+          { label: "Potvrdit", onClick: async () => { await confirm(); await load(); return done; } },
+        ],
+      });
     } else if (event.type === "card_payment") {
       const prefill = { amount: event.payment.amount, note: event.payment.note };
       Phone.notify({
