@@ -307,7 +307,8 @@ def _clear_ended_row(conn, person):
     if row is None:
         return
     if row["session_starter"] != person:
-        raise PaymentError("Už jsi v jiné skupinové platbě")
+        # Not running (callers checked), so it is someone else's ended session awaiting its group.
+        raise PaymentError(f"Čeká se, až {PEOPLE[row['session_starter']].split()[0]} dokončí skupinovou platbu")
     _delete_session(conn, person)
 
 

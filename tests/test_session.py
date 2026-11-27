@@ -274,3 +274,36 @@ def test_migrates_old_recordings_table(tmp_path):
     init_db(path)
     rec = recording(path, 1)
     assert rec["starter"] == 1 and rec["participants"] == [1]
+
+
+def test_friend_in_ended_unresolved_session_is_told_to_wait(db):
+    start_recording(db, 1, invite=[2])
+    accept_session_invite(db, 2, 1)
+    stop_recording(db, 1)
+    with pytest.raises(PaymentError, match="Čeká se, až Štěpán dokončí skupinovou platbu"):
+        start_recording(db, 2)
+    start_recording(db, 1)  # the starter's own ended row is still replaceable
+
+
+def test_running_other_session_keeps_already_in_message(db):
+    start_recording(db, 1, invite=[2])
+    accept_session_invite(db, 2, 1)
+    start_recording(db, 3, invite=[2])
+    with pytest.raises(PaymentError, match="Už jsi v jiné skupinové platbě"):
+        accept_session_invite(db, 2, 3)
+
+
+def test_migrates_old_settle_members_without_status(tmp_path):
+    import sqlite3
+    path = str(tmp_path / "old.db")
+    init_db(path)
+    c = sqlite3.connect(path)
+    c.execute("DROP TABLE settle_members")
+    c.execute("CREATE TABLE settle_members (group_id INTEGER NOT NULL, person INTEGER NOT NULL, PRIMARY KEY (group_id, person))")
+    c.execute("INSERT INTO settle_groups (name, creator, created_at) VALUES ('G', 1, '2026-01-01T10:00:00')")
+    c.executemany("INSERT INTO settle_members VALUES (1, ?)", [(1,), (2,)])
+    c.commit()
+    c.close()
+    init_db(path)
+    g = groups_for(path, 1)[0]
+    assert g["members"] == [1, 2] and g["invited"] == []

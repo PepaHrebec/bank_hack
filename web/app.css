@@ -1000,3 +1000,10 @@ button {
 
 .popup-group:disabled { opacity: 0.5; }
 .popup-secondary { margin-top: 0.8em; background: rgba(120, 120, 128, 0.2); }
+
+.avatar.pending { opacity: 0.4; }
+.rec-invite { display: flex; flex-direction: column; align-items: center; gap: 0.4em; margin-bottom: 0.6em; }
+.widget .rec-invite { align-items: flex-start; }
+.rec-invite-btns { display: flex; gap: 0.5em; }
+.rec-invite-btn { border: none; border-radius: 0.9em; padding: 0.5em 1em; background: #3b6cff; color: #fff; font-weight: 600; font: inherit; cursor: pointer; }
+.rec-invite-btn.secondary { background: #e5e5ea; color: #111; }

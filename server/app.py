@@ -319,7 +319,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
 
     def accepted_members(creator, group_id):
         # The creator is always a member, so their view of the group lists everyone who joined.
-        return next(g["members"] for g in db.groups_for(db_path, creator) if g["id"] == group_id)
+        return next((g["members"] for g in db.groups_for(db_path, creator) if g["id"] == group_id), [])
 
     def group_of(group_id):
         return next(g for g in db.groups_for(db_path, person_id) if g["id"] == group_id)

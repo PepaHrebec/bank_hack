@@ -230,7 +230,7 @@
     const ngMsg = el("div", "form-msg");
     const ngExpense = el("div", "ng-expense");
     ngExpense.hidden = true;
-    ngForm.append(ngName, ngExpense, el("h3", "topay-section", "Kdo je ve skupině"), ngPeople, ngBtn, ngMsg);
+    ngForm.append(ngName, ngExpense, el("h3", "topay-section", "Koho pozvat"), ngPeople, ngBtn, ngMsg);
     ngForm.addEventListener("submit", (e) => { e.preventDefault(); createGroup(); });
     newgroup.append(header("Nová skupina", "groups"), ngForm);
     views.newgroup = newgroup;
@@ -412,18 +412,42 @@
       b.textContent = rec ? "Ukončit skupinovou platbu" : "Spustit skupinovou platbu";
       b.classList.toggle("recording", !!rec);
     }
+    const pending = rec ? [] : state.session_invites || [];
+    const answer = async (starter, action, e) => {
+      e.stopPropagation(); // the widget tap would otherwise open Geoff
+      try {
+        await postJson(`/api/recording/invites/${starter}/${action}`);
+      } catch (err) {
+        Phone.notify({ title: "Geoff", body: errText(err, false), color: "#d93636" });
+      }
+      await load();
+    };
     for (const i of ui.recInfos) {
-      i.hidden = !rec;
-      if (!rec) continue;
+      i.hidden = !rec && !pending.length;
+      if (!rec) {
+        i.replaceChildren(...pending.map((inv) => {
+          const row = el("div", "rec-invite");
+          const decline = button("rec-invite-btn secondary", "Odmítnout");
+          decline.addEventListener("click", (e) => answer(inv.starter, "decline", e));
+          const accept = button("rec-invite-btn", "Přijmout");
+          accept.addEventListener("click", (e) => answer(inv.starter, "accept", e));
+          const btns = el("div", "rec-invite-btns");
+          btns.append(decline, accept);
+          row.append(el("div", "rec-line", `${firstName(inv.starter)} tě zve do skupinové platby`), btns);
+          return row;
+        }));
+        continue;
+      }
       const lines = [];
       if (participant) lines.push(el("div", "rec-line rec-leader", `Skupinovou platbu vede ${firstName(rec.starter)}`));
       const count = el("div", "rec-line");
       count.append(el("span", "rec-dot"), el("span", null, `Zaznamenáno: ${payments(rec.payments.length)} · ${czk(rec.total)}`));
       lines.push(count);
-      const others = rec.participants.filter((id) => id !== mine);
       if (participant) {
-        if (others.length) lines.push(el("div", "rec-line rec-with", `s ${others.map(firstName).join(", ")}`));
+        const others = rec.participants.filter((id) => id !== mine && id !== rec.starter);
+        if (others.length) lines.push(el("div", "rec-line rec-with", `Také: ${others.map(firstName).join(", ")}`));
       } else {
+        const others = rec.participants.filter((id) => id !== mine);
         if (others.length) {
           const joined = el("div", "rec-line");
           joined.append(avatars(others));
@@ -651,9 +675,14 @@
   const firstName = (id) => nameOf(id).split(" ")[0];
   const time = (iso) => iso.slice(11, 16);
 
-  function avatars(ids) {
+  function avatars(ids, pendingIds = []) {
     const row = el("div", "avatar-row");
     for (const id of ids) row.append(avatar({ id, name: nameOf(id) }));
+    for (const id of pendingIds) {
+      const a = avatar({ id, name: nameOf(id) });
+      a.classList.add("pending"); // invited, not yet joined
+      row.append(a);
+    }
     return row;
   }
 
@@ -708,7 +737,7 @@
       const right = el("div", "req-right");
       right.append(el("div", "tx-amount", czk(g.total)), groupStatus(g));
       top.append(info, right);
-      card.append(top, avatars(g.members));
+      card.append(top, avatars(g.members, g.invited || []));
       card.addEventListener("click", () => openGroup(g.id));
       cards.push(card);
     }
@@ -1205,7 +1234,7 @@
           name: sg.name, members: sg.members,
           ...(sg.amount ? { expense: { amount: sg.amount, description: sg.note || sg.name } } : {}),
         });
-        done = "Skupina založena ✓";
+        done = "Skupina založena · pozvánky odeslány ✓";
       }
       Phone.notify({
         title: "Geoff", body, color: "#3b6cff",
