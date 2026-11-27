@@ -53,6 +53,25 @@ def prefilter(text):
     return bool(_WORDS.search(t) or _NUMBER.search(t) or (_SMALL.search(t) and _SMALL_CTX.search(t)))
 
 
+_DATE = re.compile(r"\b\d{1,2}\.\s?\d{1,2}\.(?:\s?\d{2,4})?")
+_AMOUNT = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d{1,3}(?:\.\d{3})+|\d+)(?![\d])(\s*(?:kc\b|korun|koruny|,-|\.-))?")
+
+
+def extract_amount(text):
+    """Best money amount found in the text itself (fallback when the model gives none), or None."""
+    if not isinstance(text, str):
+        return None
+    t = _DATE.sub(" ", _TIME.sub(" ", _fold(text)))
+    best = None  # (has currency marker, value)
+    for m in _AMOUNT.finditer(t):
+        value = int(re.sub(r"\D", "", m.group(1)))
+        if value <= 0 or (not m.group(2) and value < 10):
+            continue
+        if best is None or (bool(m.group(2)), value) > best:
+            best = (bool(m.group(2)), value)
+    return best[1] if best else None
+
+
 def _parse(content):
     if not isinstance(content, str):
         return None
@@ -78,9 +97,9 @@ def _text(value, limit):
     return value.strip()[:limit] if isinstance(value, str) else ""
 
 
-def _validate(data, sender, recipient):
+def _validate(data, sender, recipient, text=""):
     action = data.get("action")
-    amount = _whole(data.get("amount"))
+    amount = _whole(data.get("amount")) or extract_amount(text)
     note = _text(data.get("note"), 80)
     if action == "request":
         if amount is None:
@@ -115,7 +134,7 @@ async def suggest(text, sender, recipient, complete=None):
         messages = [{"role": "system", "content": system}, {"role": "user", "content": text}]
         reply = await asyncio.wait_for(complete(messages, []), HOOK_DEADLINE)
         data = _parse(reply.get("content") if isinstance(reply, dict) else None)
-        return _validate(data, sender, recipient) if data else None
+        return _validate(data, sender, recipient, text) if data else None
     except asyncio.TimeoutError:
         log.warning("geoff hook: model timed out after %ss", HOOK_DEADLINE)
     except chat.UpstreamError as e:

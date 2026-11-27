@@ -77,7 +77,8 @@ def test_none_and_garbage():
 
 @pytest.mark.parametrize("amount", [0, -5, "300", None, 12.5, True])
 def test_request_bad_amount(amount):
-    assert run("dlužíš mi 300", fake({"action": "request", "amount": amount, "note": "x"})) is None
+    # No number in the text either, so the local fallback has nothing to offer.
+    assert run("dlužíš mi za pivo", fake({"action": "request", "amount": amount, "note": "x"})) is None
 
 
 def test_whole_float_amount_ok():
@@ -122,3 +123,27 @@ def test_upstream_error_and_crash_give_none():
 def test_no_env_gives_none(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     assert run("dlužíš mi 300", None) is None
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("dal jsem 4 500", 4500), ("dal jsem 4 500 Kč", 4500), ("4500", 4500), ("celkem 4.500", 4500),
+    ("300,-", 300), ("300 Kč", 300), ("300kč", 300), ("v 20:00, 300 Kč", 300),
+    ("27. 11. dal jsem 250", 250), ("v 8 u kina", None), ("ahoj", None), ("200 Kč a pak 5000", 200),
+])
+def test_extract_amount(text, expected):
+    assert geoff_hook.extract_amount(text) == expected
+
+
+def test_model_null_amount_falls_back_to_text():
+    r = run("rozpočítáme chatu s Jirkou, dal jsem 4 500",
+            fake({"action": "group", "amount": None, "name": "Chata", "others": ["Jirka"]}))
+    assert r["amount"] == 4500
+    r = run("dlužíš mi 300,-", fake({"action": "request", "amount": None, "note": "x"}))
+    assert r["amount"] == 300
+    r = run("v 20:00, 300 Kč", fake({"action": "request", "amount": 0}))
+    assert r["amount"] == 300
+
+
+def test_model_amount_wins_and_no_amount_stays_none():
+    assert run("dlužíš mi 300", fake({"action": "request", "amount": 250}))["amount"] == 250
+    assert run("dlužíš mi něco", fake({"action": "request", "amount": None})) is None
