@@ -625,11 +625,14 @@
         let data = {};
         try { data = await r.json(); } catch { /* non-JSON error page */ }
         if (r.ok && typeof data.reply === "string") {
-          chatHistory.push({ role: "assistant", content: data.reply });
-          wait.textContent = data.reply;
+          // Show the full reply, but keep history within the server's limits (1000 chars, non-empty),
+          // otherwise one long answer would make every later request fail with 400.
+          const reply = data.reply.trim();
+          if (reply) chatHistory.push({ role: "assistant", content: reply.slice(0, 1000) });
+          wait.textContent = reply || "Geoff nemá co dodat.";
         } else {
           chatHistory.pop(); // keep the history ending on a user message that got no answer out
-          wait.textContent = data.detail || `Selhalo (${r.status})`;
+          wait.textContent = typeof data.detail === "string" && data.detail ? data.detail : `Selhalo (${r.status})`;
           wait.classList.add("chat-error");
         }
       } catch {
