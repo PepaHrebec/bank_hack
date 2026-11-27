@@ -521,7 +521,7 @@
     } else {
       approve.push(el("div", "approve-hint", g.requests_sent > 0
         ? "Approved: payment requests were sent. Check To be paid."
-        : "Approved: split algorithm not implemented yet, so no requests were sent."));
+        : "Approved: everyone is already even, no requests needed."));
     }
     if (g.creator === mine) {
       const del = button("delete-group-btn", "Delete group");
