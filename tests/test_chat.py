@@ -109,6 +109,24 @@ def test_openrouter_from_env_request_and_reply(monkeypatch):
     assert seen["body"]["model"] == "m" and {"messages", "tools"} <= set(seen["body"])
 
 
+def test_openrouter_thinking_off_unless_enabled(monkeypatch):
+    bodies = []
+
+    def handler(req):
+        bodies.append(json.loads(req.content))
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "Ahoj"}}]})
+
+    _patched_client(monkeypatch, handler)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("OPENROUTER_MODEL", "m")
+    monkeypatch.delenv("OPENROUTER_REASONING", raising=False)
+    asyncio.run(chat.openrouter_from_env()([], []))
+    monkeypatch.setenv("OPENROUTER_REASONING", "on")
+    asyncio.run(chat.openrouter_from_env()([], []))
+    assert bodies[0]["reasoning"] == {"enabled": False}
+    assert "reasoning" not in bodies[1]
+
+
 def test_openrouter_http_error_carries_status_and_body(monkeypatch):
     _patched_client(monkeypatch, lambda req: httpx.Response(
         404, json={"error": {"message": "No endpoints found that support tool use"}}))

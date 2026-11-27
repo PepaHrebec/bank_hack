@@ -82,6 +82,10 @@ def openrouter_from_env():
     key, model = os.environ.get("OPENROUTER_API_KEY"), os.environ.get("OPENROUTER_MODEL")
     if not key or not model:
         return None
+    body = {"model": model}
+    if os.environ.get("OPENROUTER_REASONING", "").lower() not in ("on", "1", "true"):
+        # Hidden "thinking" tokens made answers 3-4x slower without making them better.
+        body["reasoning"] = {"enabled": False}
 
     async def complete(messages, tools):
         try:
@@ -89,7 +93,7 @@ def openrouter_from_env():
                 r = await client.post(
                     URL,
                     headers={"Authorization": f"Bearer {key}"},
-                    json={"model": model, "messages": messages, "tools": tools},
+                    json={**body, "messages": messages, "tools": tools},
                 )
             r.raise_for_status()
             message = r.json()["choices"][0]["message"]
