@@ -62,8 +62,14 @@ make the frontend work.
   the sender's balance is insufficient (sender sees an error).
 - The recipient's phone gets a notification: "Person 1 sent you 250 CZK".
   The recipient's balance and history update live.
-- Placeholder app screen: balance, "send money" form (pick recipient,
-  amount, note), payment history.
+- App screens (updated 2026-11-27):
+  - Main: balance card with a history icon (tap opens History), a Contacts
+    button, and a large chat window, empty for now; the smart chatbot comes
+    later.
+  - Contacts: a Settle Up icon (not implemented yet) above the other three
+    people. Tapping a person opens Send money for them (amount, note).
+  - History: payments from the database, newest first. The history stays in
+    the database for other uses.
 - Data persists across restarts (SQLite file). A reset command restores the
   starting state.
 - Notifications themselves are not persisted: the pull-down list clears on

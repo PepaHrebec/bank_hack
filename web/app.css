@@ -5,9 +5,70 @@
   padding-right: 1.1em;
 }
 
-#app h3 {
-  margin: 0 0 0.7em;
-  font-size: 1.05em;
+/* ---- screens inside the app ---- */
+
+.view {
+  display: none;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.view.active {
+  display: flex;
+  animation: view-in 0.25s ease-out;
+}
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateX(1.2em); }
+  to { opacity: 1; transform: none; }
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  margin: 0.4em 0 0.9em -0.4em;
+}
+
+.view-header h2 {
+  margin: 0;
+  font-size: 1.35em;
+}
+
+.back-btn {
+  width: 2.2em;
+  height: 2.2em;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: #3b6cff;
+  cursor: pointer;
+}
+
+.ico {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.ico svg {
+  width: 100%;
+  height: 100%;
+}
+
+.chev {
+  width: 1em;
+  height: 1em;
+  margin-left: auto;
+  opacity: 0.35;
+}
+
+button {
+  font: inherit;
+  color: inherit;
 }
 
 .avatar {
@@ -22,18 +83,47 @@
   font-size: 0.85em;
 }
 
+/* ---- main ---- */
+
 .balance-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
   padding: 1.1em 1.2em;
   border-radius: 1.3em;
   color: #fff;
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #0b0d2a));
   box-shadow: 0 0.6em 1.6em color-mix(in srgb, var(--accent) 35%, transparent);
-  margin: 0.6em 0 1.2em;
+  margin: 0.6em 0 0.9em;
+  transition: transform 0.15s;
+}
+
+.balance-card:active,
+.big-btn:active,
+.contact:active,
+.settle:active {
+  transform: scale(0.98);
+}
+
+.balance-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .balance-label {
   font-size: 0.85em;
   opacity: 0.85;
+}
+
+.balance-history {
+  width: 2em;
+  height: 2em;
+  padding: 0.4em;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .balance-value {
@@ -43,40 +133,118 @@
   margin-top: 0.15em;
 }
 
-.send,
-.history {
+.big-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  width: 100%;
+  padding: 0.85em 1em;
+  border: none;
+  border-radius: 1.1em;
   background: #fff;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 0.9em;
+  transition: transform 0.15s;
+}
+
+.big-btn-icon {
+  width: 2.1em;
+  height: 2.1em;
+  padding: 0.4em;
+  border-radius: 0.65em;
+  background: #3b6cff;
+  color: #fff;
+}
+
+/* Chatbot window: intentionally empty for now. */
+.chat {
+  flex: 1;
+  min-height: 14em;
   border-radius: 1.3em;
-  padding: 1em;
-  margin-bottom: 1em;
+  background: #fff;
   box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
 }
 
-.chips {
-  display: flex;
-  gap: 0.45em;
-  margin-bottom: 0.7em;
-}
+/* ---- contacts ---- */
 
-.chip {
-  flex: 1;
+.settle {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3em;
-  padding: 0.55em 0.2em;
-  border: 0.12em solid transparent;
-  border-radius: 0.9em;
-  background: #f2f3f7;
-  font: inherit;
-  font-size: 0.78em;
-  color: inherit;
+  gap: 0.35em;
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 1em 0.2em;
+  font-size: 0.8em;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s;
 }
 
-.chip.active {
-  border-color: #111;
+.settle-icon {
+  width: 3.4em;
+  height: 3.4em;
+  padding: 0.85em;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+}
+
+.card-list {
   background: #fff;
+  border-radius: 1.3em;
+  padding: 0.3em 1em;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
+}
+
+.contact {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  width: 100%;
+  padding: 0.8em 0;
+  border: none;
+  border-top: 0.06em solid #eee;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.contact:first-child { border-top: none; }
+
+.contact-name { font-weight: 600; }
+
+/* ---- pay ---- */
+
+.pay-who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0.6em 0 1.4em;
+}
+
+.pay-who .avatar {
+  width: 3.6em;
+  height: 3.6em;
+  font-size: 1.1em;
+}
+
+.pay-name {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.pay-form {
+  background: #fff;
+  border-radius: 1.3em;
+  padding: 1em;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
 }
 
 .field {
@@ -105,7 +273,6 @@
   border-radius: 0.9em;
   background: #111;
   color: #fff;
-  font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
@@ -124,7 +291,10 @@
 .form-msg.error { color: #d93636; }
 .form-msg.ok { color: #1f9d5c; }
 
+/* ---- history ---- */
+
 .empty {
+  padding: 0.8em 0;
   font-size: 0.85em;
   opacity: 0.5;
 }
@@ -133,11 +303,11 @@
   display: flex;
   align-items: center;
   gap: 0.65em;
-  padding: 0.55em 0;
+  padding: 0.6em 0;
   border-top: 0.06em solid #eee;
 }
 
-.tx:first-of-type {
+.tx:first-child {
   border-top: none;
 }
 
