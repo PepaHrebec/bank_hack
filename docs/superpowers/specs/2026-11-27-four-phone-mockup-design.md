@@ -33,10 +33,20 @@ make the frontend work.
 
 ## Non-goals
 
-- No iOS imitation beyond the frame, status bar and the two system pieces
-  above: no home screen, no other apps, no lock screen.
+- No iOS imitation beyond the frame, status bar, the two system pieces
+  above and the home screen below: no lock screen, no other working apps.
 - No real authentication, no real money, no multi-currency.
 - No production hardening.
+
+## Home screen (added 2026-11-27)
+
+- Swiping up from the bottom edge of the app (not while the pull-down panel
+  is open) shrinks it into its icon and shows the home screen.
+- Home screen: one empty frosted widget, about half the screen tall; a row of
+  filler icons (Tinder, YouTube, Grindr) plus George, the icon for our app;
+  a dock of filler icons (Safari, WhatsApp, Spotify, Instagram). Filler icons
+  do nothing. Icons are the real App Store artwork, saved in `web/icons/`.
+- Tapping George (or a notification banner) opens the app again.
 
 ## Anti-goals
 

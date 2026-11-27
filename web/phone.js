@@ -4,6 +4,8 @@
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
 //   Phone.initials(name)                "Petr Šafář" -> "PŠ"
+// The shell also owns the home screen: swipe up from the bottom edge leaves the app,
+// the George icon (or tapping a notification banner) brings it back.
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -16,6 +18,9 @@
   const shadeList = document.getElementById("shadeList");
   const pullZone = document.getElementById("pullZone");
   const bannerLayer = document.getElementById("banners");
+  const appEl = document.getElementById("app");
+  const swipeZone = document.getElementById("swipeZone");
+  const appIcon = document.getElementById("appIcon");
 
   const handlers = [];
   const notifications = [];
@@ -93,7 +98,7 @@
       banner.classList.remove("show");
       setTimeout(() => banner.remove(), 450);
     };
-    banner.addEventListener("click", hide);
+    banner.addEventListener("click", () => { hide(); setHome(false); });
     // Pulling the banner down opens the panel, like pulling the top edge.
     banner.addEventListener("pointerdown", (e) => startDrag(e, true));
     banner.addEventListener("pointermove", moveDrag);
@@ -187,6 +192,60 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") setOpen(false);
   });
+
+  // ---- home screen: swipe up from the bottom edge of the app, tap George to come back ----
+
+  let swipe = null; // { startY, lastY, height }
+
+  // The app grows out of / shrinks into its icon.
+  function originAtIcon() {
+    const s = screen.getBoundingClientRect();
+    const i = appIcon.getBoundingClientRect();
+    appEl.style.transformOrigin = `${i.left + i.width / 2 - s.left}px ${i.top + i.height / 2 - s.top}px`;
+  }
+
+  function setHome(home) {
+    originAtIcon();
+    appEl.classList.remove("swiping");
+    appEl.style.transform = "";
+    appEl.style.borderRadius = "";
+    screen.classList.toggle("at-home", home);
+  }
+
+  function swipeProgress() {
+    return Math.min(1, Math.max(0, (swipe.startY - swipe.lastY) / (swipe.height * 0.6)));
+  }
+
+  swipeZone.addEventListener("pointerdown", (e) => {
+    if (shade.classList.contains("open") || screen.classList.contains("at-home")) return;
+    swipe = { startY: e.clientY, lastY: e.clientY, height: screen.clientHeight };
+    originAtIcon();
+    appEl.classList.add("swiping");
+    swipeZone.setPointerCapture(e.pointerId);
+  });
+
+  function moveSwipe(e) {
+    if (!swipe) return;
+    swipe.lastY = e.clientY;
+    const p = swipeProgress();
+    appEl.style.transform = `scale(${1 - 0.6 * p})`;
+    appEl.style.borderRadius = `${p * 3}em`;
+  }
+
+  function endSwipe() {
+    if (!swipe) return;
+    const home = swipeProgress() > 0.15;
+    swipe = null;
+    setHome(home);
+  }
+
+  swipeZone.addEventListener("pointermove", moveSwipe);
+  window.addEventListener("pointermove", moveSwipe);
+  window.addEventListener("pointerup", endSwipe);
+  window.addEventListener("pointercancel", endSwipe);
+  document.addEventListener("lostpointercapture", endSwipe);
+
+  appIcon.addEventListener("click", () => setHome(false));
 
   // ---- connection to the orchestrator ----
 
