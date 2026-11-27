@@ -179,3 +179,76 @@ def test_state_lists_requests_i_made(clients):
     s = clients[1].get("/api/state").json()
     assert [(r["payer"], r["amount"], r["status"]) for r in s["requested"]] == [(2, 70, "open")]
     assert clients[2].get("/api/state").json()["requested"] == []
+
+
+# ---- Group Settle ----
+
+
+def test_create_group_notifies_members(clients):
+    with clients[2].websocket_connect("/ws") as ws2:
+        r = clients[1].post("/api/groups", json={"name": "Chata", "members": [2, 3]})
+        assert r.status_code == 200
+        ev = ws2.receive_json()
+        assert ev["type"] == "group_added"
+        assert ev["text"] == "Štěpán Pressl added you to Chata"
+    groups = clients[3].get("/api/state").json()["groups"]
+    assert [g["name"] for g in groups] == ["Chata"]
+    assert clients[4].get("/api/state").json()["groups"] == []
+
+
+def test_expense_updates_members_live(clients):
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    with clients[1].websocket_connect("/ws") as ws1:
+        r = clients[2].post(f"/api/groups/{gid}/expenses", json={"amount": 300, "description": "Food"})
+        assert r.status_code == 200
+        assert ws1.receive_json() == {"type": "group_changed", "group_id": gid}
+    g = clients[1].get("/api/state").json()["groups"][0]
+    assert g["total"] == 300 and g["expenses"][0]["payer"] == 2
+    eid = g["expenses"][0]["id"]
+    assert clients[1].delete(f"/api/groups/{gid}/expenses/{eid}").status_code == 400
+    assert clients[2].delete(f"/api/groups/{gid}/expenses/{eid}").status_code == 200
+
+
+def test_approve_api(clients):
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    assert clients[2].post(f"/api/groups/{gid}/approve").status_code == 400
+    with clients[2].websocket_connect("/ws") as ws2:
+        r = clients[1].post(f"/api/groups/{gid}/approve")
+        assert r.status_code == 200 and r.json()["status"] == "approved"
+        assert ws2.receive_json() == {"type": "group_changed", "group_id": gid}
+    assert clients[2].post(f"/api/groups/{gid}/expenses", json={"amount": 5, "description": "x"}).status_code == 400
+
+
+def test_approve_sends_requests(clients, monkeypatch):
+    from server import settle
+    monkeypatch.setattr(settle, "settle", lambda members, expenses: [(2, 1, 300)])
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    with clients[2].websocket_connect("/ws") as ws2:
+        clients[1].post(f"/api/groups/{gid}/approve")
+        events = [ws2.receive_json(), ws2.receive_json()]
+    received = [e for e in events if e["type"] == "request_received"]
+    assert received and received[0]["text"] == "Štěpán Pressl requests 300 CZK for Chata"
+    assert clients[2].get("/api/state").json()["to_pay"][0]["amount"] == 300
+
+
+@pytest.mark.parametrize("body", [
+    {"name": "", "members": [2]}, {"name": "X", "members": []}, {"name": "X", "members": [1]},
+    {"name": "X", "members": "2"}, {"name": 3, "members": [2]}, [1],
+])
+def test_bad_groups(clients, body):
+    assert clients[1].post("/api/groups", json=body).status_code == 400
+
+
+@pytest.mark.parametrize("body", [
+    {"amount": "5", "description": "x"}, {"amount": 5, "description": ""}, {"amount": 0, "description": "x"},
+    {"amount": 5}, [5],
+])
+def test_bad_expenses(clients, body):
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    assert clients[1].post(f"/api/groups/{gid}/expenses", json=body).status_code == 400
+
+
+def test_outsider_cannot_touch_group(clients):
+    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    assert clients[4].post(f"/api/groups/{gid}/expenses", json={"amount": 5, "description": "x"}).status_code == 400
+    assert clients[4].post(f"/api/groups/{gid}/approve").status_code == 400

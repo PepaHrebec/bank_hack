@@ -59,6 +59,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
             "history": db.history(db_path, person_id),
             "to_pay": db.open_requests_for(db_path, person_id),
             "requested": db.requests_by(db_path, person_id),
+            "groups": db.groups_for(db_path, person_id),
         }
 
     @app.post("/api/payments")
@@ -165,6 +166,73 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str) -> FastAPI:
         await orch.send(person_id, {"type": "requests_changed"})
         await notify_group(req["group_id"], {person_id, req["requester"]})
         return req
+
+    # ---- Group Settle ----
+
+    async def group_changed(group):
+        for p in group["members"]:
+            await orch.send(p, {"type": "group_changed", "group_id": group["id"]})
+
+    def group_of(group_id):
+        return next(g for g in db.groups_for(db_path, person_id) if g["id"] == group_id)
+
+    @app.post("/api/groups")
+    async def create_group(request: Request):
+        try:
+            body = await _json_object(request)
+            group = await run_in_threadpool(
+                db.create_group, db_path, person_id, body.get("name"), body.get("members")
+            )
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        for p in group["members"]:
+            if p != person_id:
+                await orch.send(p, {
+                    "type": "group_added",
+                    "group": group,
+                    "from": me,
+                    "text": f"{me} added you to {group['name']}",
+                })
+        await orch.send(person_id, {"type": "group_changed", "group_id": group["id"]})
+        return group
+
+    @app.post("/api/groups/{group_id}/expenses")
+    async def add_expense(group_id: int, request: Request):
+        try:
+            body = await _json_object(request)
+            expense = await run_in_threadpool(
+                db.add_expense, db_path, group_id, person_id, body.get("amount"), body.get("description")
+            )
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        await group_changed(await run_in_threadpool(group_of, group_id))
+        return expense
+
+    @app.delete("/api/groups/{group_id}/expenses/{expense_id}")
+    async def delete_expense(group_id: int, expense_id: int):
+        try:
+            await run_in_threadpool(db.delete_expense, db_path, group_id, expense_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await group_changed(await run_in_threadpool(group_of, group_id))
+        return {"ok": True}
+
+    @app.post("/api/groups/{group_id}/approve")
+    async def approve_group(group_id: int):
+        try:
+            group = await run_in_threadpool(db.approve_group, db_path, group_id, person_id)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        for req in group["requests"]:
+            payee = db.PEOPLE[req["requester"]]
+            await orch.send(req["payer"], {
+                "type": "request_received",
+                "request": req,
+                "from": payee,
+                "text": f"{payee} requests {req['amount']} CZK for {group['name']}",
+            })
+        await group_changed(group)
+        return group
 
     @app.websocket("/ws")
     async def ws(websocket: WebSocket):
