@@ -1,10 +1,10 @@
-// Filler apps on the home screen: a Spotify "now playing" screen that plays the official
-// music video from YouTube while it is open. None of this talks to the bank.
+// Filler apps on the home screen: a Spotify "now playing" screen that plays the music video
+// (a local file) while it is open. None of this talks to the bank.
 (function () {
   // ---- Spotify ----
 
-  // Official music video, embedded from YouTube (needs internet). Loaded on open, unloaded on close.
-  const VIDEO = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&playsinline=1&rel=0";
+  // Served from web/media, so it plays offline. Starts on open, stops and rewinds on close.
+  const VIDEO = "/static/media/never-gonna-give-you-up.mp4";
 
   function buildSpotify(root) {
     root.innerHTML = `
@@ -14,15 +14,14 @@
       <div class="sp-bar"><i></i></div>
       <div class="sp-times"><span>0:42</span><span>3:33</span></div>
       <div class="sp-controls"><span>⇄</span><span>⏮</span><span class="sp-play">❚❚</span><span>⏭</span><span>↻</span></div>`;
-    const art = root.querySelector(".sp-art");
+    const video = document.createElement("video");
+    Object.assign(video, { src: VIDEO, loop: true, playsInline: true, preload: "auto" });
+    root.querySelector(".sp-art").append(video);
     root.addEventListener("app-open", () => {
-      const frame = document.createElement("iframe");
-      frame.src = VIDEO;
-      frame.title = "Never Gonna Give You Up";
-      frame.allow = "autoplay; encrypted-media; picture-in-picture";
-      art.replaceChildren(frame);
+      // Opening the app is a tap, so the browser lets it play with sound; fall back to muted.
+      video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
     });
-    root.addEventListener("app-close", () => art.replaceChildren());
+    root.addEventListener("app-close", () => { video.pause(); video.currentTime = 0; });
   }
 
   buildSpotify(document.getElementById("spotify"));
