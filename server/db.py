@@ -129,6 +129,21 @@ def init_db(path):
             " sender INTEGER NOT NULL, recipient INTEGER NOT NULL,"
             " text TEXT NOT NULL, created_at TEXT NOT NULL)"
         )
+        friends_new = not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'friends'"
+        ).fetchone()
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS friends ("
+            " person INTEGER NOT NULL, friend INTEGER NOT NULL, created_at TEXT NOT NULL,"
+            " PRIMARY KEY (person, friend))"
+        )
+        if friends_new:
+            # Databases from before friends existed: everyone is a friend of everyone.
+            now = _now()
+            conn.executemany(
+                "INSERT OR IGNORE INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
+                [(a, b, now) for a in PEOPLE for b in PEOPLE if a != b],
+            )
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
@@ -1032,3 +1047,35 @@ def chats(path, me):
             out.append({"with": other, "name": name, "last": _message(row) if row else None})
     out.sort(key=lambda c: (c["last"]["created_at"], c["last"]["id"]) if c["last"] else ("", 0), reverse=True)
     return out
+
+
+# ---- friends ----
+
+def friends_of(path, person):
+    with _connect(path) as conn:
+        rows = conn.execute("SELECT friend FROM friends WHERE person = ? ORDER BY friend", (person,))
+        return [r["friend"] for r in rows]
+
+
+def add_friend(path, person, account):
+    """Befriend the Geoff user holding `account` (mutual); returns their id."""
+    friend = person_by_account(account)
+    if friend is None:
+        raise PaymentError("Tento účet nepatří uživateli Geoff")
+    if friend == person:
+        raise PaymentError("To je tvůj vlastní účet")
+    with _transaction(path) as conn:
+        if conn.execute("SELECT 1 FROM friends WHERE person = ? AND friend = ?", (person, friend)).fetchone():
+            raise PaymentError("Už jste přátelé")
+        now = _now()
+        conn.executemany(
+            "INSERT OR IGNORE INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
+            [(person, friend, now), (friend, person, now)],
+        )
+    return friend
+
+
+def clear_friends(path, person):
+    """Remove all of `person`'s friendships, both directions (the demo seed uses it)."""
+    with _transaction(path) as conn:
+        conn.execute("DELETE FROM friends WHERE person = ? OR friend = ?", (person, person))

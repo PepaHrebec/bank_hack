@@ -201,4 +201,7 @@ def seed_db(path, now=None, rng_seed=7):
     for payer, amount, description in others:
         db.add_expense(path, group["id"], payer, amount, description)
 
+    # Petr starts with no friends so the demo can add him by his account number.
+    db.clear_friends(path, 4)
+
     return {p: len(db.history(path, p)) for p in db.PEOPLE}

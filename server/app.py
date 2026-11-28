@@ -93,6 +93,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         return {
             "me": {"id": person_id, "name": db.PEOPLE[person_id], "account": db.ACCOUNTS[person_id]},
             "people": [{"id": i, "name": n, "account": db.ACCOUNTS[i]} for i, n in db.PEOPLE.items()],
+            "friends": db.friends_of(db_path, person_id),
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
             "today_change": db.day_change(db_path, person_id),
@@ -131,6 +132,22 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
+
+    @app.post("/api/friends")
+    async def add_friend(request: Request):
+        try:
+            body = await _json_object(request)
+            friend = await run_in_threadpool(db.add_friend, db_path, person_id, body.get("account"))
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        await orch.send(friend, {
+            "type": "friend_added",
+            "from": me,
+            "text": f"{me} si tě přidává mezi přátele",
+        })
+        await orch.send(person_id, {"type": "friends_changed"})
+        await orch.send(friend, {"type": "friends_changed"})
+        return {"friend": {"id": friend, "name": db.PEOPLE[friend], "account": db.ACCOUNTS[friend]}}
 
     @app.post("/api/card-payments")
     async def card_pay(request: Request):
