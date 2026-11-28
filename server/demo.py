@@ -5,13 +5,24 @@ David exists only in demo mode: `add_david` puts him into `db.PEOPLE` / `db.ACCO
 objects every module reads), so the normal four-phone mode never sees him.
 """
 
+import asyncio
+import logging
 import random
 from datetime import datetime, timedelta
 
+import httpx
+
 from server import db, seed
+from server.app import create_app
+from server.orchestrator import Orchestrator
+
+log = logging.getLogger("geoff.demo")
 
 DAVID = 5
 DAVID_NAME = "David Vobecký"
+BOTS = (1, 2, 3, 4)
+BOT_DELAY = 1.2  # seconds, so it looks like someone tapping on their phone
+STEPAN_CARD = {"amount": 1600, "note": "Benzina"}
 DAYS = 90
 CARDS = 120
 
@@ -64,3 +75,75 @@ def seed_demo(path, now=None):
             when = (now - timedelta(minutes=round(hours * 60))).isoformat(timespec="seconds")
             conn.execute("INSERT INTO messages (sender, recipient, text, created_at) VALUES (?, ?, ?, ?)",
                          (sender, 2 if sender == DAVID else DAVID, text, when))
+
+
+class DemoOrchestrator(Orchestrator):
+    """The normal relay, plus the four teammates as bots: whatever would reach their phones, they
+    accept or pay, through their own in-process app, as if they had tapped it."""
+
+    def __init__(self, db_path, delay=BOT_DELAY):
+        super().__init__()
+        self.db_path = db_path
+        self.delay = delay
+        self.bots = {
+            i: httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(i, self, db_path)), base_url="http://bot")
+            for i in BOTS
+        }
+        self.tasks = set()
+        self.generation = 0  # bumped by cancel_all; a task from an older generation does nothing
+        self.stepan_paid = set()  # sessions (by start time) Štěpán has already paid in
+
+    async def send(self, person_id, event):
+        await super().send(person_id, event)
+        action = self._reaction(person_id, event)
+        if action:
+            task = asyncio.create_task(self._act(self.generation, *action))
+            self.tasks.add(task)
+            task.add_done_callback(self.tasks.discard)
+
+    def _reaction(self, person_id, event):
+        """(bot, method path, json body) for an event, or None."""
+        kind = event.get("type")
+        if person_id in BOTS:
+            if kind == "friend_request":
+                return person_id, f"/api/friends/requests/{event['from_id']}/accept", None
+            if kind == "group_invite":
+                return person_id, f"/api/groups/{event['group']['id']}/accept", None
+            if kind == "session_invite":
+                return person_id, f"/api/recording/invites/{event['starter']}/accept", None
+            if kind == "request_received":
+                return person_id, f"/api/requests/{event['request']['id']}/pay", None
+        elif person_id == DAVID and kind == "card_payment" and event.get("recording"):
+            rec = db.recording(self.db_path, DAVID)
+            if rec and 1 in rec["participants"] and rec["started_at"] not in self.stepan_paid:
+                self.stepan_paid.add(rec["started_at"])
+                return 1, "/api/card-payments", STEPAN_CARD
+        return None
+
+    async def _act(self, generation, bot, url, body):
+        try:
+            await asyncio.sleep(self.delay)
+            if generation != self.generation:
+                return
+            r = await self.bots[bot].post(url, json=body)
+            if r.status_code != 200:
+                log.warning("Bot %s: %s -> %s %s", bot, url, r.status_code, r.text)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            log.exception("Bot %s failed on %s", bot, url)
+
+    def cancel_all(self):
+        """Forget every pending bot action (the database is about to be reset)."""
+        self.generation += 1
+        self.stepan_paid.clear()
+        for task in list(self.tasks):
+            task.get_loop().call_soon_threadsafe(task.cancel)
+        self.tasks.clear()
+
+    async def bot_request(self, requester, amount, note):
+        """Have a bot ask David for money right now; returns the bot app's response body."""
+        r = await self.bots[requester].post("/api/requests", json={"payer": DAVID, "amount": amount, "note": note})
+        if r.status_code != 200:
+            raise db.PaymentError(r.json().get("detail", "Žádost se nepodařila"))
+        return r.json()
