@@ -944,7 +944,6 @@
       show("credit");
     };
     const card = (a) => {
-      const num = (n) => n.toLocaleString("cs-CZ");
       if (a.kind === "credit") {
         const c = button("account-card");
         const bar = el("div", "account-bar");
