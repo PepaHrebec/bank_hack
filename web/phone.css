@@ -384,6 +384,42 @@ body {
   font-size: 0.88em;
 }
 
+.shade-item {
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.shade-clear {
+  align-self: flex-end;
+  margin: -0.6em 0.3em 0.7em;
+  padding: 0.4em 1em;
+  border: 0;
+  border-radius: 1em;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.shade-clear[hidden] { display: none; }
+
+.note-close {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  margin: -0.2em -0.3em 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+  font: inherit;
+  font-size: 1em;
+  line-height: 1.4em;
+  cursor: pointer;
+}
+
 .shade-slot {
   flex: none;
   height: 4.2em;

@@ -1,13 +1,12 @@
 // Placeholder bank app.
-//   main     balance card with today's change (tap -> history), Contacts and QR tiles,
+//   main     balance card with today's change (tap -> history), Friends and QR tiles,
 //            chat with Geoff (read-only questions about my payments)
 // It also fills the home-screen widget (Phone.widget) with the balance and today's change.
 //   groups   Group Settle: every group I'm in, "+ New group"
 //   newgroup name a group and tick who's in it
 //   group    one group: members, expenses (add / delete own while open), Approve for the creator
 //   qr       a fixed QR code with amount and note fields under it (display only)
-//   contacts Group Settle, To be paid, and the other three people
-//            (tap -> pay)
+//   contacts Friends: Group Settle, To be paid, my friends (tap -> pay) and "Přidat přítele"
 //   pay      Payment (send money) or Request (ask for money) with one contact
 //   tobepaid "Requested from me": open requests to me (individual and group shares) to pay
 //            or decline; "Requested from others": requests I made and their status
@@ -115,7 +114,7 @@
     card.append(top, balance, change);
     card.addEventListener("click", () => show("history"));
     const tiles = el("div", "main-tiles");
-    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Kontakty"));
+    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Přátelé"));
     contactsBtn.addEventListener("click", () => show("contacts"));
     const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR kód"));
     qrBtn.addEventListener("click", () => show("qr"));
@@ -141,13 +140,10 @@
     const settleBtn = button("settle", icon("settle", "settle-icon"), el("span", null, "Skupinové vyrovnání"));
     settleBtn.addEventListener("click", () => show("groups"));
     actions.append(settleBtn, toPayBtn);
-    const list = el("div", "card-list");
-    for (const p of others) {
-      const row = button("contact", avatar(p), el("span", "contact-name", p.name), icon("chevron", "chev"));
-      row.addEventListener("click", () => openPay(p.id));
-      list.append(row);
-    }
-    contacts.append(header("Kontakty", "main"), actions, list);
+    const addFriendBtn = button("add-friend", "+ Přidat přítele");
+    addFriendBtn.addEventListener("click", showAddFriendPopup);
+    const friendList = el("div", "card-list");
+    contacts.append(header("Přátelé", "main"), actions, addFriendBtn, friendList);
     views.contacts = contacts;
 
     // pay
@@ -324,7 +320,7 @@
     Phone.widget.replaceChildren(widgetHead, widgetRecent, widgetBody);
 
     ui = {
-      views, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, widgetRecent, payWho, amount, note, sendBtn, msg, historyList,
+      views, friendList, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, widgetRecent, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
@@ -508,6 +504,7 @@
     const { me, balance, history } = state;
     ui.balance.textContent = czk(balance);
     ui.widgetBalance.textContent = czk(balance);
+    renderFriends();
     showChange(ui.change, state.today_change);
     showChange(ui.widgetChange, state.today_change);
     renderWidgetRecent();
@@ -640,6 +637,55 @@
     } finally {
       toggling = false;
     }
+  }
+
+  // The Friends list: only people I've befriended (everyone if the server doesn't say).
+  function renderFriends() {
+    const { me, people, friends } = state;
+    const shown = people.filter((p) => p.id !== me.id && (!friends || friends.includes(p.id)));
+    if (shown.length === 0) {
+      ui.friendList.replaceChildren(el("div", "empty", "Zatím žádní přátelé – přidej je podle čísla účtu."));
+      return;
+    }
+    ui.friendList.replaceChildren(...shown.map((p) => {
+      const who = el("span", "contact-who");
+      who.append(el("span", "contact-name", p.name), el("span", "contact-account", p.account || ""));
+      const row = button("contact", avatar(p), who, icon("chevron", "chev"));
+      row.addEventListener("click", () => openPay(p.id));
+      return row;
+    }));
+  }
+
+  // "Přidat přítele": connect by account number; the friend gets a notification.
+  function showAddFriendPopup() {
+    const input = el("input", "field");
+    Object.assign(input, { type: "text", maxLength: 30, autocomplete: "off", placeholder: "4444444444/0800" });
+    const msg = el("div", "form-msg error");
+    const go = el("button", "send-btn", "Přidat");
+    go.type = "button";
+    const cancel = el("button", "popup-secondary", "Zrušit");
+    cancel.type = "button";
+    const close = Phone.popup([
+      el("h3", "popup-title", "Přidat přítele"),
+      el("div", "popup-sub", "Zadej číslo účtu v Geoff, třeba 4444444444/0800."),
+      input, go, msg, cancel,
+    ]);
+    cancel.addEventListener("click", () => close());
+    const submit = async () => {
+      go.disabled = true;
+      msg.textContent = "";
+      try {
+        await postJson("/api/friends", { account: input.value });
+        close();
+        await load();
+      } catch (err) {
+        msg.textContent = errText(err);
+        go.disabled = false;
+      }
+    };
+    go.addEventListener("click", submit);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    input.focus();
   }
 
   // Before Start: pick which friends to invite into the shared session (none = solo).
@@ -1569,7 +1615,10 @@
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
       load();
-    } else if (["payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
+    } else if (event.type === "friend_added") {
+      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[state.people.find((p) => p.name === event.from)?.id] });
+      load();
+    } else if (["friends_changed", "payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
       load();
     }
   });
