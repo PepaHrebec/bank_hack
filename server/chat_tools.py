@@ -7,7 +7,7 @@
 import unicodedata
 from datetime import date, timedelta
 
-from server import db, settle
+from server import accounts, db, settle
 
 PERIODS = ["today", "yesterday", "this_week", "last_7_days", "this_month", "last_month", "last_30_days"]
 LARGEST_OUT = 5
@@ -49,6 +49,11 @@ TOOLS = [
         "my_groups",
         "Skupinová vyrovnání uživatele: kdo je v nich, kolik kdo zaplatil, podíl uživatele,"
         " jeho bilance a dosud nezaplacené platby vyrovnání.",
+    ),
+    _tool(
+        "accounts_overview",
+        "Přehled dalších účtů uživatele: kreditní karta (limit, čerpáno, transakce), spořicí účet (zůstatek, úrok)"
+        " a penzijní spoření (zůstatek, měsíční příspěvek, státní příspěvek) a součet zůstatků.",
     ),
 ]
 
@@ -214,6 +219,9 @@ def call(db_path, person_id, name, args, today):
             return with_person(db_path, person_id, args.get("person"), today, args.get("days", 30))
         if name == "my_groups":
             return {"groups": my_groups(db_path, person_id)}
+        if name == "accounts_overview":
+            items = accounts.other_accounts(person_id)
+            return {"accounts": items, "total": sum(a["balance"] for a in items)}
         return {"error": f"Neznámý nástroj: {name}"}
     except Exception as e:  # a tool must never take the chat down
         return {"error": f"Nástroj selhal: {e}"}
