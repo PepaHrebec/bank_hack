@@ -1007,3 +1007,15 @@ button {
 .rec-invite-btns { display: flex; gap: 0.5em; }
 .rec-invite-btn { border: none; border-radius: 0.9em; padding: 0.5em 1em; background: #3b6cff; color: #fff; font-weight: 600; font: inherit; cursor: pointer; }
 .rec-invite-btn.secondary { background: #e5e5ea; color: #111; }
+
+/* confirmation before paying a request */
+.confirm-body { display: flex; flex-direction: column; align-items: center; gap: 0.6em; padding: 1.5em 1em; text-align: center; }
+.confirm-payee { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
+.confirm-amount { font-size: 2.2em; font-weight: 700; }
+.confirm-note, .confirm-group { color: #6b7280; }
+.confirm-done { margin-top: 0.8em; font-size: 1.3em; font-weight: 600; color: #1f9d5c; }
+.confirm-actions { display: flex; gap: 0.6em; padding: 0 1em; }
+.confirm-actions[hidden] { display: none; }
+.confirm-btn { flex: 1; padding: 0.9em; border: 0; border-radius: 12px; background: #111; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.confirm-btn.secondary { background: #f2f3f7; color: #111; }
+.confirm-btn:disabled { opacity: 0.5; }
