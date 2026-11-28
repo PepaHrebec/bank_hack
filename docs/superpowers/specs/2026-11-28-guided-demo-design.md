@@ -104,11 +104,17 @@ notification pull-down and the 💳 demo chip, is blocked unless the step target
 | 2 | Friends | Přátelé → Přidat přítele → types Štěpán's `1111111111/0800` (shown in the bubble) → Štěpán accepts. Then a „Přidat zbytek“ shortcut in the bubble sends requests to Jirka, Pepa and Petr at once; they accept |
 | 2b | Request money | Přátelé → Jirka → switches Platba to Žádost → 250 Kč „kino“ → Vyžádat; Jirka's bot pays it; David gets the payment notification |
 | 2c | A friend requests from David | the tour has Pepa's bot ask David for 320 Kč „pizza“; the request notification arrives; David opens K zaplacení, taps Zaplatit on Pepa's request and confirms; Pepa gets paid |
-| 3 | Group, equal split | creates group „Chata“ with all four, first expense 4 000 Kč „ubytování“ paid by David; approves only once all four have accepted (approving drops anyone still just invited); the split asks each of the four for 800 Kč; bots pay; David sees the money come in |
+| 3 | Group, equal split | creates group „Chata“ with all four, the bots join and add their own costs (Jirka 1 450 Kč „jídlo“, Pepa 780 Kč „pití“, Petr 1 120 Kč „benzín“); David adds 4 000 Kč „ubytování“; approves once all four have accepted and added theirs; the equal split (1 470 Kč each) asks each of the four for what they owe; bots pay; David sees the money come in |
 | 4 | Group payment from the widget | goes home; taps Spustit skupinovou platbu on the widget; invites only Štěpán; Štěpán accepts; David pays twice with the 💳 chip (prefilled „Lokál 1 240 Kč“, then a second one); Štěpán's bot pays once; David taps Ukončit skupinovou platbu and creates the group from the result. The step ends there, with no approve or settling |
-| 5 | AI chat | opens the chat; the bubble asks him to type „Shrň mi minulý měsíc“ and send; waits for the reply |
+| 5 | AI chat | opens the chat; the bubble asks him to send „Shrň mi minulý měsíc v platbách mezi všechny obchodníky do grafu“ (a pie chart by merchant); waits for the reply |
 | 6 | Vision | a card: in the future AI will be built into phones, see every action locally and offer to act on it. Then: home → WhatsApp → chat with Jirka → sends „Dlužíš mi 450 za lístky“ → the Geoff suggestion appears → he accepts it, sending a payment request; Jirka's bot pays it (the general rule) |
 | 7 | Done | „Hotovo, teď si to vyzkoušej sám.“ The overlay is removed for good, until the next refresh |
+
+### Prefill and scrolling
+
+Every form the tour asks for is prefilled with the step's values, and the bubble says so
+(„Hodnoty předvyplníme za tebe. Zkontroluj je, než odešleš.“). The highlighted element is scrolled
+into view automatically.
 
 ### Code placement
 
