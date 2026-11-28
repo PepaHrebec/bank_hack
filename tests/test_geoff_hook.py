@@ -75,7 +75,7 @@ def test_none_and_garbage():
     assert run("dlužíš mi 300", fake('[1]')) is None
 
 
-@pytest.mark.parametrize("amount", [0, -5, "300", None, 12.5, True])
+@pytest.mark.parametrize("amount", [0, -5, "300", None, 12.555, True])
 def test_request_bad_amount(amount):
     # No number in the text either, so the local fallback has nothing to offer.
     assert run("dlužíš mi za pivo", fake({"action": "request", "amount": amount, "note": "x"})) is None
@@ -132,6 +132,21 @@ def test_no_env_gives_none(monkeypatch):
 ])
 def test_extract_amount(text, expected):
     assert geoff_hook.extract_amount(text) == expected
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("dlužíš mi 123,50", 123.5), ("dlužíš mi 123.50", 123.5), ("bylo to 99,90 Kč", 99.9),
+    ("celkem 1 234,50 Kč", 1234.5), ("celkem 4.500,25", 4500.25), ("12,50 Kč za kafe", 12.5),
+    ("12.50 Kč za kafe", 12.5), ("sraz v 12.50 u kina, 300 Kč", 300), ("300,- a 120,00", 300),
+])
+def test_extract_decimal_amount(text, expected):
+    assert geoff_hook.extract_amount(text) == expected
+
+
+def test_model_decimal_amount():
+    assert run("dlužíš mi 123,50", fake({"action": "request", "amount": 123.5}))["amount"] == 123.5
+    # more than two decimals is not an amount; the text's own amount is used instead
+    assert run("dlužíš mi 123,50", fake({"action": "request", "amount": 123.456}))["amount"] == 123.5
 
 
 def test_model_null_amount_falls_back_to_text():
