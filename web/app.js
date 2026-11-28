@@ -1056,7 +1056,7 @@
     const chat = el("section", "chat");
     chat.style.setProperty("--accent", Phone.colors[state.me.id]);
     const list = el("div", "chat-list");
-    const empty = el("div", "chat-empty", "Zeptej se mě na své platby.");
+    const empty = el("div", "chat-empty", "Zeptej se mě na cokoliv o financích");
     list.append(empty);
     const chips = el("div", "chat-chips");
     const form = el("form", "chat-form");
