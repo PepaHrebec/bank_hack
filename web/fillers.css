@@ -1,4 +1,4 @@
-/* Filler apps (Tinder, Grindr, Spotify mock-ups). Sized in em so they scale with the phone. */
+/* Filler apps (Tinder, Spotify mock-ups). Sized in em so they scale with the phone. */
 
 .filler-app {
   padding: 3.6em 0 1.6em;
@@ -107,88 +107,6 @@
 .tin-btn.nope { color: #ff4458; font-size: 1.2em; }
 .tin-btn.star { color: #2db5ff; width: 2.8em; height: 2.8em; align-self: center; }
 .tin-btn.like { color: #1ec98b; font-size: 1.3em; }
-
-/* ---- Grindr ---- */
-
-#grindr {
-  background: #000;
-  color: #fff;
-}
-
-.gr-top {
-  padding: 0.3em 0.9em 0.7em;
-}
-
-.gr-title {
-  font-size: 1.5em;
-  font-weight: 800;
-}
-
-.gr-filters {
-  display: flex;
-  gap: 0.4em;
-  margin-top: 0.55em;
-}
-
-.gr-filters span {
-  padding: 0.3em 0.8em;
-  border-radius: 1em;
-  background: #222;
-  font-size: 0.75em;
-  font-weight: 600;
-}
-
-.gr-filters .on {
-  background: #ffcc00;
-  color: #000;
-}
-
-.gr-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.12em;
-}
-
-.gr-tile {
-  position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
-}
-
-.gr-label {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.3em;
-  padding: 1.2em 0.4em 0.3em;
-  font-size: 0.68em;
-  font-weight: 600;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-}
-
-.gr-label span {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.gr-label small {
-  margin-left: auto;
-  opacity: 0.7;
-  font-weight: 400;
-  white-space: nowrap;
-}
-
-.gr-dot {
-  flex: none;
-  width: 0.55em;
-  height: 0.55em;
-  border-radius: 50%;
-  background: #3ddc84;
-}
 
 /* ---- Spotify ---- */
 

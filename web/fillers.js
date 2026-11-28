@@ -1,4 +1,4 @@
-// Filler apps on the home screen: Tinder and Grindr mock-ups with drawn (fictional)
+// Filler apps on the home screen: a Tinder mock-up with drawn (fictional)
 // profiles, and a Spotify "now playing" screen that plays the official music video
 // from YouTube while it is open. None of this talks to the bank.
 (function () {
@@ -105,52 +105,6 @@
     render();
   }
 
-  // ---- Grindr ----
-
-  const GUYS = [
-    { name: "Tomáš", m: 80, on: true, p: { skin: SKIN[1], hair: "quiff", hairColor: "#3b2416", beard: "stubble", shirt: "#212121", tank: true, bg: ["#3a3a3a", "#151515"] } },
-    { name: "Gym rat 💪", m: 150, on: true, p: { skin: SKIN[2], hair: "buzz", hairColor: "#1a1a1a", beard: "full", shirt: "#d32f2f", tank: true, bg: ["#4a2a2a", "#1a0f0f"] } },
-    { name: "Kuba", m: 220, on: false, p: { skin: SKIN[0], hair: "short", hairColor: "#d9a441", shirt: "#1e88e5", bg: ["#29435c", "#101a24"], shades: true } },
-    { name: "Matěj", m: 300, on: true, p: { skin: SKIN[4], hair: "curly", hairColor: "#111", beard: "full", shirt: "#fbc02d", tank: true, bg: ["#4d4220", "#1a160a"] } },
-    { name: "Ondra 🏳️‍🌈", m: 410, on: true, p: { skin: SKIN[5], hair: "quiff", hairColor: "#6d4c2f", shirt: "#8e24aa", bg: ["#3d2447", "#140b18"] } },
-    { name: "Filip", m: 520, on: false, p: { skin: SKIN[3], hair: "short", hairColor: "#1b1b1b", beard: "stubble", shirt: "#00897b", tank: true, bg: ["#1f3d39", "#0b1614"] } },
-    { name: "Adam", m: 640, on: true, p: { skin: SKIN[1], hair: "buzz", hairColor: "#5a3a22", beard: "full", shirt: "#424242", bg: ["#353535", "#121212"], shades: true } },
-    { name: "Lukáš", m: 780, on: false, p: { skin: SKIN[0], hair: "curly", hairColor: "#a0522d", shirt: "#e64a19", tank: true, bg: ["#4a2b1f", "#170d09"] } },
-    { name: "Dan", m: 900, on: true, p: { skin: SKIN[2], hair: "quiff", hairColor: "#222", beard: "stubble", shirt: "#3949ab", bg: ["#262c4d", "#0c0e1a"] } },
-    { name: "Vojta", m: 1100, on: true, p: { skin: SKIN[3], hair: "short", hairColor: "#111", shirt: "#43a047", tank: true, bg: ["#23402a", "#0b150e"] } },
-    { name: "Marek", m: 1300, on: false, p: { skin: SKIN[5], hair: "buzz", hairColor: "#8d6e63", beard: "full", shirt: "#6d4c41", bg: ["#3e2c26", "#140e0c"] } },
-    { name: "Honza", m: 1500, on: true, p: { skin: SKIN[1], hair: "quiff", hairColor: "#f0c060", shirt: "#00acc1", tank: true, bg: ["#1d3f45", "#0a1517"], shades: true } },
-  ];
-
-  function buildGrindr(root) {
-    root.innerHTML = `
-      <header class="gr-top">
-        <span class="gr-title">Nearby</span>
-        <div class="gr-filters"><span class="on">Online</span><span>Age</span><span>Fresh</span><span>Tags</span></div>
-      </header>
-      <div class="gr-grid"></div>`;
-    const grid = root.querySelector(".gr-grid");
-    for (const g of GUYS) {
-      const tile = document.createElement("div");
-      tile.className = "gr-tile";
-      tile.innerHTML = portrait(g.p);
-      const label = document.createElement("div");
-      label.className = "gr-label";
-      const name = document.createElement("span");
-      name.textContent = g.name;
-      if (g.on) {
-        const dot = document.createElement("i");
-        dot.className = "gr-dot";
-        label.append(dot);
-      }
-      const dist = document.createElement("small");
-      dist.textContent = g.m < 1000 ? `${g.m} m` : `${(g.m / 1000).toFixed(1)} km`;
-      label.append(name, dist);
-      tile.append(label);
-      grid.append(tile);
-    }
-  }
-
   // ---- Spotify ----
 
   // Official music video, embedded from YouTube (needs internet). Loaded on open, unloaded on close.
@@ -176,6 +130,5 @@
   }
 
   buildTinder(document.getElementById("tinder"));
-  buildGrindr(document.getElementById("grindr"));
   buildSpotify(document.getElementById("spotify"));
 })();

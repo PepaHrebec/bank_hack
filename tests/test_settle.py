@@ -140,7 +140,7 @@ def test_fifteen_members():
 def test_approve_uses_the_equal_split(tmp_path):
     db = str(tmp_path / "t.db")
     init_db(db)
-    g = create_group(db, 1, "Chata", [2, 3])
+    g = create_group(db, 1, "Chata", [2, 3], accepted=True)
     add_expense(db, g["id"], 1, 900, "Cabin")
     add_expense(db, g["id"], 2, 101, "Beer")
     # 1001 total: 1 and 2 owe 334 (the leftover crowns), 3 owes 333. Nets: 1 +566, 2 -233, 3 -333.

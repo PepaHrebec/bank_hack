@@ -16,12 +16,21 @@ def clients(tmp_path):
     return {n: TestClient(create_app(n, orch, db)) for n in (1, 2, 3, 4)}
 
 
+def make_group(clients, members, name="Chata", **extra):
+    """A group whose invited members have all accepted; returns its id."""
+    gid = clients[1].post("/api/groups", json={"name": name, "members": members, **extra}).json()["id"]
+    for m in members:
+        assert clients[m].post(f"/api/groups/{gid}/accept").status_code == 200
+    return gid
+
+
 def test_state(clients):
     s = clients[1].get("/api/state").json()
     assert s["me"] == {"id": 1, "name": "Štěpán Pressl"}
     assert s["balance"] == 10000
     assert len(s["people"]) == 4
     assert s["history"] == []
+    assert s["today_change"] == 0
 
 
 def test_payment_notifies_recipient(clients):
@@ -30,11 +39,13 @@ def test_payment_notifies_recipient(clients):
         assert r.status_code == 200
         ev = ws2.receive_json()
         assert ev["type"] == "payment_received"
-        assert ev["text"] == "Štěpán Pressl sent you 250 CZK"
+        assert ev["text"] == "Štěpán Pressl ti poslal(a) 250 Kč"
         assert ev["from"] == "Štěpán Pressl"
         assert ev["payment"]["note"] == "lunch"
         assert ws1.receive_json()["type"] == "payment_sent"
     assert clients[2].get("/api/state").json()["balance"] == 10250
+    assert clients[2].get("/api/state").json()["today_change"] == 250
+    assert clients[1].get("/api/state").json()["today_change"] == -250
 
 
 def test_two_tabs_same_person(clients):
@@ -112,7 +123,7 @@ def test_request_flow(clients):
         rid = r.json()["id"]
         ev = ws2.receive_json()
         assert ev["type"] == "request_received"
-        assert ev["text"] == "Štěpán Pressl requests 250 CZK"
+        assert ev["text"] == "Štěpán Pressl žádá o 250 Kč"
         assert ws1.receive_json()["type"] == "request_sent"
 
         todo = clients[2].get("/api/state").json()["to_pay"]
@@ -122,7 +133,7 @@ def test_request_flow(clients):
         assert r.status_code == 200
         ev = ws1.receive_json()
         assert ev["type"] == "payment_received"
-        assert ev["text"] == "Jirka Měřínský paid your request: 250 CZK"
+        assert ev["text"] == "Jirka Měřínský zaplatil(a) tvoji žádost: 250 Kč"
         assert ws2.receive_json()["type"] == "payment_sent"
 
     assert clients[2].get("/api/state").json()["to_pay"] == []
@@ -135,7 +146,7 @@ def test_decline_flow(clients):
         assert clients[2].post(f"/api/requests/{rid}/decline").status_code == 200
         ev = ws1.receive_json()
         assert ev["type"] == "request_declined"
-        assert ev["text"] == "Jirka Měřínský declined your request: 50 CZK"
+        assert ev["text"] == "Jirka Měřínský odmítl(a) tvoji žádost: 50 Kč"
     assert clients[2].get("/api/state").json()["to_pay"] == []
 
 
@@ -161,7 +172,7 @@ def test_group_request_api(clients):
         assert r.status_code == 200
         ev = ws3.receive_json()
         assert ev["type"] == "request_received"
-        assert ev["text"] == "Štěpán Pressl requests 200 CZK for Dinner"
+        assert ev["text"] == "Štěpán Pressl žádá o 200 Kč za Dinner"
     todo = clients[3].get("/api/state").json()["to_pay"]
     assert todo[0]["group"]["title"] == "Dinner"
 
@@ -189,15 +200,15 @@ def test_create_group_notifies_members(clients):
         r = clients[1].post("/api/groups", json={"name": "Chata", "members": [2, 3]})
         assert r.status_code == 200
         ev = ws2.receive_json()
-        assert ev["type"] == "group_added"
-        assert ev["text"] == "Štěpán Pressl added you to Chata"
-    groups = clients[3].get("/api/state").json()["groups"]
-    assert [g["name"] for g in groups] == ["Chata"]
+        assert ev["type"] == "group_invite"
+        assert ev["text"] == "Štěpán Pressl tě zve do skupiny Chata"
+    state = clients[3].get("/api/state").json()
+    assert state["groups"] == [] and [g["name"] for g in state["group_invites"]] == ["Chata"]
     assert clients[4].get("/api/state").json()["groups"] == []
 
 
 def test_expense_updates_members_live(clients):
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     with clients[1].websocket_connect("/ws") as ws1:
         r = clients[2].post(f"/api/groups/{gid}/expenses", json={"amount": 300, "description": "Food"})
         assert r.status_code == 200
@@ -210,7 +221,7 @@ def test_expense_updates_members_live(clients):
 
 
 def test_approve_api(clients):
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     assert clients[2].post(f"/api/groups/{gid}/approve").status_code == 400
     with clients[2].websocket_connect("/ws") as ws2:
         r = clients[1].post(f"/api/groups/{gid}/approve")
@@ -222,12 +233,12 @@ def test_approve_api(clients):
 def test_approve_sends_requests(clients, monkeypatch):
     from server import settle
     monkeypatch.setattr(settle, "settle", lambda members, expenses: [(2, 1, 300)])
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     with clients[2].websocket_connect("/ws") as ws2:
         clients[1].post(f"/api/groups/{gid}/approve")
         events = [ws2.receive_json(), ws2.receive_json()]
     received = [e for e in events if e["type"] == "request_received"]
-    assert received and received[0]["text"] == "Štěpán Pressl requests 300 CZK for Chata"
+    assert received and received[0]["text"] == "Štěpán Pressl žádá o 300 Kč za Chata"
     assert clients[2].get("/api/state").json()["to_pay"][0]["amount"] == 300
 
 
@@ -244,12 +255,12 @@ def test_bad_groups(clients, body):
     {"amount": 5}, [5],
 ])
 def test_bad_expenses(clients, body):
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     assert clients[1].post(f"/api/groups/{gid}/expenses", json=body).status_code == 400
 
 
 def test_outsider_cannot_touch_group(clients):
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     assert clients[4].post(f"/api/groups/{gid}/expenses", json={"amount": 5, "description": "x"}).status_code == 400
     assert clients[4].post(f"/api/groups/{gid}/approve").status_code == 400
 
@@ -260,10 +271,10 @@ def test_card_payment_endpoint(clients):
         assert r.status_code == 200 and r.json()["amount"] == 480
         ev = ws1.receive_json()
         assert ev["type"] == "card_payment"
-        assert ev["text"] == "You paid 480 CZK · Pivnice U Tygra"
+        assert ev["text"] == "Platba kartou 480 Kč · Pivnice U Tygra"
         assert ev["payment"]["id"] == r.json()["id"]
         clients[1].post("/api/card-payments", json={"amount": 50})
-        assert ws1.receive_json()["text"] == "You paid 50 CZK"
+        assert ws1.receive_json()["text"] == "Platba kartou 50 Kč"
     s = clients[1].get("/api/state").json()
     assert s["balance"] == 10000 - 530
     assert [h["kind"] for h in s["history"]] == ["card", "card"]
@@ -280,6 +291,7 @@ def test_create_group_with_expense_endpoint(clients):
     r = clients[1].post("/api/groups", json={
         "name": "Hospoda", "members": [2], "expense": {"amount": 480, "description": "Pivnice"}})
     assert r.status_code == 200
+    assert clients[2].post(f"/api/groups/{r.json()['id']}/accept").status_code == 200
     g = clients[2].get("/api/state").json()["groups"][0]
     assert g["total"] == 480 and g["expenses"][0]["payer"] == 1
     r = clients[1].post("/api/groups", json={"name": "X", "members": [2], "expense": 5})
@@ -288,18 +300,18 @@ def test_create_group_with_expense_endpoint(clients):
 
 
 def test_delete_group_api(clients):
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     assert clients[2].delete(f"/api/groups/{gid}").status_code == 400
     with clients[2].websocket_connect("/ws") as ws2:
         assert clients[1].delete(f"/api/groups/{gid}").status_code == 200
         ev = ws2.receive_json()
         assert ev["type"] == "group_deleted"
-        assert ev["text"] == "Štěpán Pressl deleted Chata"
+        assert ev["text"] == "Štěpán Pressl smazal(a) skupinu Chata"
     assert clients[2].get("/api/state").json()["groups"] == []
 
 
 def test_expense_from_history_api(clients):
-    gid = clients[1].post("/api/groups", json={"name": "Chata", "members": [2]}).json()["id"]
+    gid = make_group(clients, [2])
     cid = clients[1].post("/api/card-payments", json={"amount": 480, "note": "beers"}).json()["id"]
     r = clients[1].post(f"/api/groups/{gid}/expenses", json={"source": {"kind": "card", "id": cid}})
     assert r.status_code == 200 and r.json()["amount"] == 480

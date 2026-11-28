@@ -133,6 +133,87 @@ button {
   margin-top: 0.15em;
 }
 
+/* Today's change: a pill on the balance card and in the home-screen widget. */
+.balance-change,
+.widget-change {
+  display: inline-block;
+  margin-top: 0.5em;
+  padding: 0.25em 0.7em;
+  border-radius: 1em;
+  font-size: 0.8em;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.balance-change.up,
+.widget-change.up { background: rgba(43, 214, 120, 0.35); }
+
+.balance-change.down,
+.widget-change.down { background: rgba(255, 80, 90, 0.35); }
+
+/* ---- home-screen widget (the frame itself is in phone.css) ---- */
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.2em 1.3em 1.4em;
+  cursor: pointer;
+}
+
+.widget-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.widget-logo {
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 0.45em;
+}
+
+.widget-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  margin: 1em 0 auto; /* sits under the header; the balance stays at the bottom */
+  font-size: 0.85em;
+}
+
+.widget-tx {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.widget-tx-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.widget-tx-time { opacity: 0.7; font-size: 0.9em; }
+.widget-tx-amount { font-weight: 700; white-space: nowrap; }
+.widget-tx-amount.in { color: #7dffb4; }
+
+.widget-label {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.widget-balance {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 0.1em;
+}
+
 .big-btn {
   display: flex;
   align-items: center;
@@ -158,14 +239,107 @@ button {
   color: #fff;
 }
 
-/* Chatbot window: intentionally empty for now. */
+/* Chat with Geoff: the message list scrolls, chips and input stay at the bottom. */
 .chat {
-  flex: 1;
+  flex: 1 1 0; /* basis 0: messages scroll inside instead of stretching the screen */
   min-height: 14em;
+  display: flex;
+  flex-direction: column;
+  padding: 0.7em;
+  gap: 0.5em;
   border-radius: 1.3em;
   background: #fff;
   box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
 }
+
+.chat-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.chat-empty {
+  margin: auto;
+  color: #8a8f9a;
+  font-size: 0.85em;
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: 0.45em 0.75em;
+  border-radius: 1em;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+
+.chat-bot {
+  align-self: flex-start;
+  background: #eceef2;
+  color: #1c1e24;
+}
+
+.chat-bot.chat-error {
+  background: #fde8e8;
+  color: #d93636;
+}
+
+.chat-chips {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+.chat-chip {
+  flex: none;
+  padding: 0.3em 0.7em;
+  border: 0;
+  border-radius: 1em;
+  background: #eceef2;
+  color: #1c1e24;
+  font: inherit;
+  font-size: 0.78em;
+  cursor: pointer;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.4em;
+  flex: none;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45em 0.8em;
+  border: 1px solid #d8dbe2;
+  border-radius: 1em;
+  font: inherit;
+  font-size: 0.85em;
+}
+
+.chat-send {
+  padding: 0.4em 0.9em;
+  border: 0;
+  border-radius: 1em;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.chat-chip:disabled, .chat-send:disabled { opacity: 0.5; cursor: default; }
 
 /* ---- contacts ---- */
 
@@ -738,3 +912,98 @@ button {
 .delete-group-btn:disabled { opacity: 0.5; }
 
 .status.cancelled { background: #ececef; color: #6b6b73; }
+
+/* ---- Start / Stop Group Payment ---- */
+
+.rec-toggle {
+  width: 100%;
+  margin-bottom: 0.6em;
+  padding: 0.75em;
+  border: none;
+  border-radius: 1.1em;
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rec-toggle.recording { background: #d93636; }
+
+.rec-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+  margin-bottom: 0.9em;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.rec-dot {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: #e5303a;
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.7); }
+}
+
+.widget-rec {
+  margin: 0.8em 0 0.4em;
+  padding: 0.55em;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.widget-rec.recording { background: rgba(217, 54, 54, 0.85); }
+.widget .rec-info { margin: 0; font-size: 0.75em; align-items: flex-start; }
+.rec-line { display: flex; align-items: center; justify-content: center; gap: 0.5em; }
+.rec-with { font-weight: 500; opacity: 0.75; }
+.rec-leader { font-size: 1.05em; }
+.rec-line .avatar-row { margin: 0; }
+.widget .rec-line { justify-content: flex-start; }
+
+/* ---- group invites ---- */
+
+.invite-card { cursor: default; }
+.invite-actions { display: flex; gap: 0.5em; margin-top: 0.6em; }
+.invite-actions .invite-btn { flex: 1; width: auto; margin: 0; }
+.member.pending { opacity: 0.6; }
+.popup-sheet .pick-list { margin: 0.4em 0 0.8em; }
+.popup-sheet .field { margin-bottom: 0.6em; background: #fff; border: 1px solid rgba(120, 120, 128, 0.25); }
+
+/* ---- stop popup ---- */
+
+.popup-title { margin: 0 0 0.7em; font-size: 1.15em; }
+.popup-empty { margin: 0 0 1em; opacity: 0.7; }
+.popup-list { margin-bottom: 0.9em; }
+.popup-total { margin-top: 0.5em; text-align: right; font-weight: 700; }
+.popup-sub { margin: 1em 0 0.4em; font-size: 0.85em; opacity: 0.7; }
+
+.popup-group,
+.popup-secondary {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5em;
+  padding: 0.7em;
+  border: none;
+  border-radius: 0.9em;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.popup-group:disabled { opacity: 0.5; }
+.popup-secondary { margin-top: 0.8em; background: rgba(120, 120, 128, 0.2); }
+
+.avatar.pending { opacity: 0.4; }
+.rec-invite { display: flex; flex-direction: column; align-items: center; gap: 0.4em; margin-bottom: 0.6em; }
+.widget .rec-invite { align-items: flex-start; }
+.rec-invite-btns { display: flex; gap: 0.5em; }
+.rec-invite-btn { border: none; border-radius: 0.9em; padding: 0.5em 1em; background: #3b6cff; color: #fff; font-weight: 600; font: inherit; cursor: pointer; }
+.rec-invite-btn.secondary { background: #e5e5ea; color: #111; }

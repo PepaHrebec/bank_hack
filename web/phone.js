@@ -1,15 +1,20 @@
 // Phone shell. Gives the app a small API on window.Phone:
 //   Phone.notify({title, body, color, action?: {label, onClick}})
 //                                       show a banner and add it to the pull-down list;
-//                                       the action button runs onClick, then opens George
+//                                       the action button runs onClick, then opens Geoff
 //   Phone.onEvent(fn)                   receive every event the orchestrator pushes
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
 //   Phone.initials(name)                "Petr Šafář" -> "PŠ"
 // The shell also owns the home screen. Every `.app-window` opens from the home-screen
 // icon whose data-opens is its id, and swiping up from the bottom edge closes it. Windows
-// get "app-open" / "app-close" DOM events. Tapping a notification banner opens George.
+// get "app-open" / "app-close" DOM events. Tapping a notification banner opens Geoff.
 //   Phone.openApp(id | null)            open a window by id, or go home with null
+//   Phone.widget                        the home-screen widget; the app fills it, tapping it opens Geoff
+//   Phone.popup(nodes, onBackdrop?) -> close()
+//                                       modal sheet over the whole screen (home or any app) with a
+//                                       dimmed backdrop; tapping the backdrop closes it and calls
+//                                       onBackdrop (not called when close() is called directly)
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
@@ -48,7 +53,7 @@
     return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   }
 
-  // Buttons on a notification. `action` (one button) opens George and runs onClick there.
+  // Buttons on a notification. `action` (one button) opens Geoff and runs onClick there.
   // `actions` are handled right in the notification: onClick may return a promise; its
   // resolved text (e.g. "Paid ✓") replaces the buttons, a rejection shows its message.
   function noteActions(n) {
@@ -62,15 +67,15 @@
     refreshNote(n);
     Promise.resolve()
       .then(() => a.onClick())
-      .then((result) => { n.result = result || "Done"; })
-      .catch((err) => { n.error = (err && err.message) || "Something went wrong"; })
+      .then((result) => { n.result = result || "Hotovo"; })
+      .catch((err) => { n.error = (err && err.message) || "Něco se nepovedlo"; })
       .finally(() => { n.pending = false; refreshNote(n); });
   }
 
   // Re-render a notification wherever it is shown (pull-down list and, if still up, its banner).
   function refreshNote(n) {
     renderShadeList();
-    if (n.bannerEl && n.bannerEl.isConnected) n.bannerEl.replaceChildren(...noteContent(n, "now"));
+    if (n.bannerEl && n.bannerEl.isConnected) n.bannerEl.replaceChildren(...noteContent(n, "teď"));
   }
 
   function noteContent(n, timeText = n.time) {
@@ -150,7 +155,7 @@
     for (let i = notifications.length; i < EMPTY_SLOTS; i++) {
       const slot = document.createElement("div");
       slot.className = "shade-slot";
-      slot.textContent = "notification placeholder";
+      slot.textContent = "místo pro oznámení";
       shadeList.append(slot);
     }
   }
@@ -159,7 +164,7 @@
     bannerLayer.replaceChildren();
     const banner = document.createElement("div");
     banner.className = "banner";
-    banner.append(...noteContent(n, "now"));
+    banner.append(...noteContent(n, "teď"));
     n.bannerEl = banner;
     bannerLayer.append(banner);
 
@@ -271,7 +276,7 @@
 
   // An app grows out of / shrinks into its icon.
   function originAtIcon(win) {
-    const icon = document.querySelector(`[data-opens="${win.id}"]`);
+    const icon = document.querySelector(`.icon[data-opens="${win.id}"]`);
     if (!icon) return;
     const s = screen.getBoundingClientRect();
     const i = icon.getBoundingClientRect();
@@ -352,6 +357,25 @@
   }
   connect();
 
+  // ---- popup ----
+
+  function popup(nodes, onBackdrop) {
+    const backdrop = document.createElement("div");
+    backdrop.className = "popup-backdrop";
+    const sheet = document.createElement("div");
+    sheet.className = "popup-sheet";
+    sheet.append(...nodes);
+    sheet.addEventListener("click", (e) => e.stopPropagation());
+    backdrop.append(sheet);
+    const close = () => backdrop.remove();
+    backdrop.addEventListener("click", () => {
+      close();
+      if (onBackdrop) onBackdrop();
+    });
+    screen.append(backdrop);
+    return close;
+  }
+
   // ---- who am I ----
 
   const Phone = {
@@ -359,7 +383,9 @@
     colors: PERSON_COLORS,
     initials,
     openApp: (id) => openApp(id ? document.getElementById(id) : null),
+    widget: document.getElementById("widget"),
     notify,
+    popup,
     onEvent(fn) { handlers.push(fn); },
     ready: null,
   };

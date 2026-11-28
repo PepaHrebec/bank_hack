@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="cs">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="/static/phone.css">
   <link rel="stylesheet" href="/static/app.css">
   <link rel="stylesheet" href="/static/fillers.css">
+  <link rel="stylesheet" href="/static/whatsapp.css">
+  <link rel="stylesheet" href="/static/surfers.css">
 </head>
 <body>
   <div class="phone">
@@ -16,18 +18,18 @@
         <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
       </div>
 
-      <!-- Home screen. George opens our app; Tinder, Grindr and Spotify open filler mock-ups. -->
+      <!-- Home screen. Geoff opens our app; Tinder and Spotify open filler mock-ups. -->
       <div class="home" id="home">
-        <div class="widget"></div>
+        <div class="widget" id="widget" data-opens="app"></div>
         <div class="icon-grid">
           <button class="icon" type="button" data-opens="tinder"><img src="/static/icons/tinder.png" alt=""><span>Tinder</span></button>
           <button class="icon" type="button"><img src="/static/icons/youtube.png" alt=""><span>YouTube</span></button>
-          <button class="icon" type="button" data-opens="grindr"><img src="/static/icons/grindr.png" alt=""><span>Grindr</span></button>
-          <button class="icon" type="button" data-opens="app"><img src="/static/icons/george.png" alt=""><span>George</span></button>
+          <button class="icon" type="button" data-opens="app"><img src="/static/icons/geoff.svg" alt=""><span>Geoff</span></button>
+          <button class="icon" type="button" data-opens="surfers"><img src="/static/icons/surfers.svg" alt=""><span>Surfers</span></button>
         </div>
         <div class="dock">
           <button class="icon" type="button"><img src="/static/icons/safari.png" alt="Safari"></button>
-          <button class="icon" type="button"><img src="/static/icons/whatsapp.png" alt="WhatsApp"></button>
+          <button class="icon" type="button" data-opens="whatsapp"><img src="/static/icons/whatsapp.png" alt="WhatsApp"></button>
           <button class="icon" type="button" data-opens="spotify"><img src="/static/icons/spotify.png" alt="Spotify"></button>
           <button class="icon" type="button"><img src="/static/icons/instagram.png" alt="Instagram"></button>
         </div>
@@ -35,8 +37,10 @@
 
       <main id="app" class="app-window open"></main>
       <section id="tinder" class="app-window filler-app"></section>
-      <section id="grindr" class="app-window filler-app" data-statusbar="light"></section>
       <section id="spotify" class="app-window filler-app" data-statusbar="light"></section>
+
+      <section id="whatsapp" class="app-window" data-statusbar="light"></section>
+      <section id="surfers" class="app-window" data-statusbar="light"></section>
 
       <div class="banner-layer" id="banners"></div>
 
@@ -57,13 +61,13 @@
   </div>
 
   <aside class="demo-pay" id="demoAside">
-    <button type="button" class="demo-chip" id="demoChip" aria-label="Card payment (demo)">&#x1F4B3;</button>
+    <button type="button" class="demo-chip" id="demoChip" aria-label="Platba kartou (demo)">&#x1F4B3;</button>
     <div class="demo-panel">
-      <h4>Card payment (demo)<button type="button" class="demo-close" id="demoClose" aria-label="Close">&#x2715;</button></h4>
+      <h4>Platba kartou (demo)<button type="button" class="demo-close" id="demoClose" aria-label="Zavřít">&#x2715;</button></h4>
       <form id="demoPay">
-        <input id="demoAmount" type="number" min="1" step="1" placeholder="Amount (CZK)">
-        <input id="demoNote" type="text" maxlength="60" placeholder="Note">
-        <button type="submit">Pay</button>
+        <input id="demoAmount" type="number" min="1" step="1" placeholder="Částka (Kč)">
+        <input id="demoNote" type="text" maxlength="60" placeholder="Poznámka">
+        <button type="submit">Zaplatit</button>
       </form>
       <div class="demo-msg" id="demoMsg"></div>
     </div>
@@ -71,6 +75,8 @@
 
   <script src="/static/phone.js"></script>
   <script src="/static/fillers.js"></script>
+  <script src="/static/whatsapp.js"></script>
+  <script src="/static/surfers.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

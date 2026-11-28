@@ -1,7 +1,9 @@
 import pytest
 
 from server import db as server_db
-from server.db import PaymentError, card_payment, get_balance, history, init_db, reset_db, send_payment
+from server.db import (
+    PaymentError, add_income, card_payment, day_change, get_balance, history, init_db, reset_db, send_payment,
+)
 
 
 @pytest.fixture
@@ -187,8 +189,22 @@ def test_card_payment_lowers_balance_and_shows_in_history(db, monkeypatch):
     assert history(db, 2)[0]["kind"] == "transfer"
 
 
+def test_day_change_counts_only_today(db, monkeypatch):
+    times = iter(["2026-01-01T23:59:59", "2026-01-02T08:00:00", "2026-01-02T09:00:00",
+                  "2026-01-02T10:00:00", "2026-01-02T12:00:00"])
+    monkeypatch.setattr(server_db, "_now", lambda: next(times))
+    send_payment(db, 1, 2, 1000)  # yesterday
+    send_payment(db, 3, 1, 300)
+    card_payment(db, 1, 120, "Coffee")
+    send_payment(db, 1, 4, 50)
+    assert day_change(db, 1) == 300 - 120 - 50
+    assert day_change(db, 2, "2026-01-01") == 1000
+    assert day_change(db, 4, "2026-01-02") == 50
+    assert day_change(db, 3, "2026-01-03") == 0
+
+
 def test_card_payment_insufficient_funds(db):
-    with pytest.raises(PaymentError, match="Insufficient funds"):
+    with pytest.raises(PaymentError, match="Nedostatek prostředků"):
         card_payment(db, 1, 10001)
     assert balances(db) == [10000] * 4
     assert history(db, 1) == []
@@ -212,3 +228,16 @@ def test_reset_clears_card_payments(db):
     reset_db(db)
     assert history(db, 1) == []
     assert balances(db) == [10000] * 4
+
+
+def test_income_raises_balance_and_shows_in_history(db):
+    i = add_income(db, 1, 42000, "Výplata")
+    assert get_balance(db, 1) == 52000
+    assert history(db, 1)[0] == {"kind": "income", **i}
+    assert day_change(db, 1) == 42000
+
+
+def test_reset_clears_income(db):
+    add_income(db, 1, 100, "Výplata")
+    reset_db(db)
+    assert history(db, 1) == [] and get_balance(db, 1) == 10000
