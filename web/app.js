@@ -372,6 +372,15 @@
     accountRow.append(account, el("span", "account-slash", "/"), bank);
     const hint = el("div", "account-hint");
     hint.hidden = true;
+    // A gentle nudge while typing: the number part (after an optional prefix) has 10 digits.
+    const lengthWarn = el("div", "account-warn");
+    lengthWarn.hidden = true;
+    const updateLength = () => {
+      const number = account.value.replace(/\s+/g, "").split("-").pop();
+      const digits = number.replace(/\D/g, "").length;
+      lengthWarn.hidden = !number || digits === 10;
+      lengthWarn.textContent = `Číslo účtu má 10 číslic (zadáno ${digits}).`;
+    };
     // Bank 0800 is Geoff: say who owns the account, using the people the state already lists.
     const updateHint = () => {
       // Same normalisation as the server: leading zeros of prefix and number are dropped separately.
@@ -394,7 +403,7 @@
         : owner ? `${owner.name} používá Geoff – peníze dorazí hned.`
         : "Účet je u Geoff – platba proběhne okamžitě.";
     };
-    account.addEventListener("input", () => { splitPasted(); updateHint(); });
+    account.addEventListener("input", () => { splitPasted(); updateLength(); updateHint(); });
     bank.addEventListener("change", updateHint);
     const amount = el("input", "field");
     Object.assign(amount, AMOUNT_FIELD);
@@ -404,7 +413,7 @@
     btn.type = "submit";
     const msg = el("div", "form-msg");
     const form = el("form", "pay-form");
-    form.append(el("label", "form-label", "Číslo účtu"), accountRow, hint, amount, note, btn, msg);
+    form.append(el("label", "form-label", "Číslo účtu"), accountRow, lengthWarn, hint, amount, note, btn, msg);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.className = "form-msg ok";
@@ -423,6 +432,7 @@
         });
         account.value = amount.value = note.value = "";
         bank.value = "";
+        updateLength();
         updateHint();
         msg.className = "form-msg ok";
         msg.textContent = p.kind === "transfer" ? `Posláno ${czk(p.amount)} pro ${nameOf(p.recipient)}`
@@ -443,6 +453,7 @@
         const [number, code] = full.split("/");
         account.value = number;
         bank.value = [...bank.options].some((o) => o.value === code) ? code : "";
+        updateLength();
         updateHint();
         // The bank list may still be loading: select the bank once it is there.
         if (!bank.value) loadBanks().then(() => { if (!bank.value) { bank.value = code; updateHint(); } });
