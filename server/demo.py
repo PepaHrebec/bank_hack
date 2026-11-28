@@ -25,7 +25,7 @@ DAVID = 5
 DAVID_NAME = "David Vobecký"
 BOTS = (1, 2, 3, 4)
 BOT_DELAY = 1.2  # seconds, so it looks like someone tapping on their phone
-STEPAN_CARD = {"amount": 1600, "note": "Benzina"}
+STEPAN_CARD = {"amount": 460, "note": "Taxi"}
 # What each teammate adds to a group they join (Štěpán adds nothing): mock shared costs.
 BOT_EXPENSES = {
     2: {"amount": 1450, "description": "jídlo"},

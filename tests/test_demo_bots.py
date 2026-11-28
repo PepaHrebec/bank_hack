@@ -77,7 +77,12 @@ def test_session_invite_and_stepan_pays_once(setup):
     time.sleep(0.3)
     result = client.post("/api/recording/stop").json()
     assert sorted(p["person"] for p in result["payments"]) == [1, 5, 5]
-    assert [p["note"] for p in result["payments"] if p["person"] == 1] == ["Benzina"]
+    assert [p["note"] for p in result["payments"] if p["person"] == 1] == ["Taxi"]
+    # 1 240 + 300 + 460 = 2 000, 1 000 each: Štěpán owes David 540 and his bot pays it.
+    start = state(client)["balance"]
+    gid = client.post("/api/recording/group", json={"name": "Skupinová platba"}).json()["id"]
+    assert client.post(f"/api/groups/{gid}/approve").status_code == 200
+    assert wait_for(lambda: state(client)["balance"] == start + 540)
 
 
 def test_reset_cancels_pending_bot_actions(tmp_path):

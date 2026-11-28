@@ -22,6 +22,7 @@
   const backBtn = () => activeView() && activeView().querySelector(".back-btn");
   const popup = (text) => all(".popup-sheet").find((p) => p.textContent.includes(text)) || null;
   const chata = () => (S().groups || []).find((g) => g.name === "Chata");
+  const night = () => (S().groups || []).find((g) => g.name.startsWith("Skupinová platba"));
   const CHAT_QUESTION = "Shrň mi minulý měsíc v platbách mezi všechny obchodníky do grafu";
 
   // Prefill a field as if typed (the app listens to input / change).
@@ -291,7 +292,7 @@
     },
     {
       title: "4/6 Skupinová platba",
-      text: "Štěpán mezitím platí benzín. Všechno, co během skupinové platby zaplatíte, se počítá dohromady.",
+      text: "Štěpán mezitím platí taxík. Všechno, co během skupinové platby zaplatíte, se počítá dohromady.",
       enter: () => setTimeout(check, 3200),
       done: () => Date.now() - enteredAt > 3000,
     },
@@ -311,8 +312,23 @@
         // A session without Štěpán ends in the new-group form instead.
         return ctx.view === "newgroup" ? [activeView().querySelector("form")] : [];
       },
-      done: () => (S().groups || []).some((g) => g.name.startsWith("Skupinová platba")),
+      done: () => !!night(),
       wait: true,
+    },
+    {
+      title: "4/6 Skupinová platba",
+      text: "Skupina je hotová i s platbami. Uzavři ji: Schválit a vyrovnat. Ty jsi zaplatil víc, takže Štěpán dorovná tobě.",
+      target: () => [withText("#app .view.active .approve-btn", "Schválit")],
+      done: () => night() && night().status !== "open",
+    },
+    {
+      title: "4/6 Skupinová platba",
+      text: "Štěpánovi přišla žádost a posílá ti, co dluží…",
+      wait: true,
+      done: () => {
+        const rows = (S().requested || []).filter((r) => r.group && r.group.title.startsWith("Skupinová platba"));
+        return rows.length > 0 && rows.every((r) => r.status === "paid");
+      },
     },
     {
       title: "5/6 Geoff AI",
@@ -334,7 +350,7 @@
     },
     {
       title: "6/6 Budoucnost",
-      text: "Věříme, že AI bude přímo v telefonu: lokálně uvidí, co děláš, a sama nabídne další krok. Ukážeme ti to na WhatsAppu.",
+      text: "Věříme, že AI bude přímo v telefonu. Geoff se napojí na systémové události (zprávy, platby, notifikace), lokálně je vyhodnotí a sám je spustí: pošle žádost, zaplatí, založí skupinu. Ukážeme ti to na WhatsAppu.",
       button: { label: "Ukázat", run: () => Phone.openApp(null) },
       done: () => atHome(),
     },
