@@ -334,12 +334,28 @@
   function buildAccountPay() {
     const view = el("section", "view");
     const account = el("input", "field account-number");
-    Object.assign(account, { type: "text", maxLength: 18, inputMode: "text", autocomplete: "off", placeholder: "123456-1234567890" });
+    Object.assign(account, { type: "text", maxLength: 30, inputMode: "text", autocomplete: "off", placeholder: "123456-1234567890" });
     const bank = el("select", "field account-bank");
     bank.append(new Option("Vyber banku", ""));
-    fetch("/api/banks").then((r) => r.json()).then((list) => {
-      for (const b of list) bank.append(new Option(`${b.code} – ${b.name}`, b.code));
-    }).catch(() => {});
+    // Loaded on demand; a failed fetch is simply retried the next time the form opens.
+    let banksLoading = null;
+    const loadBanks = () => {
+      if (bank.options.length > 1 || banksLoading) return;
+      banksLoading = fetch("/api/banks").then((r) => {
+        if (!r.ok) throw new Error("banks");
+        return r.json();
+      }).then((list) => {
+        for (const b of list) bank.append(new Option(`${b.code} – ${b.name}`, b.code));
+      }).catch(() => {}).finally(() => { banksLoading = null; });
+    };
+    loadBanks();
+    // A pasted "number/bank" is split: the bank code goes into the select (if it is listed).
+    const splitPasted = () => {
+      const m = account.value.match(/^(.*?)\s*\/\s*(\d{4})\s*$/);
+      if (!m) return;
+      account.value = m[1];
+      if ([...bank.options].some((o) => o.value === m[2])) bank.value = m[2];
+    };
     const accountRow = el("div", "account-row");
     accountRow.append(account, el("span", "account-slash", "/"), bank);
     const hint = el("div", "account-hint");
@@ -348,14 +364,17 @@
     const updateHint = () => {
       hint.hidden = bank.value !== "0800";
       if (hint.hidden) return;
-      const full = `${account.value.replace(/\s+/g, "")}/0800`;
-      const owner = (state?.people || []).find((p) => p.account === full.replace(/^0+/, ""));
+      // Same normalisation as the server: leading zeros of prefix and number are dropped separately.
+      const [number, prefix = ""] = account.value.replace(/\s+/g, "").split("-").reverse();
+      const strip = (digits) => digits.replace(/^0+/, "");
+      const full = `${strip(prefix) ? `${strip(prefix)}-` : ""}${strip(number)}/0800`;
+      const owner = (state?.people || []).find((p) => p.account === full);
       hint.textContent = !account.value.trim() ? "Účet je u Geoff – platba proběhne okamžitě."
         : owner && owner.id === state.me.id ? "To je tvůj vlastní účet"
         : owner ? `${owner.name} používá Geoff – peníze dorazí hned.`
         : "Účet je u Geoff – platba proběhne okamžitě.";
     };
-    account.addEventListener("input", updateHint);
+    account.addEventListener("input", () => { splitPasted(); updateHint(); });
     bank.addEventListener("change", updateHint);
     const amount = el("input", "field");
     Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
@@ -370,6 +389,13 @@
       e.preventDefault();
       msg.className = "form-msg";
       msg.textContent = "";
+      splitPasted();
+      updateHint();
+      if (!bank.value) {
+        msg.className = "form-msg error";
+        msg.textContent = "Vyber banku";
+        return;
+      }
       btn.disabled = true;
       try {
         const p = await postJson("/api/account-payments", {
@@ -390,13 +416,14 @@
       }
     });
     view.append(header("Zaplatit", "main"), form);
-    accountForm = { account, msg };
+    accountForm = { account, msg, loadBanks };
     return view;
   }
 
   function openAccountPay() {
     accountForm.msg.className = "form-msg";
     accountForm.msg.textContent = "";
+    accountForm.loadBanks();
     show("accountPay");
     accountForm.account.focus();
   }
@@ -544,8 +571,9 @@
       const info = el("div", "tx-info");
       info.append(el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`));
       const when = stamp(p.created_at);
-      const meta = outgoing ? when : `z účtu ${accountOf(p.sender)} · ${when}`;
-      info.append(el("div", "tx-meta", p.note ? `${p.note} · ${meta}` : meta));
+      // One short line: the note if there is one, else where the money came from.
+      const meta = p.note ? `${p.note} · ${when}` : outgoing ? when : `z účtu ${accountOf(p.sender)} · ${when}`;
+      info.append(el("div", "tx-meta", meta));
       row.append(avatar({ id: other, name: nameOf(other) }), info,
         el("div", "tx-amount " + (outgoing ? "out" : "in"), `${outgoing ? "−" : "+"}${czk(p.amount)}`));
       rows.push(row);
@@ -672,6 +700,7 @@
     ]);
     cancel.addEventListener("click", () => close());
     const submit = async () => {
+      if (go.disabled) return;
       go.disabled = true;
       msg.textContent = "";
       try {
@@ -1616,7 +1645,7 @@
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
       load();
     } else if (event.type === "friend_added") {
-      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[state.people.find((p) => p.name === event.from)?.id] });
+      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.from_id ?? state.people.find((p) => p.name === event.from)?.id] });
       load();
     } else if (["friends_changed", "payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
       load();

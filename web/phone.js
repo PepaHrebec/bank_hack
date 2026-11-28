@@ -187,7 +187,8 @@
 
   // Drag an element sideways (or, with `up`, upwards) to dismiss it. Uses pointer events, so a
   // mouse drag works too. Once the gesture is clearly a swipe it takes over from the panel's
-  // own pull gesture; a tap or a mostly vertical drag is left alone.
+  // own pull gesture; a tap or a mostly vertical drag is left alone. Returns a function that says
+  // whether a gesture on the element is in progress.
   let swipedAt = 0; // a click right after a swipe must not count as a tap
   function makeSwipeable(el, { up = false, onDismiss }) {
     let g = null;
@@ -249,6 +250,7 @@
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
     });
+    return () => g !== null;
   }
 
   function showBanner(n) {
@@ -260,8 +262,8 @@
     bannerLayer.append(banner);
 
     const hide = () => {
-      // Never pull the banner out from under a drag; try again once it's over.
-      if (drag) { setTimeout(hide, 500); return; }
+      // Never pull the banner out from under a drag or a swipe; try again once it's over.
+      if (drag || swiping()) { setTimeout(hide, 500); return; }
       banner.classList.remove("show");
       setTimeout(() => banner.remove(), 450);
     };
@@ -271,7 +273,7 @@
       openApp(appEl);
     });
     // Swiping it sideways or up hides it early; the notification stays in the pull-down list.
-    makeSwipeable(banner, { up: true, onDismiss: () => banner.remove() });
+    const swiping = makeSwipeable(banner, { up: true, onDismiss: () => banner.remove() });
     // Pulling the banner down opens the panel, like pulling the top edge.
     banner.addEventListener("pointerdown", (e) => startDrag(e, true));
     banner.addEventListener("pointermove", moveDrag);

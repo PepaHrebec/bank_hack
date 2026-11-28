@@ -311,7 +311,11 @@ body {
   gap: 0.5em;
 }
 
-.note-title { font-weight: 600; }
+.note-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
 
 .note-time {
   opacity: 0.5;
@@ -382,9 +386,6 @@ body {
   border-radius: 1.2em;
   background: rgba(255, 255, 255, 0.15);
   font-size: 0.88em;
-}
-
-.shade-item {
   touch-action: pan-y;
   cursor: grab;
 }

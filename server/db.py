@@ -1081,6 +1081,18 @@ def add_friend(path, person, account):
     return friend
 
 
+def reset_friends(path, loners=()):
+    """Rebuild the friend graph: everyone with everyone, except the people in `loners` (no friends)."""
+    now = _now()
+    with _transaction(path) as conn:
+        conn.execute("DELETE FROM friends")
+        conn.executemany(
+            "INSERT INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
+            [(a, b, now) for a in PEOPLE for b in PEOPLE
+             if a != b and a not in loners and b not in loners],
+        )
+
+
 def clear_friends(path, person):
     """Remove all of `person`'s friendships, both directions (the demo seed uses it)."""
     with _transaction(path) as conn:

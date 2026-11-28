@@ -111,6 +111,15 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
     def other_accounts():
         return {"accounts": accounts.other_accounts(person_id)}
 
+    async def notify_received(payment):
+        sender_name = db.PEOPLE[person_id]
+        await orch.send(payment["recipient"], {
+            "type": "payment_received",
+            "payment": payment,
+            "from": sender_name,
+            "text": f"{sender_name} ti poslal(a) {payment['amount']} Kč",
+        })
+
     @app.post("/api/payments")
     async def pay(request: Request):
         try:
@@ -124,13 +133,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
 
-        sender_name = db.PEOPLE[person_id]
-        await orch.send(recipient, {
-            "type": "payment_received",
-            "payment": payment,
-            "from": sender_name,
-            "text": f"{sender_name} ti poslal(a) {amount} Kč",
-        })
+        await notify_received(payment)
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
 
@@ -144,6 +147,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         await orch.send(friend, {
             "type": "friend_added",
             "from": me,
+            "from_id": person_id,
             "text": f"{me} si tě přidává mezi přátele",
         })
         await orch.send(person_id, {"type": "friends_changed"})
@@ -180,13 +184,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
         if payment.get("kind") == "transfer":
-            sender_name = db.PEOPLE[person_id]
-            await orch.send(payment["recipient"], {
-                "type": "payment_received",
-                "payment": payment,
-                "from": sender_name,
-                "text": f"{sender_name} ti poslal(a) {payment['amount']} Kč",
-            })
+            await notify_received(payment)
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
 

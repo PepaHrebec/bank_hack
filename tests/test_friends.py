@@ -51,6 +51,14 @@ def test_seed_leaves_petr_without_friends(db):
     assert friends_of(db, 2) == [1, 3]
 
 
+def test_seed_rebuilds_friends_regardless_of_previous_state(db):
+    seed_db(db)
+    add_friend(db, 1, "4444444444/0800")
+    dbm.clear_friends(db, 2)
+    seed_db(db)
+    assert [friends_of(db, p) for p in (1, 2, 3, 4)] == [[2, 3], [1, 3], [1, 2], []]
+
+
 def test_add_friend_both_ways(db):
     seed_db(db)
     assert add_friend(db, 1, "4444444444/0800") == 4
@@ -81,7 +89,7 @@ def test_endpoint_and_events(db):
         assert r.status_code == 200
         assert r.json() == {"friend": {"id": 4, "name": "Petr Šafář", "account": "4444444444/0800"}}
         added = ws4.receive_json()
-        assert added == {"type": "friend_added", "from": "Štěpán Pressl",
+        assert added == {"type": "friend_added", "from": "Štěpán Pressl", "from_id": 1,
                          "text": "Štěpán Pressl si tě přidává mezi přátele"}
         assert ws4.receive_json() == {"type": "friends_changed"}
         assert ws1.receive_json() == {"type": "friends_changed"}
