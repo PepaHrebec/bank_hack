@@ -513,15 +513,16 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                 {"detail": "Chat není nastavený (chybí OPENROUTER_API_KEY nebo OPENROUTER_MODEL)."},
                 status_code=503,
             )
+        charts = []
         try:
             reply = await asyncio.wait_for(
-                chat.run(db_path, person_id, messages, complete), chat.DEADLINE
+                chat.run(db_path, person_id, messages, complete, charts=charts), chat.DEADLINE
             )
         except (chat.UpstreamError, asyncio.TimeoutError) as e:
             # The client only sees a generic message; the cause must be findable in the server log.
             logging.getLogger(__name__).warning("Chat upstream failure: %s", str(e) or type(e).__name__)
             return JSONResponse({"detail": "Geoff teď neodpovídá, zkus to prosím znovu."}, status_code=502)
-        return {"reply": reply}
+        return {"reply": reply, "charts": charts}
 
     @app.websocket("/ws")
     async def ws(websocket: WebSocket):
