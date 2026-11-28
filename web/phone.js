@@ -14,6 +14,7 @@
 // get "app-open" / "app-close" DOM events. Tapping a notification banner opens Geoff.
 //   Phone.openApp(id | null)            open a window by id, or go home with null
 //   Phone.widget                        the home-screen widget; the app fills it, tapping it opens Geoff
+//   Phone.holdBanners(on)               while on, banners stay up instead of hiding after a few seconds
 //   Phone.popup(nodes, onBackdrop?) -> close()
 //                                       modal sheet over the whole screen (home or any app) with a
 //                                       dimmed backdrop; tapping the backdrop closes it and calls
@@ -21,8 +22,9 @@
 // After every (re)connect handlers get {type: "connected"}, so the app can refetch
 // anything it missed while the connection was down.
 (function () {
-  const PERSON_COLORS = { 1: "#3b6cff", 2: "#2bb673", 3: "#f5a623", 4: "#e5487a" };
+  const PERSON_COLORS = { 1: "#3b6cff", 2: "#2bb673", 3: "#f5a623", 4: "#e5487a", 5: "#8e5cf7" };
   const BANNER_MS = 4000;
+  let holding = false; // Phone.holdBanners
 
   const screen = document.getElementById("screen");
   const shade = document.getElementById("shade");
@@ -263,7 +265,7 @@
 
     const hide = () => {
       // Never pull the banner out from under a drag or a swipe; try again once it's over.
-      if (drag || swiping()) { setTimeout(hide, 500); return; }
+      if (drag || swiping() || holding) { setTimeout(hide, 500); return; }
       banner.classList.remove("show");
       setTimeout(() => banner.remove(), 450);
     };
@@ -485,6 +487,7 @@
     openApp: (id) => openApp(id ? document.getElementById(id) : null),
     widget: document.getElementById("widget"),
     notify,
+    holdBanners(on) { holding = Boolean(on); },
     popup,
     onEvent(fn) { handlers.push(fn); },
     ready: null,

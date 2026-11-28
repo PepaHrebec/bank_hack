@@ -475,6 +475,7 @@
     currentView = name;
     for (const [key, view] of Object.entries(ui.views)) view.classList.toggle("active", key === name);
     root.scrollTop = 0;
+    document.dispatchEvent(new CustomEvent("geoff:view", { detail: name }));
   }
 
   // The request being confirmed and the view the back arrow returns to.
@@ -674,6 +675,8 @@
     renderToPay();
     renderGroups();
     renderGroup();
+    // For listeners outside the app (the demo tour): the freshly loaded state.
+    document.dispatchEvent(new CustomEvent("geoff:state", { detail: state }));
   }
 
   // Czech plural: 1 platba, 2-4 platby, 5+ plateb
