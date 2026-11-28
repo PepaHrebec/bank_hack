@@ -75,17 +75,18 @@ async def serve(db_path, host, shown_host, base_port=BASE_PORT):
     await asyncio.gather(*(s.serve() for s in servers))
 
 
-async def serve_demo(db_path, host, shown_host, base_port=BASE_PORT):
-    """The guided demo: only David's phone, on base-port + 5."""
+async def serve_demo(root, host, shown_host, base_port=BASE_PORT):
+    """The guided demo: David's phone on base-port + 5, one session (own database) per visitor."""
     port = base_port + demo.DAVID
-    config = uvicorn.Config(demo.create_demo_app(db_path), host=host, port=port, log_level="warning")
+    config = uvicorn.Config(demo.create_demo_app(root), host=host, port=port, log_level="warning")
     print(f"{demo.DAVID_NAME} (demo): http://{shown_host}:{port}", flush=True)
     await uvicorn.Server(config).serve()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", help="SQLite file (default: bank.db, demo.db with --demo)")
+    parser.add_argument("--db", help="SQLite file (default: bank.db); with --demo, the folder for the"
+                        " visitors' session databases (default: demo-sessions)")
     parser.add_argument("--host", default="0.0.0.0",
                         help="address to listen on (default: all, so other devices on the network can connect)")
     parser.add_argument("--base-port", type=int, default=BASE_PORT,
@@ -96,7 +97,7 @@ def main():
     parser.add_argument("--demo", action="store_true",
                         help="guided demo: one phone for David Vobecký, a fresh database on every page load")
     args = parser.parse_args()
-    args.db = args.db or ("demo.db" if args.demo else "bank.db")
+    args.db = args.db or ("demo-sessions" if args.demo else "bank.db")
     load_env(ENV_FILE)
 
     if args.reset:

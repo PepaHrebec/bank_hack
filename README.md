@@ -35,9 +35,14 @@ of the screen to open the notification panel.
 uv run run.py --demo
 ```
 
-One phone for David Vobecký on port 3005 (`demo.db`), with a guided tour: a bubble shows what to
-tap next and everything else is blocked until the tour ends. Štěpán, Jirka, Pepa and Petr are bots
-that accept and pay whatever David sends them. Every page load starts over with a fresh database.
+One phone for David Vobecký on port 3005, with a guided tour: a bubble shows what to tap next and
+everything else is blocked until the tour ends. Štěpán, Jirka, Pepa and Petr are bots that accept
+and pay whatever David sends them. Every page load starts over with a fresh database.
+
+Many people can use it at once: each page load gets its own session (a cookie) with its own SQLite
+file in `demo-sessions/`. At most 50 sessions run at once (the least recently used one goes first),
+sessions idle for 30 minutes are deleted, and each session may ask the chatbot 15 questions and send
+30 WhatsApp messages, since both call the model.
 
 ## Reset
 
