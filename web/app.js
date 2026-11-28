@@ -38,7 +38,17 @@
     personadd: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9.5" cy="8" r="3.4"/><path d="M3 19c0-3.4 2.9-5.5 6.5-5.5S16 15.6 16 19M19 8v6M16 11h6"/></g></svg>',
   };
 
-  const czk = (n) => `${n.toLocaleString("cs-CZ")} Kč`;
+  // Always two decimals, Czech format: 1234.5 -> "1 234,50 Kč".
+  const czk = (n) => `${n.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`;
+  // What's typed into an amount field -> a number for the server; a Czech comma is fine ("123,50"), empty is null.
+  // Anything else goes as typed, so the server's own message explains what is wrong.
+  function parseAmount(str) {
+    const s = String(str).replace(/[\s\u00a0]/g, "").replace(",", ".");
+    if (s === "") return null;
+    return /^\d*\.?\d*$/.test(s) && s !== "." ? Number(s) : str.trim();
+  }
+  // Amount inputs are text fields: a number field would refuse "123,50" in many browsers.
+  const AMOUNT_FIELD = { type: "text", inputMode: "decimal", autocomplete: "off", placeholder: "Částka (Kč)" };
   // Today's balance change, e.g. "+250 Kč dnes", with a class for its colour.
   function showChange(e, n) {
     e.textContent = `${n > 0 ? "+" : n < 0 ? "−" : "±"}${czk(Math.abs(n))} dnes`;
@@ -162,7 +172,7 @@
     }
     const form = el("form", "pay-form");
     const amount = el("input", "field");
-    Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(amount, AMOUNT_FIELD);
     amount.id = "amount";
     const note = el("input", "field");
     Object.assign(note, { type: "text", maxLength: 80, placeholder: "Poznámka (volitelné)" });
@@ -241,7 +251,7 @@
     const groupInfo = el("div", "group-info");
     const expenseForm = el("form", "pay-form expense-form");
     const exAmount = el("input", "field");
-    Object.assign(exAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(exAmount, AMOUNT_FIELD);
     const exDesc = el("input", "field");
     Object.assign(exDesc, { type: "text", maxLength: 60, placeholder: "Za co (např. Chata)" });
     const exBtn = el("button", "send-btn", "Přidat výdaj");
@@ -263,13 +273,13 @@
     qrImg.alt = "QR kód";
     const qrCaption = el("div", "qr-caption", "Naskenuj a zaplať");
     const qrAmount = el("input", "field");
-    Object.assign(qrAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(qrAmount, AMOUNT_FIELD);
     const qrNote = el("input", "field");
     Object.assign(qrNote, { type: "text", maxLength: 80, placeholder: "Poznámka (volitelné)" });
     const updateCaption = () => {
-      const amt = Number(qrAmount.value);
+      const amt = parseAmount(qrAmount.value);
       const parts = [];
-      if (qrAmount.value !== "" && amt > 0) parts.push(czk(amt));
+      if (typeof amt === "number" && amt > 0) parts.push(czk(amt));
       if (qrNote.value.trim()) parts.push(qrNote.value.trim());
       qrCaption.textContent = parts.length ? parts.join(" · ") : "Naskenuj a zaplať";
     };
@@ -387,7 +397,7 @@
     account.addEventListener("input", () => { splitPasted(); updateHint(); });
     bank.addEventListener("change", updateHint);
     const amount = el("input", "field");
-    Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(amount, AMOUNT_FIELD);
     const note = el("input", "field");
     Object.assign(note, { type: "text", maxLength: 80, placeholder: "Zpráva pro příjemce (volitelné)" });
     const btn = el("button", "send-btn", "Zaplatit");
@@ -409,7 +419,7 @@
       btn.disabled = true;
       try {
         const p = await postJson("/api/account-payments", {
-          account: `${account.value.replace(/\s+/g, "")}/${bank.value}`, amount: amount.value === "" ? null : Number(amount.value), note: note.value,
+          account: `${account.value.replace(/\s+/g, "")}/${bank.value}`, amount: parseAmount(amount.value), note: note.value,
         });
         account.value = amount.value = note.value = "";
         bank.value = "";
@@ -1143,7 +1153,8 @@
     return n;
   };
   const num = (n) => Number(n).toLocaleString("cs-CZ", { maximumFractionDigits: 2 });
-  const withUnit = (n, unit) => `${num(n)} ${unit}`;
+  // Money in the donut centre, legends and tooltips gets two decimals; tick labels stay compact (num).
+  const withUnit = (n, unit) => (unit === "Kč" ? czk(Number(n)) : `${num(n)} ${unit}`);
 
   // Round gridline values: ~3 steps of 1/2/5 x 10^k covering [lo, hi]
   function niceTicks(lo, hi) {
@@ -1502,7 +1513,7 @@
   }
 
   async function addExpense() {
-    const amount = ui.exAmount.value === "" ? null : Number(ui.exAmount.value);
+    const amount = parseAmount(ui.exAmount.value);
     ui.exBtn.disabled = true;
     ui.exMsg.className = "form-msg";
     ui.exMsg.textContent = "";
@@ -1637,7 +1648,7 @@
   async function send() {
     setMsg(null, "");
     ui.sendBtn.disabled = true;
-    const amount = ui.amount.value === "" ? null : Number(ui.amount.value);
+    const amount = parseAmount(ui.amount.value);
     try {
       const requesting = mode === "request";
       const r = await fetch(requesting ? "/api/requests" : "/api/payments", {
@@ -1805,7 +1816,7 @@
     demoMsg.className = "demo-msg";
     demoMsg.textContent = "";
     try {
-      await postJson("/api/card-payments", { amount: amount.value === "" ? null : Number(amount.value), note: note.value });
+      await postJson("/api/card-payments", { amount: parseAmount(amount.value), note: note.value });
       amount.value = "";
       note.value = "";
       demoMsg.className = "demo-msg ok";
