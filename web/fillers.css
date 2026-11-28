@@ -1,4 +1,4 @@
-/* Filler apps (Tinder, Spotify mock-ups). Sized in em so they scale with the phone. */
+/* Filler apps (Spotify mock-up). Sized in em so they scale with the phone. */
 
 .filler-app {
   padding: 3.6em 0 1.6em;
@@ -9,104 +9,6 @@
   width: 100%;
   height: 100%;
 }
-
-/* ---- Tinder ---- */
-
-#tinder {
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  color: #111;
-  overflow: hidden;
-}
-
-.tin-top {
-  text-align: center;
-  padding: 0.4em 0 0.6em;
-}
-
-.tin-logo {
-  font-size: 1.6em;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  background: linear-gradient(90deg, #fd297b, #ff655b);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.tin-stack {
-  position: relative;
-  flex: 1;
-  margin: 0 0.8em;
-}
-
-.tin-card {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 1.2em;
-  box-shadow: 0 0.4em 1.4em rgba(0, 0, 0, 0.18);
-  transition: transform 0.32s ease-in, opacity 0.32s;
-}
-
-.tin-card.gone.left { transform: translateX(-130%) rotate(-18deg); opacity: 0; }
-.tin-card.gone.right { transform: translateX(130%) rotate(18deg); opacity: 0; }
-.tin-card.gone.up { transform: translateY(-130%); opacity: 0; }
-
-.tin-info {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 3em 1em 1em;
-  color: #fff;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
-}
-
-.tin-name {
-  font-size: 1.6em;
-  font-weight: 800;
-}
-
-.tin-name span {
-  font-weight: 400;
-}
-
-.tin-km {
-  font-size: 0.8em;
-  opacity: 0.85;
-  margin: 0.15em 0 0.35em;
-}
-
-.tin-bio {
-  font-size: 0.85em;
-}
-
-.tin-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1.2em;
-  padding: 0.9em 0 0.4em;
-}
-
-.tin-btn {
-  width: 3.4em;
-  height: 3.4em;
-  border-radius: 50%;
-  border: none;
-  background: #fff;
-  box-shadow: 0 0.2em 0.9em rgba(0, 0, 0, 0.15);
-  font-size: 1em;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
-.tin-btn:active { transform: scale(0.9); }
-.tin-btn.nope { color: #ff4458; font-size: 1.2em; }
-.tin-btn.star { color: #2db5ff; width: 2.8em; height: 2.8em; align-self: center; }
-.tin-btn.like { color: #1ec98b; font-size: 1.3em; }
 
 /* ---- Spotify ---- */
 
