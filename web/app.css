@@ -1026,7 +1026,7 @@ button {
 .confirm-actions { display: flex; gap: 0.6em; padding: 0 1em; }
 .confirm-actions[hidden] { display: none; }
 .confirm-btn { flex: 1; padding: 0.9em; border: 0; border-radius: 12px; background: #111; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-.confirm-btn.secondary { background: #f2f3f7; color: #111; }
+.confirm-btn.secondary { background: #fff; color: #111; border: 1px solid #d5d8e0; }
 .confirm-btn:disabled { opacity: 0.5; }
 
 /* ---- Interactive / Classic mode ---- */

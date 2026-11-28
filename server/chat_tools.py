@@ -93,7 +93,7 @@ def money_flow(db_path, person_id, period, today):
     if period not in PERIODS:
         return {"error": f"Neznámé období. Možnosti: {', '.join(PERIODS)}"}
     first, last = period_bounds(period, today)
-    income = card = transfers_in = transfers_out = count = 0
+    income = card = to_accounts = transfers_in = transfers_out = count = 0
     outgoing = []
     for item in db.history(db_path, person_id):
         if not first.isoformat() <= item["created_at"][:10] <= last.isoformat():
@@ -105,6 +105,10 @@ def money_flow(db_path, person_id, period, today):
             card += item["amount"]
             outgoing.append({"kind": "card", "amount": item["amount"], "note": item["note"],
                              "created_at": item["created_at"]})
+        elif item["kind"] == "account":
+            to_accounts += item["amount"]
+            outgoing.append({"kind": "account", "amount": item["amount"], "note": item["note"],
+                             "person": f"Na účet {item['account']}", "created_at": item["created_at"]})
         elif item["recipient"] == person_id:
             transfers_in += item["amount"]
         else:
@@ -112,10 +116,10 @@ def money_flow(db_path, person_id, period, today):
             outgoing.append({"kind": "transfer", "amount": item["amount"], "note": item["note"],
                              "person": _name(item["recipient"]), "created_at": item["created_at"]})
     outgoing.sort(key=lambda i: i["amount"], reverse=True)
-    total_in, total_out = income + transfers_in, card + transfers_out
+    total_in, total_out = income + transfers_in, card + to_accounts + transfers_out
     return {
         "from": first.isoformat(), "to": last.isoformat(),
-        "income": income, "card": card, "transfers_in": transfers_in, "transfers_out": transfers_out,
+        "income": income, "card": card, "to_accounts": to_accounts, "transfers_in": transfers_in, "transfers_out": transfers_out,
         "total_in": total_in, "total_out": total_out, "net": total_in - total_out,
         "count": count, "largest_out": outgoing[:LARGEST_OUT],
     }

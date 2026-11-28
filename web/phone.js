@@ -382,6 +382,7 @@
     me: null,
     colors: PERSON_COLORS,
     initials,
+    closeShade() { setOpen(false); bannerLayer.replaceChildren(); },
     openApp: (id) => openApp(id ? document.getElementById(id) : null),
     widget: document.getElementById("widget"),
     notify,

@@ -245,7 +245,7 @@ def card_payment(path, person, amount, note=""):
     return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
 
 
-_ACCOUNT_RE = re.compile(r"(?:(\d{1,6})-)?(\d{2,10})/(\d{4})")
+_ACCOUNT_RE = re.compile(r"(?:([0-9]{1,6})-)?([0-9]{2,10})/([0-9]{4})")
 _ACCOUNT_WEIGHTS = (1, 2, 4, 8, 5, 10, 9, 7, 3, 6)  # from the rightmost digit
 
 

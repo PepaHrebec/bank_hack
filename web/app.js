@@ -368,7 +368,7 @@
         await load();
       } catch (err) {
         msg.className = "form-msg error";
-        msg.textContent = err instanceof TypeError ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+        msg.textContent = errText(err);
       } finally {
         btn.disabled = false;
       }
@@ -407,7 +407,9 @@
     payee.append(avatar({ id: r.requester, name: nameOf(r.requester) }), el("div", "pay-name", nameOf(r.requester)));
     body.replaceChildren(payee, el("div", "confirm-amount", czk(r.amount)));
     if (r.note) body.append(el("div", "confirm-note", r.note));
-    if (r.group) body.append(el("div", "confirm-group", `Skupina: ${r.group.title}`));
+    // The request_received event carries group_id only; the loaded to_pay rows carry the group.
+    const group = ((state.to_pay || []).find((x) => x.id === r.id) || r).group;
+    if (group) body.append(el("div", "confirm-group", `Skupina: ${group.title}`));
     ui.confirmMsg.textContent = "";
     ui.confirmActions.hidden = false;
     ui.confirmCancel.disabled = false;
@@ -424,7 +426,7 @@
     try {
       await postJson(`/api/requests/${r.id}/pay`);
     } catch (e) {
-      ui.confirmMsg.textContent = e.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : e.message;
+      ui.confirmMsg.textContent = errText(e);
       ui.confirmCancel.disabled = false;
       ui.confirmOk.disabled = false;
       return;
@@ -914,12 +916,11 @@
   ];
   const chatHistory = []; // {role, content}; lives only until reload; errors never enter it
 
-  // Built once in build(); refresh() never touches it, so the conversation survives.
   // Mode switch and the extra accounts of Classic mode; the accounts are fetched once, on first need.
   function buildClassic(balanceLabel, chat) {
     const MODE_KEY = "geoff-mode";
-    let mode = "interactive";
-    try { if (localStorage.getItem(MODE_KEY) === "classic") mode = "classic"; } catch { /* storage unavailable */ }
+    let viewMode = "interactive";
+    try { if (localStorage.getItem(MODE_KEY) === "classic") viewMode = "classic"; } catch { /* storage unavailable */ }
 
     const switcher = el("div", "mode-switch");
     const accounts = el("div", "accounts");
@@ -939,7 +940,7 @@
     };
     const openCredit = (a) => {
       txList.replaceChildren(...a.transactions.map((t) =>
-        row(t.note, `−${czk(t.amount)}`, new Date(t.date).toLocaleDateString("cs-CZ"))));
+        row(t.note, `−${czk(t.amount)}`, `${+t.date.slice(8, 10)}.${+t.date.slice(5, 7)}.${t.date.slice(0, 4)}`)));
       show("credit");
     };
     const card = (a) => {
@@ -956,7 +957,7 @@
       }
       const c = el("div", "account-card static");
       c.append(row(a.name, czk(a.balance),
-        a.kind === "savings" ? `úrok ${num(a.rate)} %` : `+ ${czk(a.monthly)} měsíčně`));
+        a.kind === "savings" ? `úrok ${a.rate.toLocaleString("cs-CZ", { minimumFractionDigits: 1 })} %` : `+ ${czk(a.monthly)} měsíčně`));
       return c;
     };
     let loaded = false;
@@ -971,19 +972,19 @@
     }
 
     function apply() {
-      const classic = mode === "classic";
+      const classic = viewMode === "classic";
       chat.hidden = classic;
       accounts.hidden = !classic;
       balanceLabel.textContent = classic ? "Běžný účet" : "Zůstatek";
-      for (const b of switcher.children) b.classList.toggle("active", b.dataset.mode === mode);
+      for (const b of switcher.children) b.classList.toggle("active", b.dataset.mode === viewMode);
       if (classic && !loaded) loadAccounts();
     }
     for (const [value, label] of [["interactive", "Interaktivní"], ["classic", "Klasický"]]) {
       const b = button("mode-btn", label);
       b.dataset.mode = value;
       b.addEventListener("click", () => {
-        mode = value;
-        try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
+        viewMode = value;
+        try { localStorage.setItem(MODE_KEY, viewMode); } catch { /* storage unavailable */ }
         apply();
       });
       switcher.append(b);
@@ -992,6 +993,7 @@
     return { switcher, accounts, creditView };
   }
 
+  // Built once in build(); refresh() never touches it, so the conversation survives.
   function buildChat() {
     const chat = el("section", "chat");
     chat.style.setProperty("--accent", Phone.colors[state.me.id]);
@@ -1427,7 +1429,7 @@
         actions: event.type === "request_received" ? [
           { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
           // Paying needs a deliberate confirmation, so this opens it in Geoff.
-          { label: "Zaplatit", onClick: async () => { Phone.openApp("app"); openConfirm(event.request); return "Otevřeno"; } },
+          { label: "Zaplatit", onClick: async () => { Phone.closeShade(); Phone.openApp("app"); openConfirm(event.request); return "Otevřeno"; } },
         ] : undefined,
       });
       load();

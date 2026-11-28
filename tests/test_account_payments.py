@@ -73,3 +73,8 @@ def test_endpoint_errors(client):
     assert r.status_code == 400 and r.json()["detail"]
     r = client.post("/api/account-payments", json={"amount": 5})
     assert r.status_code == 400
+
+
+def test_parse_account_rejects_non_ascii_digits():
+    with pytest.raises(db.PaymentError):
+        db.parse_account("١٩-2000145399/0800")

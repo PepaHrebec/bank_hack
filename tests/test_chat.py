@@ -281,3 +281,15 @@ def test_openrouter_omits_tools_key_when_empty(monkeypatch):
     asyncio.run(complete([], []))
     asyncio.run(complete([], chat_tools.TOOLS))
     assert "tools" not in bodies[0] and "tools" in bodies[1]
+
+
+def test_money_flow_counts_account_payment_as_outgoing(db, monkeypatch):
+    at(monkeypatch, "2026-01-02T09:00:00")
+    server_db.account_payment(db, 1, "2000145399/0800", 100)
+    card_payment(db, 1, 60, "káva")
+    r = chat_tools.call(db, 1, "money_flow", {"period": "today"}, TODAY)
+    assert "error" not in r
+    assert (r["to_accounts"], r["total_out"], r["net"], r["count"]) == (100, 160, -160, 2)
+    top = r["largest_out"][0]
+    assert (top["kind"], top["amount"], top["person"]) == ("account", 100, "Na účet 2000145399/0800")
+    assert "error" not in chat_tools.call(db, 1, "with_person", {"person": "Pepa"}, TODAY)
