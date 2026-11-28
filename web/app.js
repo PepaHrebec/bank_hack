@@ -35,6 +35,7 @@
     card: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     arrowin: '<svg viewBox="0 0 24 24"><path d="M12 4v13M6 11.5l6 6 6-6M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    personadd: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9.5" cy="8" r="3.4"/><path d="M3 19c0-3.4 2.9-5.5 6.5-5.5S16 15.6 16 19M19 8v6M16 11h6"/></g></svg>',
   };
 
   const czk = (n) => `${n.toLocaleString("cs-CZ")} Kč`;
@@ -139,11 +140,11 @@
     toPayBtn.addEventListener("click", () => show("tobepaid"));
     const settleBtn = button("settle", icon("settle", "settle-icon"), el("span", null, "Skupinové vyrovnání"));
     settleBtn.addEventListener("click", () => show("groups"));
-    actions.append(settleBtn, toPayBtn);
-    const addFriendBtn = button("add-friend", "+ Přidat přítele");
+    const addFriendBtn = button("settle", icon("personadd", "settle-icon"), el("span", null, "Přidat přítele"));
     addFriendBtn.addEventListener("click", showAddFriendPopup);
+    actions.append(settleBtn, toPayBtn, addFriendBtn);
     const friendList = el("div", "card-list");
-    contacts.append(header("Přátelé", "main"), actions, addFriendBtn, friendList);
+    contacts.append(header("Přátelé", "main"), actions, friendList);
     views.contacts = contacts;
 
     // pay
