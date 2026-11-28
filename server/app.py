@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from server import chat, db
+from server import accounts, chat, db
 from server.orchestrator import Orchestrator
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -104,6 +104,10 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "session_invites": db.session_invites_for(db_path, person_id),
             "chats": db.chats(db_path, person_id),
         }
+
+    @app.get("/api/accounts")
+    def other_accounts():
+        return {"accounts": accounts.other_accounts(person_id)}
 
     @app.post("/api/payments")
     async def pay(request: Request):

@@ -1028,3 +1028,76 @@ button {
 .confirm-btn { flex: 1; padding: 0.9em; border: 0; border-radius: 12px; background: #111; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
 .confirm-btn.secondary { background: #f2f3f7; color: #111; }
 .confirm-btn:disabled { opacity: 0.5; }
+
+/* ---- Interactive / Classic mode ---- */
+
+.mode-switch {
+  display: flex;
+  padding: 0.2em;
+  gap: 0.2em;
+  border-radius: 1em;
+  background: #eceef2;
+  flex: none;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 0.4em 0;
+  border: 0;
+  border-radius: 0.8em;
+  background: none;
+  color: #5b5f6b;
+  font: inherit;
+  font-size: 0.85em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: #fff;
+  color: #1c1e24;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.1);
+}
+
+.accounts { margin-top: 0.9em; }
+.accounts[hidden],
+.chat[hidden] { display: none; }
+
+.accounts-title {
+  margin: 0 0 0.5em;
+  font-size: 1em;
+}
+
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.account-card {
+  display: block;
+  width: 100%;
+  padding: 0.6em 1em 0.8em;
+  border: 0;
+  border-radius: 1.3em;
+  background: #fff;
+  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+button.account-card { cursor: pointer; }
+
+.account-bar {
+  height: 0.35em;
+  border-radius: 0.2em;
+  background: #eceef2;
+  overflow: hidden;
+}
+
+.account-bar-fill {
+  height: 100%;
+  border-radius: 0.2em;
+  background: #3b6fe0;
+}

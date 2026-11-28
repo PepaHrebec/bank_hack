@@ -128,7 +128,12 @@
     const recInfo = el("div", "rec-info");
     recInfo.hidden = true;
     main.append(card, tiles, recToggle, recInfo, chat);
+    // Interactive / Classic: the switch sits on top, Classic swaps the chat for the account list
+    const classic = buildClassic(card.querySelector(".balance-label"), chat);
+    main.prepend(classic.switcher);
+    main.append(classic.accounts);
     views.main = main;
+    views.credit = classic.creditView;
 
     // contacts
     const contacts = el("section", "view");
@@ -905,10 +910,88 @@
     ["Kolik dlužím?", "Komu a kolik dlužím?"],
     ["Kdo dluží mně?", "Kdo a kolik dluží mně?"],
     ["Moje skupiny", "Jak jsou na tom moje skupiny?"],
+    ["Moje účty", "Jak jsou na tom moje další účty?"],
   ];
   const chatHistory = []; // {role, content}; lives only until reload; errors never enter it
 
   // Built once in build(); refresh() never touches it, so the conversation survives.
+  // Mode switch and the extra accounts of Classic mode; the accounts are fetched once, on first need.
+  function buildClassic(balanceLabel, chat) {
+    const MODE_KEY = "geoff-mode";
+    let mode = "interactive";
+    try { if (localStorage.getItem(MODE_KEY) === "classic") mode = "classic"; } catch { /* storage unavailable */ }
+
+    const switcher = el("div", "mode-switch");
+    const accounts = el("div", "accounts");
+    const list = el("div", "account-list");
+    accounts.append(el("h3", "accounts-title", "Účty"), list);
+    const creditView = el("section", "view");
+    const txList = el("div", "card-list");
+    creditView.append(header("Kreditní karta", "main"), txList);
+
+    const row = (name, value, sub) => {
+      const info = el("div", "tx-info");
+      info.append(el("div", "tx-name", name));
+      if (sub) info.append(el("div", "tx-meta", sub));
+      const r = el("div", "tx");
+      r.append(info, el("div", "tx-amount", value));
+      return r;
+    };
+    const openCredit = (a) => {
+      txList.replaceChildren(...a.transactions.map((t) =>
+        row(t.note, `−${czk(t.amount)}`, new Date(t.date).toLocaleDateString("cs-CZ"))));
+      show("credit");
+    };
+    const card = (a) => {
+      const num = (n) => n.toLocaleString("cs-CZ");
+      if (a.kind === "credit") {
+        const c = button("account-card");
+        const bar = el("div", "account-bar");
+        const fill = el("div", "account-bar-fill");
+        fill.style.width = `${Math.min(100, Math.round((a.spent / a.limit) * 100))}%`;
+        bar.append(fill);
+        c.append(row(a.name, `${czk(a.spent)} / ${czk(a.limit)}`), bar);
+        c.addEventListener("click", () => openCredit(a));
+        return c;
+      }
+      const c = el("div", "account-card static");
+      c.append(row(a.name, czk(a.balance),
+        a.kind === "savings" ? `úrok ${num(a.rate)} %` : `+ ${czk(a.monthly)} měsíčně`));
+      return c;
+    };
+    let loaded = false;
+    async function loadAccounts() {
+      loaded = true;
+      try {
+        const { accounts: items } = await (await fetch("/api/accounts")).json();
+        list.replaceChildren(...items.map(card));
+      } catch {
+        loaded = false; // retry the next time Classic is shown
+      }
+    }
+
+    function apply() {
+      const classic = mode === "classic";
+      chat.hidden = classic;
+      accounts.hidden = !classic;
+      balanceLabel.textContent = classic ? "Běžný účet" : "Zůstatek";
+      for (const b of switcher.children) b.classList.toggle("active", b.dataset.mode === mode);
+      if (classic && !loaded) loadAccounts();
+    }
+    for (const [value, label] of [["interactive", "Interaktivní"], ["classic", "Klasický"]]) {
+      const b = button("mode-btn", label);
+      b.dataset.mode = value;
+      b.addEventListener("click", () => {
+        mode = value;
+        try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
+        apply();
+      });
+      switcher.append(b);
+    }
+    apply();
+    return { switcher, accounts, creditView };
+  }
+
   function buildChat() {
     const chat = el("section", "chat");
     chat.style.setProperty("--accent", Phone.colors[state.me.id]);
