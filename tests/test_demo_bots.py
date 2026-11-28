@@ -49,9 +49,14 @@ def test_group_invites_accepted_and_shares_paid(setup):
     gid = client.post("/api/groups", json={"name": "Chata", "members": [1, 2, 3, 4]}).json()["id"]
     group = lambda: next(g for g in state(client)["groups"] if g["id"] == gid)
     assert wait_for(lambda: group()["invited"] == [])
+    # Jirka, Pepa and Petr add what they paid; Štěpán adds nothing.
+    assert wait_for(lambda: len(group()["expenses"]) == 3)
+    assert sorted((e["payer"], e["amount"], e["description"]) for e in group()["expenses"]) == [
+        (2, 1450, "jídlo"), (3, 780, "pití"), (4, 1120, "benzín")]
     assert client.post(f"/api/groups/{gid}/expenses", json={"amount": 4000, "description": "ubytování"}).status_code == 200
     assert client.post(f"/api/groups/{gid}/approve").status_code == 200
-    assert wait_for(lambda: state(client)["balance"] == start + 3200)
+    # 7 350 Kč in total, 1 470 Kč each: David paid 4 000, so he gets 2 530 back.
+    assert wait_for(lambda: state(client)["balance"] == start + 2530)
     assert all(r["status"] == "paid" for r in state(client)["requested"])
 
 

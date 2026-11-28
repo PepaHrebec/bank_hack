@@ -26,6 +26,12 @@ DAVID_NAME = "David Vobecký"
 BOTS = (1, 2, 3, 4)
 BOT_DELAY = 1.2  # seconds, so it looks like someone tapping on their phone
 STEPAN_CARD = {"amount": 1600, "note": "Benzina"}
+# What each teammate adds to a group they join (Štěpán adds nothing): mock shared costs.
+BOT_EXPENSES = {
+    2: {"amount": 1450, "description": "jídlo"},
+    3: {"amount": 780, "description": "pití"},
+    4: {"amount": 1120, "description": "benzín"},
+}
 DAYS = 90
 CARDS = 120
 
@@ -98,43 +104,51 @@ class DemoOrchestrator(Orchestrator):
 
     async def send(self, person_id, event):
         await super().send(person_id, event)
-        action = self._reaction(person_id, event)
-        if action:
-            task = asyncio.create_task(self._act(self.generation, *action))
+        actions = self._reaction(person_id, event)
+        if actions:
+            task = asyncio.create_task(self._act(self.generation, actions))
             self.tasks.add(task)
             task.add_done_callback(self.tasks.discard)
 
     def _reaction(self, person_id, event):
-        """(bot, method path, json body) for an event, or None."""
+        """What the bots do about an event: [(bot, path, json body)], one after another, or []."""
         kind = event.get("type")
         if person_id in BOTS:
             if kind == "friend_request":
-                return person_id, f"/api/friends/requests/{event['from_id']}/accept", None
+                return [(person_id, f"/api/friends/requests/{event['from_id']}/accept", None)]
             if kind == "group_invite":
-                return person_id, f"/api/groups/{event['group']['id']}/accept", None
+                gid = event["group"]["id"]
+                actions = [(person_id, f"/api/groups/{gid}/accept", None)]
+                if person_id in BOT_EXPENSES:
+                    actions.append((person_id, f"/api/groups/{gid}/expenses", BOT_EXPENSES[person_id]))
+                return actions
             if kind == "session_invite":
-                return person_id, f"/api/recording/invites/{event['starter']}/accept", None
+                return [(person_id, f"/api/recording/invites/{event['starter']}/accept", None)]
             if kind == "request_received":
-                return person_id, f"/api/requests/{event['request']['id']}/pay", None
+                return [(person_id, f"/api/requests/{event['request']['id']}/pay", None)]
         elif person_id == DAVID and kind == "card_payment" and event.get("recording"):
             rec = db.recording(self.db_path, DAVID)
             if rec and 1 in rec["participants"] and rec["started_at"] not in self.stepan_paid:
                 self.stepan_paid.add(rec["started_at"])
-                return 1, "/api/card-payments", STEPAN_CARD
-        return None
+                return [(1, "/api/card-payments", STEPAN_CARD)]
+        return []
 
-    async def _act(self, generation, bot, url, body):
-        try:
-            await asyncio.sleep(self.delay)
-            if generation != self.generation:
+    async def _act(self, generation, actions):
+        """Run the actions in order, each after the bot's "tapping" delay."""
+        for bot, url, body in actions:
+            try:
+                await asyncio.sleep(self.delay)
+                if generation != self.generation:
+                    return
+                r = await self.bots[bot].post(url, json=body)
+                if r.status_code != 200:
+                    log.warning("Bot %s: %s -> %s %s", bot, url, r.status_code, r.text)
+                    return
+            except asyncio.CancelledError:
                 return
-            r = await self.bots[bot].post(url, json=body)
-            if r.status_code != 200:
-                log.warning("Bot %s: %s -> %s %s", bot, url, r.status_code, r.text)
-        except asyncio.CancelledError:
-            pass
-        except Exception:
-            log.exception("Bot %s failed on %s", bot, url)
+            except Exception:
+                log.exception("Bot %s failed on %s", bot, url)
+                return
 
     def cancel_all(self):
         """Forget every pending bot action (the database is about to be reset)."""
