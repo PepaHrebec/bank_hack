@@ -1039,7 +1039,8 @@ button {
 }
 
 .accounts { margin-top: 0.9em; }
-.accounts[hidden] { display: none; }
+.accounts[hidden],
+.chat[hidden] { display: none; }
 
 .accounts-title {
   margin: 0 0 0.5em;
