@@ -281,6 +281,23 @@
     qr.append(header("QR kód", "main"), qrCard, qrForm);
     views.qr = qr;
 
+    // confirm (paying a request); filled in by openConfirm
+    const confirm = el("section", "view");
+    const confirmHead = el("div", "view-header");
+    const confirmBack = button("back-btn", icon("back"));
+    confirmBack.addEventListener("click", () => show(confirmReturn));
+    confirmHead.append(confirmBack, el("h2", null, "Potvrzení platby"));
+    const confirmBody = el("div", "confirm-body");
+    const confirmMsg = el("div", "form-msg error");
+    const confirmCancel = button("confirm-btn secondary", "Zrušit");
+    confirmCancel.addEventListener("click", () => show(confirmReturn));
+    const confirmOk = button("confirm-btn", "Potvrdit platbu");
+    confirmOk.addEventListener("click", payConfirmed);
+    const confirmActions = el("div", "confirm-actions");
+    confirmActions.append(confirmCancel, confirmOk);
+    confirm.append(confirmHead, confirmBody, confirmMsg, confirmActions);
+    views.confirm = confirm;
+
     root.replaceChildren(...Object.values(views));
 
     // home-screen widget
@@ -308,6 +325,7 @@
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
       expenseList, approveBox, pickBox,
+      confirmBody, confirmMsg, confirmActions, confirmCancel, confirmOk,
     };
     show("main");
   }
@@ -316,6 +334,57 @@
     currentView = name;
     for (const [key, view] of Object.entries(ui.views)) view.classList.toggle("active", key === name);
     root.scrollTop = 0;
+  }
+
+  // The request being confirmed and the view the back arrow returns to.
+  let confirmRequest = null;
+  let confirmReturn = "main";
+  let confirmDone = false;
+
+  function openConfirm(r) {
+    confirmRequest = r;
+    confirmDone = false;
+    if (currentView !== "confirm") confirmReturn = currentView || "main";
+    const body = ui.confirmBody;
+    body.className = "confirm-body";
+    body.onclick = null;
+    const payee = el("div", "confirm-payee");
+    payee.append(avatar({ id: r.requester, name: nameOf(r.requester) }), el("div", "pay-name", nameOf(r.requester)));
+    body.replaceChildren(payee, el("div", "confirm-amount", czk(r.amount)));
+    if (r.note) body.append(el("div", "confirm-note", r.note));
+    if (r.group) body.append(el("div", "confirm-group", `Skupina: ${r.group.title}`));
+    ui.confirmMsg.textContent = "";
+    ui.confirmActions.hidden = false;
+    ui.confirmCancel.disabled = false;
+    ui.confirmOk.disabled = false;
+    show("confirm");
+  }
+
+  async function payConfirmed() {
+    const r = confirmRequest;
+    if (!r || confirmDone) return;
+    ui.confirmMsg.textContent = "";
+    ui.confirmCancel.disabled = true;
+    ui.confirmOk.disabled = true;
+    try {
+      await postJson(`/api/requests/${r.id}/pay`);
+    } catch (e) {
+      ui.confirmMsg.textContent = e.message === "Failed to fetch" ? "Banku se nepodařilo zastihnout. Zkus to znovu." : e.message;
+      ui.confirmCancel.disabled = false;
+      ui.confirmOk.disabled = false;
+      return;
+    }
+    confirmDone = true;
+    ui.confirmActions.hidden = true;
+    ui.confirmBody.append(el("div", "confirm-done", "Zaplaceno ✓"));
+    const leave = () => {
+      if (currentView !== "confirm" || confirmRequest !== r) return;
+      confirmRequest = null;
+      show("main");
+      load();
+    };
+    ui.confirmBody.onclick = leave;
+    setTimeout(leave, 1000);
   }
 
   function openPay(id) {
@@ -1133,7 +1202,7 @@
     const payBtn = button("req-btn pay", "Zaplatit");
     const msg = el("div", "form-msg error");
     decline.addEventListener("click", () => answer(r.id, "decline", msg, [decline, payBtn]));
-    payBtn.addEventListener("click", () => answer(r.id, "pay", msg, [decline, payBtn]));
+    payBtn.addEventListener("click", () => openConfirm(r));
     actions.append(decline, payBtn);
     row.append(top, actions, msg);
     return row;
@@ -1214,7 +1283,8 @@
         title: event.from, body: event.text + note, color: Phone.colors[sender],
         actions: event.type === "request_received" ? [
           { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
-          { label: "Zaplatit", onClick: answer("pay", `Zaplaceno ${czk(event.request.amount)} ✓`) },
+          // Paying needs a deliberate confirmation, so this opens it in Geoff.
+          { label: "Zaplatit", onClick: async () => { Phone.openApp("app"); openConfirm(event.request); return "Otevřeno"; } },
         ] : undefined,
       });
       load();
