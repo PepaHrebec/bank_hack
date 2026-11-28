@@ -83,6 +83,9 @@ the demo must touch the existing code as little as possible.
   - payment request → pay
 - They act through the same code paths their phones would use, so David gets exactly the
   notifications and live updates he gets in the normal app.
+- Step 2c only: the bots also start something themselves. When the tour reaches 2c it asks the server
+  (a demo-only endpoint) to have Pepa send David a payment request, through Pepa's normal request
+  path, so David gets the usual `request_received` notification and the request shows in K zaplacení.
 - Step 4 only: once Štěpán has joined David's session and David has made his first card payment, the
   Štěpán bot makes one card payment of its own (e.g. „Benzina 1 600 Kč“), so the shared session holds
   payments from both of them.
@@ -99,6 +102,8 @@ notification pull-down and the 💳 demo chip, is blocked unless the step target
 | 0 | Welcome card | „Ahoj Davide…“, one button to start |
 | 1 | Basics | sees balance and today's change; opens history and goes back; Zaplatit to an outside account (number and amount shown in the bubble); opens the QR screen and goes back |
 | 2 | Friends | Přátelé → Přidat přítele → types Štěpán's `1111111111/0800` (shown in the bubble) → Štěpán accepts. Then a „Přidat zbytek“ shortcut in the bubble sends requests to Jirka, Pepa and Petr at once; they accept |
+| 2b | Request money | Přátelé → Jirka → switches Platba to Žádost → 250 Kč „kino“ → Vyžádat; Jirka's bot pays it; David gets the payment notification |
+| 2c | A friend requests from David | the tour has Pepa's bot ask David for 320 Kč „pizza“; the request notification arrives; David opens K zaplacení, taps Zaplatit on Pepa's request and confirms; Pepa gets paid |
 | 3 | Group, equal split | creates group „Chata“ with all four, first expense 4 000 Kč „ubytování“ paid by David; approves only once all four have accepted (approving drops anyone still just invited); the split asks each of the four for 800 Kč; bots pay; David sees the money come in |
 | 4 | Group payment from the widget | goes home; taps Spustit skupinovou platbu on the widget; invites only Štěpán; Štěpán accepts; David pays twice with the 💳 chip (prefilled „Lokál 1 240 Kč“, then a second one); Štěpán's bot pays once; David taps Ukončit skupinovou platbu and creates the group from the result. The step ends there, with no approve or settling |
 | 5 | AI chat | opens the chat; the bubble asks him to type „Shrň mi minulý měsíc“ and send; waits for the reply |
@@ -126,6 +131,7 @@ notification pull-down and the 💳 demo chip, is blocked unless the step target
 - David as a fifth person (id 5) only in demo mode, rather than renaming Štěpán.
 - „Přidat zbytek“ shortcut after the first friend, so step 2 doesn't drag.
 - Bots accept/pay everything; none of them declines.
+- Step 2b uses Jirka (250 Kč „kino“), step 2c uses Pepa (320 Kč „pizza“); both come right after the friends step.
 - Step 4 also has one payment from Štěpán, so the shared split is visible.
 - A seeded WhatsApp history with Jirka.
 - No skip button for the tour; a refresh is the reset.
