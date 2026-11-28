@@ -276,11 +276,17 @@ def person_by_account(text):
 
 
 def account_payment(path, person, account, amount, note=""):
-    """Pay a Czech bank account: the money leaves `person`'s account and goes nowhere in the app."""
+    """Pay a Czech bank account. An account of another Geoff person is a normal transfer
+    (returned with "kind": "transfer"); otherwise the money leaves the app."""
     _check_amount(amount)
     if person not in PEOPLE:
         raise PaymentError("Neznámá osoba")
     account = parse_account(account)
+    recipient = person_by_account(account)
+    if recipient == person:
+        raise PaymentError("Nelze platit na vlastní účet")
+    if recipient is not None:
+        return {"kind": "transfer", **send_payment(path, person, recipient, amount, note)}
     note = (note or "").strip()
     with _transaction(path) as conn:
         _debit(conn, person, amount)

@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from server import accounts, chat, db
+from server.banks import BANKS
 from server.orchestrator import Orchestrator
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -161,8 +162,20 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
+        if payment.get("kind") == "transfer":
+            sender_name = db.PEOPLE[person_id]
+            await orch.send(payment["recipient"], {
+                "type": "payment_received",
+                "payment": payment,
+                "from": sender_name,
+                "text": f"{sender_name} ti poslal(a) {payment['amount']} Kč",
+            })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
+
+    @app.get("/api/banks")
+    def banks():
+        return BANKS
 
     @app.post("/api/recording/start")
     async def recording_start(request: Request):

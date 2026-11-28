@@ -337,8 +337,30 @@
   // "Zaplatit": pay to a Czech bank account number; the server decides whether it is valid.
   function buildAccountPay() {
     const view = el("section", "view");
-    const account = el("input", "field");
-    Object.assign(account, { type: "text", maxLength: 30, inputMode: "text", autocomplete: "off", placeholder: "123456-1234567890/0100" });
+    const account = el("input", "field account-number");
+    Object.assign(account, { type: "text", maxLength: 18, inputMode: "text", autocomplete: "off", placeholder: "123456-1234567890" });
+    const bank = el("select", "field account-bank");
+    bank.append(new Option("Vyber banku", ""));
+    fetch("/api/banks").then((r) => r.json()).then((list) => {
+      for (const b of list) bank.append(new Option(`${b.code} – ${b.name}`, b.code));
+    }).catch(() => {});
+    const accountRow = el("div", "account-row");
+    accountRow.append(account, el("span", "account-slash", "/"), bank);
+    const hint = el("div", "account-hint");
+    hint.hidden = true;
+    // Bank 0800 is Geoff: say who owns the account, using the people the state already lists.
+    const updateHint = () => {
+      hint.hidden = bank.value !== "0800";
+      if (hint.hidden) return;
+      const full = `${account.value.replace(/\s+/g, "")}/0800`;
+      const owner = (state?.people || []).find((p) => p.account === full.replace(/^0+/, ""));
+      hint.textContent = !account.value.trim() ? "Účet je u Geoff – platba proběhne okamžitě."
+        : owner && owner.id === state.me.id ? "To je tvůj vlastní účet"
+        : owner ? `${owner.name} používá Geoff – peníze dorazí hned.`
+        : "Účet je u Geoff – platba proběhne okamžitě.";
+    };
+    account.addEventListener("input", updateHint);
+    bank.addEventListener("change", updateHint);
     const amount = el("input", "field");
     Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
     const note = el("input", "field");
@@ -347,7 +369,7 @@
     btn.type = "submit";
     const msg = el("div", "form-msg");
     const form = el("form", "pay-form");
-    form.append(el("label", "form-label", "Číslo účtu"), account, amount, note, btn, msg);
+    form.append(el("label", "form-label", "Číslo účtu"), accountRow, hint, amount, note, btn, msg);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.className = "form-msg";
@@ -355,11 +377,14 @@
       btn.disabled = true;
       try {
         const p = await postJson("/api/account-payments", {
-          account: account.value, amount: amount.value === "" ? null : Number(amount.value), note: note.value,
+          account: `${account.value.replace(/\s+/g, "")}/${bank.value}`, amount: amount.value === "" ? null : Number(amount.value), note: note.value,
         });
         account.value = amount.value = note.value = "";
+        bank.value = "";
+        updateHint();
         msg.className = "form-msg ok";
-        msg.textContent = `Zaplaceno ${czk(p.amount)} na účet ${p.account}`;
+        msg.textContent = p.kind === "transfer" ? `Posláno ${czk(p.amount)} pro ${nameOf(p.recipient)}`
+          : `Zaplaceno ${czk(p.amount)} na účet ${p.account}`;
         await load();
       } catch (err) {
         msg.className = "form-msg error";
@@ -477,6 +502,8 @@
     ui.widgetRecent.replaceChildren(...rows);
   }
 
+  const accountOf = (id) => state.people.find((p) => p.id === id)?.account || "";
+
   function refresh() {
     const { me, balance, history } = state;
     ui.balance.textContent = czk(balance);
@@ -520,7 +547,8 @@
       const info = el("div", "tx-info");
       info.append(el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`));
       const when = stamp(p.created_at);
-      info.append(el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
+      const meta = outgoing ? when : `z účtu ${accountOf(p.sender)} · ${when}`;
+      info.append(el("div", "tx-meta", p.note ? `${p.note} · ${meta}` : meta));
       row.append(avatar({ id: other, name: nameOf(other) }), info,
         el("div", "tx-amount " + (outgoing ? "out" : "in"), `${outgoing ? "−" : "+"}${czk(p.amount)}`));
       rows.push(row);

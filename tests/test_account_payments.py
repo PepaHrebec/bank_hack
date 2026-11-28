@@ -85,3 +85,43 @@ def test_every_person_has_a_valid_geoff_account():
         assert db.ACCOUNTS[pid] == f"{str(pid) * 10}/0800"
         assert db.person_by_account(db.ACCOUNTS[pid]) == pid
     assert db.person_by_account("19-2000145399/0800") is None
+
+
+def test_paying_geoff_account_is_a_transfer(path):
+    before = db.get_balance(path, 3)
+    p = db.account_payment(path, 1, "3333333333/0800", 250, "oběd")
+    assert p["kind"] == "transfer" and p["sender"] == 1 and p["recipient"] == 3 and p["amount"] == 250
+    assert db.get_balance(path, 3) == before + 250
+    assert db.history(path, 1)[0]["kind"] == "transfer"
+    assert db.history(path, 3)[0]["kind"] == "transfer"
+
+
+def test_paying_own_account_fails(path):
+    with pytest.raises(db.PaymentError, match="Nelze platit na vlastní účet"):
+        db.account_payment(path, 1, "1111111111/0800", 10)
+
+
+def test_unknown_geoff_account_is_an_account_payment(path):
+    p = db.account_payment(path, 1, "2000145399/0800", 10)
+    assert "kind" not in p and p["account"] == "2000145399/0800"
+
+
+def test_endpoint_geoff_transfer_notifies_recipient(path):
+    orch = Orchestrator()
+    sent = []
+
+    async def send(pid, event):
+        sent.append((pid, event["type"]))
+    orch.send = send
+    c = TestClient(create_app(1, orch, path))
+    r = c.post("/api/account-payments", json={"account": "2222222222/0800", "amount": 5})
+    assert r.status_code == 200 and r.json()["kind"] == "transfer"
+    assert (2, "payment_received") in sent and (1, "payment_sent") in sent
+
+
+def test_banks_endpoint(client):
+    banks = client.get("/api/banks").json()
+    assert len(banks) == 20
+    codes = [b["code"] for b in banks]
+    assert len(set(codes)) == 20 and all(len(c) == 4 and c.isdigit() for c in codes)
+    assert {"code": "0800", "name": "Geoff"} in banks

@@ -1050,3 +1050,22 @@ button {
 .chart-legend-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chart-legend-item .val { color: #5b5f6b; white-space: nowrap; }
 .chart-swatch { flex: none; width: 0.7em; height: 0.7em; border-radius: 50%; }
+
+/* ---- "Zaplatit": account number / bank ---- */
+
+.account-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+}
+
+.account-row .field { margin-bottom: 0.55em; min-width: 0; }
+.account-number { flex: 1 1 50%; }
+.account-bank { flex: 1 1 50%; }
+.account-slash { padding-top: 0.55em; font-weight: 600; opacity: 0.6; }
+
+.account-hint {
+  margin: -0.15em 0 0.6em;
+  font-size: 0.82em;
+  color: #3b6cff;
+}
