@@ -1,19 +1,25 @@
 """The guided demo: one phone for David Vobecký, a fresh database on every page load, the four
-teammates as bots.
+teammates as bots. Many visitors at once: each page load is its own session with its own database.
 
 David exists only in demo mode: `add_david` puts him into `db.PEOPLE` / `db.ACCOUNTS` (the same dict
 objects every module reads), so the normal four-phone mode never sees him.
 """
 
 import asyncio
+import glob
 import logging
+import os
 import random
+import secrets
+import time
 from datetime import datetime, timedelta
 
 import httpx
 from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.routing import Route
+from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
+from starlette.requests import HTTPConnection
 
 from server import db, seed
 from server.app import WEB_DIR, create_app
@@ -168,26 +174,18 @@ class DemoOrchestrator(Orchestrator):
 
 TOUR_CSS = '<link rel="stylesheet" href="/static/tour.css">'
 TOUR_JS = '<script src="/static/tour.js"></script>'
+COOKIE = "geoff_demo"
+EXPIRED = "Ukázka vypršela. Obnov stránku a začni znovu."
+MAX_SESSIONS = 50
+IDLE_SECS = 30 * 60
+CHAT_LIMIT = 15  # questions to the chatbot per session (each one costs a model call)
+MESSAGE_LIMIT = 30  # WhatsApp messages per session (each can cost a Geoff-hook model call)
 
 
-def create_demo_app(db_path, delay=BOT_DELAY):
-    """David's phone: the normal app, whose page resets the database and brings the tour along."""
-    add_david()
-    db.init_db(db_path)
+def _session_app(db_path, delay):
+    """One visitor's demo: David's normal app over their own database, the bots, the bot-request route."""
     orch = DemoOrchestrator(db_path, delay)
     app = create_app(DAVID, orch, db_path)
-
-    # Every page load is a fresh start. Only "/" resets: /api/state and the websocket reconnect
-    # are also hit by a tab that's already running.
-    app.router.routes[:] = [r for r in app.router.routes if not (isinstance(r, Route) and r.path == "/")]
-
-    @app.get("/")
-    def index():
-        orch.cancel_all()
-        seed_demo(db_path)
-        page = (WEB_DIR / "index.html").read_text(encoding="utf-8")
-        page = page.replace("</head>", f"  {TOUR_CSS}\n</head>").replace("</body>", f"  {TOUR_JS}\n</body>")
-        return HTMLResponse(page)
 
     @app.post("/api/demo/bot-request")
     async def bot_request(request: Request):
@@ -200,4 +198,117 @@ def create_demo_app(db_path, delay=BOT_DELAY):
         except (ValueError, AttributeError, db.PaymentError) as e:
             return JSONResponse({"detail": str(e)}, status_code=400)
 
-    return app
+    return app, orch
+
+
+def _fresh_db(path):
+    db.init_db(path)
+    seed_demo(path)
+
+
+class Session:
+    def __init__(self, sid, path, app, orch, now):
+        self.sid, self.path, self.app, self.orch = sid, path, app, orch
+        self.last_seen = now
+        self.chats = 0
+        self.messages = 0
+
+
+class DemoHub:
+    """The demo for many visitors at once: every page load gets its own session (a cookie), with its
+    own SQLite file, bots and app. Requests are passed to the session the cookie names; the static
+    files are shared. Idle sessions are dropped, and at most `max_sessions` run at once."""
+
+    def __init__(self, root, delay=BOT_DELAY, max_sessions=MAX_SESSIONS, idle_secs=IDLE_SECS,
+                 chat_limit=CHAT_LIMIT, message_limit=MESSAGE_LIMIT, clock=time.monotonic):
+        add_david()
+        self.root = root
+        os.makedirs(root, exist_ok=True)
+        self.delay, self.max_sessions, self.idle_secs = delay, max_sessions, idle_secs
+        self.chat_limit, self.message_limit, self.clock = chat_limit, message_limit, clock
+        self.sessions = {}
+        self.static = StaticFiles(directory=WEB_DIR)
+        page = (WEB_DIR / "index.html").read_text(encoding="utf-8")
+        self.page = page.replace("</head>", f"  {TOUR_CSS}\n</head>").replace("</body>", f"  {TOUR_JS}\n</body>")
+
+    # ---- sessions ----
+
+    async def _new_session(self):
+        # The bookkeeping stays on the event loop, so two visitors arriving at once can't race;
+        # only building the database goes to a thread.
+        now = self.clock()
+        for s in [s for s in self.sessions.values() if now - s.last_seen > self.idle_secs]:
+            self._drop(s.sid)
+        while len(self.sessions) >= self.max_sessions:
+            self._drop(min(self.sessions.values(), key=lambda s: s.last_seen).sid)
+        sid = secrets.token_urlsafe(16)
+        path = os.path.join(self.root, f"{sid}.db")
+        await run_in_threadpool(_fresh_db, path)
+        app, orch = _session_app(path, self.delay)
+        self.sessions[sid] = Session(sid, path, app, orch, now)
+        return sid
+
+    def _drop(self, sid):
+        s = self.sessions.pop(sid, None)
+        if s is None:
+            return
+        s.orch.cancel_all()
+        for f in glob.glob(glob.escape(s.path) + "*"):  # the db and any -journal / -wal next to it
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+
+    # ---- ASGI ----
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "lifespan":
+            while True:
+                message = await receive()
+                if message["type"] == "lifespan.startup":
+                    await send({"type": "lifespan.startup.complete"})
+                elif message["type"] == "lifespan.shutdown":
+                    for sid in list(self.sessions):
+                        self._drop(sid)
+                    await send({"type": "lifespan.shutdown.complete"})
+                    return
+        path = scope["path"]
+        if path.startswith("/static/"):
+            return await self.static({**scope, "path": path[len("/static"):], "root_path": "/static"}, receive, send)
+        old = HTTPConnection(scope).cookies.get(COOKIE)
+        if scope["type"] == "http" and path == "/":
+            # Every page load is a fresh start: a new session replaces this browser's old one.
+            # Only "/" does this; /api/state and websocket reconnects of a running tab must not.
+            self._drop(old)
+            sid = await self._new_session()
+            response = HTMLResponse(self.page, headers={"Cache-Control": "no-store"})
+            response.set_cookie(COOKIE, sid, httponly=True, samesite="lax")
+            return await response(scope, receive, send)
+        session = self.sessions.get(old)
+        if session is None:
+            if scope["type"] == "websocket":
+                return await send({"type": "websocket.close", "code": 4410})
+            return await JSONResponse({"detail": EXPIRED}, status_code=410)(scope, receive, send)
+        session.last_seen = self.clock()
+        if scope["type"] == "http" and scope["method"] == "POST":
+            limited = self._limit(session, path)
+            if limited:
+                return await JSONResponse({"detail": limited}, status_code=429)(scope, receive, send)
+        await session.app(scope, receive, send)
+
+    def _limit(self, session, path):
+        """A message if this request goes over the session's limit, else None (and it's counted)."""
+        if path == "/api/chat":
+            if session.chats >= self.chat_limit:
+                return f"V ukázce je limit {self.chat_limit} otázek. Obnov stránku a začni znovu."
+            session.chats += 1
+        elif path == "/api/messages":
+            if session.messages >= self.message_limit:
+                return f"V ukázce je limit {self.message_limit} zpráv. Obnov stránku a začni znovu."
+            session.messages += 1
+        return None
+
+
+def create_demo_app(root, delay=BOT_DELAY, **limits):
+    """The demo server: a DemoHub keeping one session per visitor under `root`."""
+    return DemoHub(root, delay, **limits)
