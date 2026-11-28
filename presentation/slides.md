@@ -59,7 +59,7 @@ Zbytek večera patří **skutečnému světu.**
 
 # 4 · Matice (9 s)
 
-_A two-by-two grid of cells fills the slide; each cell has a small title above its items. The cells fade in one by one. The bottom-right cell arrives last, light red with a red border, pushed slightly out of the grid and tilted, and then stays still._
+_A two-by-two grid of cells fills the slide; each cell has a small title above its items. The cells fade in one by one. The bottom-right cell arrives last, light red with a red border, pushed slightly out of the grid and tilted, and then stays still. When moving on to the next slide, the red cell tips over and falls off the bottom of the screen while the rest fades out._
 
 - **Žádoucí:** QR kód · Přehled · Platby
 - **Na požádání:** Převody mezi vlastními účty · Finanční zdraví · Statistiky

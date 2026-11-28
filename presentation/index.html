@@ -157,6 +157,12 @@ h1, h2, p { margin: 0; }
   width: min(100%, 1240px); height: min(68vh, 720px);
 }
 .matrix h3 { margin: 0 0 .7em; font-weight: 700; font-size: clamp(1.1rem, 1.55vw, 1.55rem); letter-spacing: -.01em; color: var(--moss); }
+/* leaving the slide, the red cell drops off the bottom of the screen */
+#s-matrix.leaving .cell.bad {
+  opacity: 1;
+  transform: translateY(115vh) rotate(16deg);
+  transition: transform .68s cubic-bezier(.55, 0, .9, .45);
+}
 .matrix .bad h3 { color: var(--red); opacity: .75; }
 .matrix .cell {
   position: relative;
