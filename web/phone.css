@@ -420,17 +420,6 @@ body {
   cursor: pointer;
 }
 
-.shade-slot {
-  flex: none;
-  height: 4.2em;
-  border: 0.1em dashed rgba(255, 255, 255, 0.4);
-  border-radius: 1.2em;
-  display: grid;
-  place-items: center;
-  font-size: 0.8em;
-  opacity: 0.75;
-}
-
 .shade-grab {
   position: absolute;
   bottom: 1.6em;

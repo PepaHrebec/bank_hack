@@ -23,7 +23,6 @@
 (function () {
   const PERSON_COLORS = { 1: "#3b6cff", 2: "#2bb673", 3: "#f5a623", 4: "#e5487a" };
   const BANNER_MS = 4000;
-  const EMPTY_SLOTS = 3;
 
   const screen = document.getElementById("screen");
   const shade = document.getElementById("shade");
@@ -167,12 +166,6 @@
       item.append(...noteContent(n, n.time, true));
       makeSwipeable(item, { onDismiss: () => dismiss(n) });
       shadeList.append(item);
-    }
-    for (let i = notifications.length; i < EMPTY_SLOTS; i++) {
-      const slot = document.createElement("div");
-      slot.className = "shade-slot";
-      slot.textContent = "místo pro oznámení";
-      shadeList.append(slot);
     }
   }
 
