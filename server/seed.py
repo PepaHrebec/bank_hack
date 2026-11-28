@@ -201,8 +201,4 @@ def seed_db(path, now=None, rng_seed=7):
     for payer, amount, description in others:
         db.add_expense(path, group["id"], payer, amount, description)
 
-    # Everyone is friends with everyone except Petr, who starts with none so the demo can add him
-    # by his account number. Rebuilt explicitly: reset_db leaves the friends table alone.
-    db.reset_friends(path, loners=(4,))
-
     return {p: len(db.history(path, p)) for p in db.PEOPLE}

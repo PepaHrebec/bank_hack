@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -17,64 +15,42 @@ def db(tmp_path):
     return path
 
 
-def test_new_database_has_all_pairs(db):
-    assert friends_of(db, 1) == [2, 3, 4]
-    assert friends_of(db, 4) == [1, 2, 3]
+def test_new_database_has_no_friends(db):
+    assert all(friends_of(db, p) == [] for p in dbm.PEOPLE)
 
 
-def test_migration_of_old_database_gives_all_pairs(tmp_path):
-    path = str(tmp_path / "old.db")
-    init_db(path)
-    conn = sqlite3.connect(path)
-    conn.execute("DROP TABLE friends")
-    conn.commit()
-    conn.close()
-    init_db(path)
-    assert all(friends_of(path, p) == [q for q in dbm.PEOPLE if q != p] for p in dbm.PEOPLE)
-
-
-def test_init_does_not_restore_removed_friends(db):
-    dbm.clear_friends(db, 4)
+def test_init_keeps_existing_friends(db):
+    add_friend(db, 1, "2222222222/0800")
     init_db(db)
-    assert friends_of(db, 4) == []
+    assert friends_of(db, 1) == [2]
 
 
-def test_reset_keeps_pairs(db):
+def test_reset_and_seed_clear_friends(db):
+    add_friend(db, 1, "2222222222/0800")
     reset_db(db)
-    assert friends_of(db, 2) == [1, 3, 4]
-
-
-def test_seed_leaves_petr_without_friends(db):
+    assert friends_of(db, 1) == [] and friends_of(db, 2) == []
+    add_friend(db, 1, "2222222222/0800")
     seed_db(db)
-    assert friends_of(db, 4) == []
-    assert friends_of(db, 1) == [2, 3]
-    assert friends_of(db, 2) == [1, 3]
-
-
-def test_seed_rebuilds_friends_regardless_of_previous_state(db):
-    seed_db(db)
-    add_friend(db, 1, "4444444444/0800")
-    dbm.clear_friends(db, 2)
-    seed_db(db)
-    assert [friends_of(db, p) for p in (1, 2, 3, 4)] == [[2, 3], [1, 3], [1, 2], []]
+    assert all(friends_of(db, p) == [] for p in dbm.PEOPLE)
 
 
 def test_add_friend_both_ways(db):
     seed_db(db)
     assert add_friend(db, 1, "4444444444/0800") == 4
-    assert friends_of(db, 1) == [2, 3, 4]
+    assert friends_of(db, 1) == [4]
     assert friends_of(db, 4) == [1]
 
 
 @pytest.mark.parametrize("account,message", [
     ("123", "Neplatné číslo účtu"),
-    ("5555555555/0800", "Tento účet nepatří uživateli Geoff"),
-    ("2222222222/0100", "Tento účet nepatří uživateli Geoff"),
+    ("5555555555/0800", "Přátele lze přidat jen podle účtu Geoff"),
+    ("2222222222/0100", "Přátele lze přidat jen podle účtu Geoff"),
+    ("5555555555/0100", "Přátele lze přidat jen podle účtu Geoff"),  # an outside contact
     ("1111111111/0800", "To je tvůj vlastní účet"),
     ("2222222222/0800", "Už jste přátelé"),
 ])
 def test_add_friend_errors(db, account, message):
-    seed_db(db)
+    add_friend(db, 1, "2222222222/0800")
     with pytest.raises(PaymentError, match=message):
         add_friend(db, 1, account)
 
@@ -94,10 +70,11 @@ def test_endpoint_and_events(db):
         assert ws4.receive_json() == {"type": "friends_changed"}
         assert ws1.receive_json() == {"type": "friends_changed"}
     assert c4.get("/api/state").json()["friends"] == [1]
-    assert c1.get("/api/state").json()["friends"] == [2, 3, 4]
+    assert c1.get("/api/state").json()["friends"] == [4]
 
 
 def test_endpoint_errors(db):
+    add_friend(db, 1, "2222222222/0800")
     c1 = TestClient(create_app(1, Orchestrator(), db))
     assert c1.post("/api/friends", json={"account": "1111111111/0800"}).status_code == 400
     assert c1.post("/api/friends", json={"account": "2222222222/0800"}).json()["detail"] == "Už jste přátelé"

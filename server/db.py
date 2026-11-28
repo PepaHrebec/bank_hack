@@ -131,36 +131,12 @@ def init_db(path):
             " sender INTEGER NOT NULL, recipient INTEGER NOT NULL,"
             " text TEXT NOT NULL, created_at TEXT NOT NULL)"
         )
-        friends_new = not conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'friends'"
-        ).fetchone()
+        # Friendships only exist between Geoff users and start empty.
         conn.execute(
             "CREATE TABLE IF NOT EXISTS friends ("
             " person INTEGER NOT NULL, friend INTEGER NOT NULL, created_at TEXT NOT NULL,"
             " PRIMARY KEY (person, friend))"
         )
-        if friends_new:
-            # Databases from before friends existed: everyone is a friend of everyone.
-            now = _now()
-            conn.executemany(
-                "INSERT OR IGNORE INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
-                [(a, b, now) for a in PEOPLE for b in PEOPLE if a != b],
-            )
-        contacts_new = not conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'contact_friends'"
-        ).fetchone()
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS contact_friends ("
-            " person INTEGER NOT NULL, account TEXT NOT NULL, created_at TEXT NOT NULL,"
-            " PRIMARY KEY (person, account))"
-        )
-        if contacts_new:
-            # Databases from before outside contacts existed: everyone knows every contact.
-            now = _now()
-            conn.executemany(
-                "INSERT OR IGNORE INTO contact_friends (person, account, created_at) VALUES (?, ?, ?)",
-                [(pid, acc, now) for pid in PEOPLE for acc in CONTACTS],
-            )
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
@@ -185,6 +161,7 @@ def reset_db(path):
         conn.execute("DELETE FROM recordings")
         conn.execute("DELETE FROM session_invites")
         conn.execute("DELETE FROM messages")
+        conn.execute("DELETE FROM friends")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
 
@@ -1080,29 +1057,12 @@ def friends_of(path, person):
         return [r["friend"] for r in rows]
 
 
-def contact_friends_of(path, person):
-    """Accounts of the outside contacts `person` has added, in order of the CONTACTS list."""
-    with _connect(path) as conn:
-        rows = conn.execute("SELECT account FROM contact_friends WHERE person = ?", (person,))
-        have = {r["account"] for r in rows}
-    return [a for a in CONTACTS if a in have]
-
-
 def add_friend(path, person, account):
-    """Befriend the Geoff user holding `account` (mutual) and return their id, or add a known
-    outside contact (one-sided) and return {"contact": account}."""
+    """Befriend the Geoff user holding `account` (mutual) and return their id."""
     account = parse_account(account)
     friend = person_by_account(account)
     if friend is None:
-        if account not in CONTACTS:
-            raise PaymentError("Tento účet nepatří uživateli Geoff")
-        with _transaction(path) as conn:
-            if conn.execute("SELECT 1 FROM contact_friends WHERE person = ? AND account = ?",
-                            (person, account)).fetchone():
-                raise PaymentError("Už jste přátelé")
-            conn.execute("INSERT INTO contact_friends (person, account, created_at) VALUES (?, ?, ?)",
-                         (person, account, _now()))
-        return {"contact": account}
+        raise PaymentError("Přátele lze přidat jen podle účtu Geoff (…/0800)")
     if friend == person:
         raise PaymentError("To je tvůj vlastní účet")
     with _transaction(path) as conn:
@@ -1114,27 +1074,3 @@ def add_friend(path, person, account):
             [(person, friend, now), (friend, person, now)],
         )
     return friend
-
-
-def reset_friends(path, loners=()):
-    """Rebuild the friend graph: everyone with everyone, except the people in `loners` (no friends).
-    Outside contacts are rebuilt the same way: every non-loner knows all of CONTACTS."""
-    now = _now()
-    with _transaction(path) as conn:
-        conn.execute("DELETE FROM friends")
-        conn.execute("DELETE FROM contact_friends")
-        conn.executemany(
-            "INSERT INTO contact_friends (person, account, created_at) VALUES (?, ?, ?)",
-            [(a, acc, now) for a in PEOPLE if a not in loners for acc in CONTACTS],
-        )
-        conn.executemany(
-            "INSERT INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
-            [(a, b, now) for a in PEOPLE for b in PEOPLE
-             if a != b and a not in loners and b not in loners],
-        )
-
-
-def clear_friends(path, person):
-    """Remove all of `person`'s friendships, both directions (the demo seed uses it)."""
-    with _transaction(path) as conn:
-        conn.execute("DELETE FROM friends WHERE person = ? OR friend = ?", (person, person))

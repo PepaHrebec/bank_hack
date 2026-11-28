@@ -119,6 +119,19 @@ def test_endpoint_geoff_transfer_notifies_recipient(path):
     assert (2, "payment_received") in sent and (1, "payment_sent") in sent
 
 
+def test_endpoint_paying_mock_account_moves_money(path):
+    c1, c2 = (TestClient(create_app(n, Orchestrator(), path)) for n in (1, 2))
+    b1, b2 = (c.get("/api/state").json()["balance"] for c in (c1, c2))
+    r = c1.post("/api/account-payments", json={"account": "2222222222/0800", "amount": 120, "note": "pivo"})
+    assert r.status_code == 200
+    assert c1.get("/api/state").json()["balance"] == b1 - 120
+    st2 = c2.get("/api/state").json()
+    assert st2["balance"] == b2 + 120
+    for hist in (c1.get("/api/state").json()["history"], st2["history"]):
+        assert hist[0]["kind"] == "transfer" and hist[0]["sender"] == 1 and hist[0]["recipient"] == 2
+        assert hist[0]["amount"] == 120
+
+
 def test_banks_endpoint(client):
     banks = client.get("/api/banks").json()
     assert len(banks) == 20

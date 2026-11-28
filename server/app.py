@@ -96,7 +96,6 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "people": [{"id": i, "name": n, "account": db.ACCOUNTS[i]} for i, n in db.PEOPLE.items()],
             "friends": db.friends_of(db_path, person_id),
             "contacts": [{"account": a, "name": n} for a, n in db.CONTACTS.items()],
-            "contact_friends": db.contact_friends_of(db_path, person_id),
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
             "today_change": db.day_change(db_path, person_id),
@@ -146,10 +145,6 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             friend = await run_in_threadpool(db.add_friend, db_path, person_id, body.get("account"))
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
-        if isinstance(friend, dict):  # an outside contact: no phone to notify
-            account = friend["contact"]
-            await orch.send(person_id, {"type": "friends_changed"})
-            return {"friend": {"id": None, "name": db.CONTACTS[account], "account": account, "geoff": False}}
         await orch.send(friend, {
             "type": "friend_added",
             "from": me,

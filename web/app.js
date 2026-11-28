@@ -553,6 +553,30 @@
 
   const accountOf = (id) => state.people.find((p) => p.id === id)?.account || "";
 
+  // Not yet my friend (and the server does track friends): offer "+ Přítel" / "Přidat do přátel".
+  const canbefriend = (id) => Boolean(state.friends) && id !== state.me.id && !state.friends.includes(id);
+  const addFriendById = async (id) => {
+    await postJson("/api/friends", { account: accountOf(id) });
+    await load();
+  };
+
+  // Small "+ Přítel" button for a history row; an error replaces it for a moment.
+  function befriendButton(id) {
+    const btn = button("befriend-btn", "+ Přítel");
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      btn.disabled = true;
+      try {
+        await addFriendById(id);
+      } catch (err) {
+        const note = el("span", "befriend-err", errText(err, false));
+        btn.replaceWith(note);
+        setTimeout(() => { if (note.isConnected) note.replaceWith(btn); btn.disabled = false; }, 3000);
+      }
+    });
+    return btn;
+  }
+
   function refresh() {
     const { me, balance, history } = state;
     ui.balance.textContent = czk(balance);
@@ -595,13 +619,17 @@
       const other = outgoing ? p.recipient : p.sender;
       const row = el("div", "tx");
       const info = el("div", "tx-info");
-      info.append(el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`));
+      // Every transfer is with a Geoff user: say so, and offer to befriend them.
+      const name = el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`);
+      name.append(el("span", "geoff-badge", "Geoff"));
+      info.append(name);
       const when = stamp(p.created_at);
       // One short line: the note if there is one, else where the money came from.
       const meta = p.note ? `${p.note} · ${when}` : outgoing ? when : `z účtu ${accountOf(p.sender)} · ${when}`;
       info.append(el("div", "tx-meta", meta));
       row.append(avatar({ id: other, name: nameOf(other) }), info,
         el("div", "tx-amount " + (outgoing ? "out" : "in"), `${outgoing ? "−" : "+"}${czk(p.amount)}`));
+      if (canbefriend(other)) row.append(befriendButton(other));
       rows.push(row);
     }
     ui.historyList.replaceChildren(...rows);
@@ -697,8 +725,7 @@
   function renderFriends() {
     const { me, people, friends } = state;
     const shown = people.filter((p) => p.id !== me.id && (!friends || friends.includes(p.id)));
-    const outside = (state.contacts || []).filter((c) => (state.contact_friends || []).includes(c.account));
-    if (shown.length === 0 && outside.length === 0) {
+    if (shown.length === 0) {
       ui.friendList.replaceChildren(el("div", "empty", "Zatím žádní přátelé – přidej je podle čísla účtu."));
       return;
     }
@@ -708,21 +735,13 @@
       const row = button("contact", avatar(p), who, icon("chevron", "chev"));
       row.addEventListener("click", () => openPay(p.id));
       return row;
-    }).concat(outside.map((c) => {
-      // Not a Geoff user: a neutral avatar, and tapping goes to the account payment form.
-      const face = el("span", "avatar neutral", Phone.initials(c.name));
-      const who = el("span", "contact-who");
-      who.append(el("span", "contact-name", c.name), el("span", "contact-account", `${c.account} · nepoužívá Geoff`));
-      const row = button("contact", face, who, icon("chevron", "chev"));
-      row.addEventListener("click", () => openAccountPay(c.account));
-      return row;
-    })));
+    }));
   }
 
   // "Přidat přítele": connect by account number; the friend gets a notification.
   function showAddFriendPopup() {
     const input = el("input", "field");
-    Object.assign(input, { type: "text", maxLength: 30, autocomplete: "off", placeholder: "4444444444/0800" });
+    Object.assign(input, { type: "text", maxLength: 30, autocomplete: "off", placeholder: "2222222222/0800" });
     const msg = el("div", "form-msg error");
     const go = el("button", "send-btn", "Přidat");
     go.type = "button";
@@ -730,7 +749,7 @@
     cancel.type = "button";
     const close = Phone.popup([
       el("h3", "popup-title", "Přidat přítele"),
-      el("div", "popup-sub", "Zadej číslo účtu v Geoff, třeba 4444444444/0800."),
+      el("div", "popup-sub", "Zadej číslo účtu v Geoff, třeba 2222222222/0800."),
       input, go, msg, cancel,
     ]);
     cancel.addEventListener("click", () => close());
@@ -1586,7 +1605,14 @@
   Phone.onEvent((event) => {
     if (event.type === "payment_received") {
       const note = event.payment.note ? `\n${event.payment.note}` : "";
-      Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[event.payment.sender] });
+      const sender = event.payment.sender;
+      Phone.notify({
+        title: event.from, body: event.text + note, color: Phone.colors[sender],
+        // A Geoff user I haven't befriended yet can be added right here.
+        actions: canbefriend(sender)
+          ? [{ label: "Přidat do přátel", onClick: async () => { await addFriendById(sender); return "Přidáno ✓"; } }]
+          : undefined,
+      });
       load();
     } else if (event.type === "request_received" || event.type === "request_declined") {
       const sender = event.type === "request_received" ? event.request.requester : event.request.payer;
