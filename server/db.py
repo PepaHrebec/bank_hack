@@ -1,5 +1,6 @@
 """SQLite storage for the payments and payment requests of the four mockup people."""
 
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
@@ -41,6 +42,12 @@ def init_db(path):
         conn.execute(
             "CREATE TABLE IF NOT EXISTS card_payments ("
             " id INTEGER PRIMARY KEY AUTOINCREMENT, person INTEGER NOT NULL,"
+            " amount INTEGER NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL)"
+        )
+        # Account payments leave the account for a Czech bank account outside the app.
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS account_payments ("
+            " id INTEGER PRIMARY KEY AUTOINCREMENT, person INTEGER NOT NULL, account TEXT NOT NULL,"
             " amount INTEGER NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL)"
         )
         # Income (e.g. salary) enters the account from outside the app, so it has no sender.
@@ -138,6 +145,7 @@ def reset_db(path):
         conn.execute("DELETE FROM settle_groups")
         conn.execute("DELETE FROM payments")
         conn.execute("DELETE FROM card_payments")
+        conn.execute("DELETE FROM account_payments")
         conn.execute("DELETE FROM income")
         conn.execute("DELETE FROM recordings")
         conn.execute("DELETE FROM session_invites")
@@ -235,6 +243,45 @@ def card_payment(path, person, amount, note=""):
             (person, amount, note, created_at),
         )
     return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
+
+
+_ACCOUNT_RE = re.compile(r"(?:(\d{1,6})-)?(\d{2,10})/(\d{4})")
+_ACCOUNT_WEIGHTS = (1, 2, 4, 8, 5, 10, 9, 7, 3, 6)  # from the rightmost digit
+
+
+def _mod11_ok(digits):
+    return sum(int(d) * w for d, w in zip(reversed(digits), _ACCOUNT_WEIGHTS)) % 11 == 0
+
+
+def parse_account(text):
+    """Validate a Czech account number `[prefix-]number/bank` and return its normalised form."""
+    match = _ACCOUNT_RE.fullmatch(re.sub(r"\s+", "", text)) if isinstance(text, str) else None
+    if not match:
+        raise PaymentError("Neplatné číslo účtu")
+    prefix, number, bank = match.groups()
+    prefix = prefix or ""
+    if int(number) == 0 or not _mod11_ok(prefix) or not _mod11_ok(number):
+        raise PaymentError("Neplatné číslo účtu")
+    prefix, number = prefix.lstrip("0"), number.lstrip("0")
+    return f"{prefix + '-' if prefix else ''}{number}/{bank}"
+
+
+def account_payment(path, person, account, amount, note=""):
+    """Pay a Czech bank account: the money leaves `person`'s account and goes nowhere in the app."""
+    _check_amount(amount)
+    if person not in PEOPLE:
+        raise PaymentError("Neznámá osoba")
+    account = parse_account(account)
+    note = (note or "").strip()
+    with _transaction(path) as conn:
+        _debit(conn, person, amount)
+        created_at = _now()
+        cur = conn.execute(
+            "INSERT INTO account_payments (person, account, amount, note, created_at) VALUES (?, ?, ?, ?, ?)",
+            (person, account, amount, note, created_at),
+        )
+    return {"id": cur.lastrowid, "person": person, "account": account, "amount": amount, "note": note,
+            "created_at": created_at}
 
 
 def _own_payments(conn, person, since, until=None):
@@ -456,9 +503,11 @@ def history(path, person_id):
             "SELECT * FROM payments WHERE sender = ? OR recipient = ?", (person_id, person_id)
         ).fetchall()
         cards = conn.execute("SELECT * FROM card_payments WHERE person = ?", (person_id,)).fetchall()
+        accounts = conn.execute("SELECT * FROM account_payments WHERE person = ?", (person_id,)).fetchall()
         income = conn.execute("SELECT * FROM income WHERE person = ?", (person_id,)).fetchall()
     items = [{"kind": "transfer", **dict(r)} for r in transfers]
     items += [{"kind": "card", **dict(r)} for r in cards]
+    items += [{"kind": "account", **dict(r)} for r in accounts]
     items += [{"kind": "income", **dict(r)} for r in income]
     items.sort(key=lambda i: (i["created_at"], i["id"]), reverse=True)
     return items

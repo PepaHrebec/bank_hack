@@ -145,6 +145,21 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         await orch.send(person_id, event)
         return payment
 
+    @app.post("/api/account-payments")
+    async def account_pay(request: Request):
+        try:
+            body = await _json_object(request)
+            account = body.get("account")
+            if not isinstance(account, str):
+                raise BadInput("Neplatné číslo účtu")
+            payment = await run_in_threadpool(
+                db.account_payment, db_path, person_id, account, body.get("amount"), _note(body)
+            )
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        await orch.send(person_id, {"type": "payment_sent", "payment": payment})
+        return payment
+
     @app.post("/api/recording/start")
     async def recording_start(request: Request):
         try:
