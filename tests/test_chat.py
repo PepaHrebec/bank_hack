@@ -207,7 +207,7 @@ def test_chat_endpoint(db):
 
     c = client(db, fake)
     r = c.post("/api/chat", json={"messages": [MSG]})
-    assert r.status_code == 200 and r.json() == {"reply": "Ahoj!"}
+    assert r.status_code == 200 and r.json() == {"reply": "Ahoj!", "charts": []}
     assert c.post("/api/chat", json={"messages": [MSG] * 21}).status_code == 400
     assert c.post("/api/chat", json={"messages": [MSG, {"role": "assistant", "content": "x"}]}).status_code == 400
     assert c.post("/api/chat", json={"messages": [{"role": "user", "content": "x" * 1001}]}).status_code == 400
@@ -281,3 +281,140 @@ def test_openrouter_omits_tools_key_when_empty(monkeypatch):
     asyncio.run(complete([], []))
     asyncio.run(complete([], chat_tools.TOOLS))
     assert "tools" not in bodies[0] and "tools" in bodies[1]
+
+
+def test_money_flow_counts_account_payment_as_outgoing(db, monkeypatch):
+    at(monkeypatch, "2026-01-02T09:00:00")
+    server_db.account_payment(db, 1, "2000145399/0800", 100)
+    card_payment(db, 1, 60, "káva")
+    r = chat_tools.call(db, 1, "money_flow", {"period": "today"}, TODAY)
+    assert "error" not in r
+    assert (r["to_accounts"], r["total_out"], r["net"], r["count"]) == (100, 160, -160, 2)
+    top = r["largest_out"][0]
+    assert (top["kind"], top["amount"], top["person"]) == ("account", 100, "Na účet 2000145399/0800")
+    assert "error" not in chat_tools.call(db, 1, "with_person", {"person": "Pepa"}, TODAY)
+
+
+def _spend(monkeypatch, db):
+    at(monkeypatch, "2025-12-30T10:00:00")  # Tuesday of previous week
+    card_payment(db, 1, 100, "Albert")
+    add_income(db, 1, 1000, "výplata")
+    at(monkeypatch, "2025-12-15T10:00:00")  # Monday two weeks before that
+    send_payment(db, 1, 2, 70, "x")
+    at(monkeypatch, "2026-01-02T09:00:00")
+    card_payment(db, 1, 50, "Albert")
+    card_payment(db, 1, 30, "Lidl")
+    send_payment(db, 1, 3, 20, "oběd")
+    send_payment(db, 3, 1, 5, "zpět")
+
+
+def test_money_series_weeks_agree_with_money_flow(db, monkeypatch):
+    _spend(monkeypatch, db)
+    r = chat_tools.call(db, 1, "money_series", {"unit": "week", "count": 3}, TODAY)
+    assert r["unit"] == "week" and [b["label"] for b in r["buckets"]] == ["15. 12.", "22. 12.", "29. 12."]
+    last = r["buckets"][-1]
+    flow = chat_tools.call(db, 1, "money_flow", {"period": "this_week"}, TODAY)
+    assert (last["from"], last["to"]) == (flow["from"], flow["to"])
+    for k in ("income", "card", "to_accounts", "transfers_in", "transfers_out", "total_in", "total_out", "net"):
+        assert last[k] == flow[k]
+    assert last["total_out"] == 50 + 30 + 20 + 100 and last["income"] == 1000
+    assert r["buckets"][0]["total_out"] == 70 and r["buckets"][1]["total_out"] == 0
+    assert len(chat_tools.call(db, 1, "money_series", {"unit": "week"}, TODAY)["buckets"]) == 6
+
+
+def test_money_series_months(db, monkeypatch):
+    _spend(monkeypatch, db)
+    r = chat_tools.call(db, 1, "money_series", {"unit": "month", "count": 3}, TODAY)
+    assert [b["label"] for b in r["buckets"]] == ["listopad 2025", "prosinec 2025", "leden"]
+    assert (r["buckets"][2]["from"], r["buckets"][2]["to"]) == ("2026-01-01", "2026-01-02")
+    flow = chat_tools.call(db, 1, "money_flow", {"period": "last_month"}, TODAY)
+    assert r["buckets"][1]["total_out"] == flow["total_out"] == 170
+    assert r["buckets"][1]["to"] == "2025-12-31"
+    assert chat_tools.call(db, 1, "money_series", {"unit": "month", "count": 1}, TODAY).get("error")
+    assert chat_tools.call(db, 1, "money_series", {"unit": "day"}, TODAY).get("error")
+
+
+def test_spending_breakdown_groups_and_caps(db, monkeypatch):
+    at(monkeypatch, "2026-01-02T09:00:00")
+    card_payment(db, 1, 50, "Albert")
+    card_payment(db, 1, 25, "Albert")
+    card_payment(db, 1, 30, "")
+    send_payment(db, 1, 3, 20, "oběd")
+    r = chat_tools.call(db, 1, "spending_breakdown", {"period": "today"}, TODAY)
+    assert r["total"] == 125
+    assert r["items"][0] == {"label": "Albert", "amount": 75}
+    assert {"label": "Platba kartou", "amount": 30} in r["items"]
+    assert any(i["label"].startswith("Převod: ") and i["amount"] == 20 for i in r["items"])
+    for n in range(10):
+        card_payment(db, 1, 1 + n, f"Obchod{n}")
+    r = chat_tools.call(db, 1, "spending_breakdown", {"period": "today"}, TODAY)
+    assert len(r["items"]) == 8 and r["items"][-1]["label"] == "Ostatní"
+    assert sum(i["amount"] for i in r["items"]) == r["total"]
+    assert [i["amount"] for i in r["items"][:-1]] == sorted((i["amount"] for i in r["items"][:-1]), reverse=True)
+    assert chat_tools.call(db, 1, "spending_breakdown", {"period": "x"}, TODAY).get("error")
+
+
+PIE = {"title": "Výdaje", "labels": ["A", "B"], "values": [3, 1]}
+LINE = {"title": "Měsíce", "labels": ["a", "b"], "series": [{"name": "Výdaje", "values": [1, -2]}]}
+
+
+def test_chart_valid():
+    spec, res = chat_tools.chart("plot_pie", {**PIE, "junk": 1})
+    assert spec == {"type": "pie", "unit": "Kč", **PIE} and res["ok"] is True
+    spec, _ = chat_tools.chart("plot_line", {**LINE, "unit": "ks"})
+    assert spec["type"] == "line" and spec["unit"] == "ks" and spec["series"][0]["values"] == [1, -2]
+
+
+@pytest.mark.parametrize("name,args", [
+    ("plot_pie", {**PIE, "values": [1]}),
+    ("plot_pie", {**PIE, "values": [3, -1]}),
+    ("plot_pie", {**PIE, "values": [0, 0]}),
+    ("plot_pie", {"title": "x", "labels": list("abcdefghi"), "values": [1] * 9}),
+    ("plot_pie", {**PIE, "title": "x" * 61}),
+    ("plot_pie", {**PIE, "labels": ["A", "x" * 31]}),
+    ("plot_pie", {**PIE, "values": ["3", 1]}),
+    ("plot_line", {**LINE, "series": [{"name": "v", "values": [1]}]}),
+    ("plot_line", {**LINE, "series": []}),
+    ("plot_line", {**LINE, "series": [{"name": "v", "values": [1, 2]}] * 4}),
+    ("plot_line", {**LINE, "labels": ["a"], "series": [{"name": "v", "values": [1]}]}),
+    ("plot_line", {**LINE, "labels": [str(i) for i in range(25)]}),
+])
+def test_chart_invalid(name, args):
+    spec, res = chat_tools.chart(name, args)
+    assert spec is None and "error" in res
+
+
+def test_run_collects_charts_and_endpoint_returns_them(db):
+    calls = []
+
+    async def fake(messages, tools):
+        calls.append(messages[-1])
+        if len(calls) == 1:
+            return tool_call("plot_pie", json.dumps({**PIE, "values": [3, -1]}))
+        if len(calls) == 2:
+            return tool_call("plot_pie", json.dumps(PIE))
+        return {"role": "assistant", "content": "Hotovo."}
+
+    r = client(db, fake).post("/api/chat", json={"messages": [MSG]})
+    assert r.json()["reply"] == "Hotovo."
+    assert [c["type"] for c in r.json()["charts"]] == ["pie"] and len(r.json()["charts"]) == 1
+    assert "error" in json.loads(calls[1]["content"])
+    assert json.loads(calls[2]["content"])["ok"] is True
+    charts = []
+    asyncio.run(chat.run(db, 1, [MSG], _seq(tool_call("plot_line", json.dumps(LINE)), "x"), TODAY, charts=charts))
+    assert charts[0]["type"] == "line"
+
+
+def _seq(*replies):
+    it = iter(replies)
+
+    async def complete(messages, tools):
+        r = next(it)
+        return {"role": "assistant", "content": r} if isinstance(r, str) else r
+
+    return complete
+
+
+def test_plot_tools_are_registered():
+    names = {t["function"]["name"] for t in chat_tools.TOOLS}
+    assert {"money_series", "spending_breakdown", "plot_line", "plot_pie"} <= names

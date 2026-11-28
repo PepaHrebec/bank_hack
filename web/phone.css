@@ -311,7 +311,11 @@ body {
   gap: 0.5em;
 }
 
-.note-title { font-weight: 600; }
+.note-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
 
 .note-time {
   opacity: 0.5;
@@ -382,17 +386,39 @@ body {
   border-radius: 1.2em;
   background: rgba(255, 255, 255, 0.15);
   font-size: 0.88em;
+  touch-action: pan-y;
+  cursor: grab;
 }
 
-.shade-slot {
-  flex: none;
-  height: 4.2em;
-  border: 0.1em dashed rgba(255, 255, 255, 0.4);
-  border-radius: 1.2em;
-  display: grid;
-  place-items: center;
+.shade-clear {
+  align-self: flex-end;
+  margin: -0.6em 0.3em 0.7em;
+  padding: 0.4em 1em;
+  border: 0;
+  border-radius: 1em;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font: inherit;
   font-size: 0.8em;
-  opacity: 0.75;
+  cursor: pointer;
+}
+
+.shade-clear[hidden] { display: none; }
+
+.note-close {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  margin: -0.2em -0.3em 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+  font: inherit;
+  font-size: 1em;
+  line-height: 1.4em;
+  cursor: pointer;
 }
 
 .shade-grab {

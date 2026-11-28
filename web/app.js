@@ -1,13 +1,12 @@
 // Placeholder bank app.
-//   main     balance card with today's change (tap -> history), Contacts and QR tiles,
+//   main     balance card with today's change (tap -> history), Friends and QR tiles,
 //            chat with Geoff (read-only questions about my payments)
 // It also fills the home-screen widget (Phone.widget) with the balance and today's change.
 //   groups   Group Settle: every group I'm in, "+ New group"
 //   newgroup name a group and tick who's in it
 //   group    one group: members, expenses (add / delete own while open), Approve for the creator
 //   qr       a fixed QR code with amount and note fields under it (display only)
-//   contacts Group Settle, To be paid, and the other three people
-//            (tap -> pay)
+//   contacts Friends: Group Settle, To be paid, my friends (tap -> pay) and "Přidat přítele"
 //   pay      Payment (send money) or Request (ask for money) with one contact
 //   tobepaid "Requested from me": open requests to me (individual and group shares) to pay
 //            or decline; "Requested from others": requests I made and their status
@@ -23,6 +22,7 @@
   let mode = "payment"; // "payment" | "request" on the pay screen
   let openGroupId = null; // group shown on the group screen
   let currentView = null;
+  let accountForm = null; // {account, msg} of the "Zaplatit" view
   let startExpense = null; // {amount, note} a new group starts with (from a card payment), or null
 
   const ICONS = {
@@ -35,9 +35,20 @@
     card: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 10h19" stroke="currentColor" stroke-width="2"/><path d="M6 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     arrowin: '<svg viewBox="0 0 24 24"><path d="M12 4v13M6 11.5l6 6 6-6M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     settle: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    personadd: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9.5" cy="8" r="3.4"/><path d="M3 19c0-3.4 2.9-5.5 6.5-5.5S16 15.6 16 19M19 8v6M16 11h6"/></g></svg>',
   };
 
-  const czk = (n) => `${n.toLocaleString("cs-CZ")} Kč`;
+  // Always two decimals, Czech format: 1234.5 -> "1 234,50 Kč".
+  const czk = (n) => `${n.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`;
+  // What's typed into an amount field -> a number for the server; a Czech comma is fine ("123,50"), empty is null.
+  // Anything else goes as typed, so the server's own message explains what is wrong.
+  function parseAmount(str) {
+    const s = String(str).replace(/[\s\u00a0]/g, "").replace(",", ".");
+    if (s === "") return null;
+    return /^\d*\.?\d*$/.test(s) && s !== "." ? Number(s) : str.trim();
+  }
+  // Amount inputs are text fields: a number field would refuse "123,50" in many browsers.
+  const AMOUNT_FIELD = { type: "text", inputMode: "decimal", autocomplete: "off", placeholder: "Částka (Kč)" };
   // Today's balance change, e.g. "+250 Kč dnes", with a class for its colour.
   function showChange(e, n) {
     e.textContent = `${n > 0 ? "+" : n < 0 ? "−" : "±"}${czk(Math.abs(n))} dnes`;
@@ -114,11 +125,13 @@
     card.append(top, balance, change);
     card.addEventListener("click", () => show("history"));
     const tiles = el("div", "main-tiles");
-    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Kontakty"));
+    const contactsBtn = button("big-btn", icon("contacts", "big-btn-icon"), el("span", null, "Přátelé"));
     contactsBtn.addEventListener("click", () => show("contacts"));
     const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR kód"));
     qrBtn.addEventListener("click", () => show("qr"));
-    tiles.append(contactsBtn, qrBtn);
+    const payAccountBtn = button("big-btn", icon("card", "big-btn-icon"), el("span", null, "Zaplatit"));
+    payAccountBtn.addEventListener("click", () => openAccountPay());
+    tiles.append(contactsBtn, qrBtn, payAccountBtn);
     const chat = buildChat();
     const recToggle = button("rec-toggle");
     recToggle.addEventListener("click", toggleRecording);
@@ -137,14 +150,11 @@
     toPayBtn.addEventListener("click", () => show("tobepaid"));
     const settleBtn = button("settle", icon("settle", "settle-icon"), el("span", null, "Skupinové vyrovnání"));
     settleBtn.addEventListener("click", () => show("groups"));
-    actions.append(settleBtn, toPayBtn);
-    const list = el("div", "card-list");
-    for (const p of others) {
-      const row = button("contact", avatar(p), el("span", "contact-name", p.name), icon("chevron", "chev"));
-      row.addEventListener("click", () => openPay(p.id));
-      list.append(row);
-    }
-    contacts.append(header("Kontakty", "main"), actions, list);
+    const addFriendBtn = button("settle", icon("personadd", "settle-icon"), el("span", null, "Přidat přítele"));
+    addFriendBtn.addEventListener("click", showAddFriendPopup);
+    actions.append(settleBtn, toPayBtn, addFriendBtn);
+    const friendList = el("div", "friend-wrap");
+    contacts.append(header("Přátelé", "main"), actions, friendList);
     views.contacts = contacts;
 
     // pay
@@ -162,7 +172,7 @@
     }
     const form = el("form", "pay-form");
     const amount = el("input", "field");
-    Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(amount, AMOUNT_FIELD);
     amount.id = "amount";
     const note = el("input", "field");
     Object.assign(note, { type: "text", maxLength: 80, placeholder: "Poznámka (volitelné)" });
@@ -241,7 +251,7 @@
     const groupInfo = el("div", "group-info");
     const expenseForm = el("form", "pay-form expense-form");
     const exAmount = el("input", "field");
-    Object.assign(exAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(exAmount, AMOUNT_FIELD);
     const exDesc = el("input", "field");
     Object.assign(exDesc, { type: "text", maxLength: 60, placeholder: "Za co (např. Chata)" });
     const exBtn = el("button", "send-btn", "Přidat výdaj");
@@ -263,13 +273,13 @@
     qrImg.alt = "QR kód";
     const qrCaption = el("div", "qr-caption", "Naskenuj a zaplať");
     const qrAmount = el("input", "field");
-    Object.assign(qrAmount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    Object.assign(qrAmount, AMOUNT_FIELD);
     const qrNote = el("input", "field");
     Object.assign(qrNote, { type: "text", maxLength: 80, placeholder: "Poznámka (volitelné)" });
     const updateCaption = () => {
-      const amt = Number(qrAmount.value);
+      const amt = parseAmount(qrAmount.value);
       const parts = [];
-      if (qrAmount.value !== "" && amt > 0) parts.push(czk(amt));
+      if (typeof amt === "number" && amt > 0) parts.push(czk(amt));
       if (qrNote.value.trim()) parts.push(qrNote.value.trim());
       qrCaption.textContent = parts.length ? parts.join(" · ") : "Naskenuj a zaplať";
     };
@@ -280,6 +290,24 @@
     qrForm.append(qrAmount, qrNote);
     qr.append(header("QR kód", "main"), qrCard, qrForm);
     views.qr = qr;
+
+    // confirm (paying a request); filled in by openConfirm
+    const confirm = el("section", "view");
+    const confirmHead = el("div", "view-header");
+    const confirmBack = button("back-btn", icon("back"));
+    confirmBack.addEventListener("click", () => show(confirmReturn));
+    confirmHead.append(confirmBack, el("h2", null, "Potvrzení platby"));
+    const confirmBody = el("div", "confirm-body");
+    const confirmMsg = el("div", "form-msg error");
+    const confirmCancel = button("confirm-btn secondary", "Zrušit");
+    confirmCancel.addEventListener("click", () => show(confirmReturn));
+    const confirmOk = button("confirm-btn", "Potvrdit platbu");
+    confirmOk.addEventListener("click", payConfirmed);
+    const confirmActions = el("div", "confirm-actions");
+    confirmActions.append(confirmCancel, confirmOk);
+    confirm.append(confirmHead, confirmBody, confirmMsg, confirmActions);
+    views.confirm = confirm;
+    views.accountPay = buildAccountPay();
 
     root.replaceChildren(...Object.values(views));
 
@@ -303,19 +331,203 @@
     Phone.widget.replaceChildren(widgetHead, widgetRecent, widgetBody);
 
     ui = {
-      views, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, widgetRecent, payWho, amount, note, sendBtn, msg, historyList,
+      views, friendList, balance, change, recToggles: [recToggle, wRecToggle], recInfos: [recInfo, wRecInfo], widgetBalance, widgetChange, widgetRecent, payWho, amount, note, sendBtn, msg, historyList,
       payTitle: payHeader.querySelector("h2"), modeButtons, toPayList, toPayBadge, requestedList,
       groupsList, ngName, ngExpense, ngPicks, ngBtn, ngMsg,
       groupTitle: groupHeader.querySelector("h2"), groupInfo, expenseForm, exAmount, exDesc, exBtn, exMsg,
       expenseList, approveBox, pickBox,
+      confirmBody, confirmMsg, confirmActions, confirmCancel, confirmOk,
     };
     show("main");
+  }
+
+  // "Zaplatit": pay to a Czech bank account number; the server decides whether it is valid.
+  function buildAccountPay() {
+    const view = el("section", "view");
+    const account = el("input", "field account-number");
+    Object.assign(account, { type: "text", maxLength: 30, inputMode: "text", autocomplete: "off", placeholder: "123456-1234567890" });
+    const bank = el("select", "field account-bank");
+    bank.append(new Option("Vyber banku", ""));
+    // Loaded on demand; a failed fetch is simply retried the next time the form opens.
+    let banksLoading = null;
+    const loadBanks = () => {
+      if (bank.options.length > 1) return Promise.resolve();
+      if (banksLoading) return banksLoading;
+      return banksLoading = fetch("/api/banks").then((r) => {
+        if (!r.ok) throw new Error("banks");
+        return r.json();
+      }).then((list) => {
+        for (const b of list) bank.append(new Option(`${b.code} – ${b.name}`, b.code));
+      }).catch(() => {}).finally(() => { banksLoading = null; });
+    };
+    loadBanks();
+    // A pasted "number/bank" is split: the bank code goes into the select (if it is listed).
+    const splitPasted = () => {
+      const m = account.value.match(/^(.*?)\s*\/\s*(\d{4})\s*$/);
+      if (!m) return;
+      account.value = m[1];
+      if ([...bank.options].some((o) => o.value === m[2])) bank.value = m[2];
+    };
+    const accountRow = el("div", "account-row");
+    accountRow.append(account, el("span", "account-slash", "/"), bank);
+    const hint = el("div", "account-hint");
+    hint.hidden = true;
+    // A gentle nudge while typing: the number part (after an optional prefix) has 10 digits.
+    const lengthWarn = el("div", "account-warn");
+    lengthWarn.hidden = true;
+    const updateLength = () => {
+      const number = account.value.replace(/\s+/g, "").split("-").pop();
+      const digits = number.replace(/\D/g, "").length;
+      lengthWarn.hidden = !number || digits === 10;
+      lengthWarn.textContent = `Číslo účtu má 10 číslic (zadáno ${digits}).`;
+    };
+    // Bank 0800 is Geoff: say who owns the account, using the people the state already lists.
+    const updateHint = () => {
+      // Same normalisation as the server: leading zeros of prefix and number are dropped separately.
+      const [number, prefix = ""] = account.value.replace(/\s+/g, "").split("-").reverse();
+      const strip = (digits) => digits.replace(/^0+/, "");
+      const full = `${strip(prefix) ? `${strip(prefix)}-` : ""}${strip(number)}/${bank.value}`;
+      const contact = contactName(full);
+      if (contact) {
+        const opt = [...bank.options].find((o) => o.value === bank.value);
+        const bankName = opt ? opt.text.split(" – ").slice(1).join(" – ") : "";
+        hint.hidden = false;
+        hint.textContent = `${contact} nepoužívá Geoff – platba odejde do banky ${bankName || bank.value}.`;
+        return;
+      }
+      hint.hidden = bank.value !== "0800";
+      if (hint.hidden) return;
+      const owner = (state?.people || []).find((p) => p.account === full);
+      hint.textContent = !account.value.trim() ? "Účet je u Geoff – platba proběhne okamžitě."
+        : owner && owner.id === state.me.id ? "To je tvůj vlastní účet"
+        : owner ? `${owner.name} používá Geoff – peníze dorazí hned.`
+        : "Účet je u Geoff – platba proběhne okamžitě.";
+    };
+    account.addEventListener("input", () => { splitPasted(); updateLength(); updateHint(); });
+    bank.addEventListener("change", updateHint);
+    const amount = el("input", "field");
+    Object.assign(amount, AMOUNT_FIELD);
+    const note = el("input", "field");
+    Object.assign(note, { type: "text", maxLength: 80, placeholder: "Zpráva pro příjemce (volitelné)" });
+    const btn = el("button", "send-btn", "Zaplatit");
+    btn.type = "submit";
+    const msg = el("div", "form-msg");
+    const form = el("form", "pay-form");
+    form.append(el("label", "form-label", "Číslo účtu"), accountRow, lengthWarn, hint, amount, note, btn, msg);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.className = "form-msg ok";
+      msg.textContent = "";
+      splitPasted();
+      updateHint();
+      if (!bank.value) {
+        msg.className = "form-msg error";
+        msg.textContent = "Vyber banku";
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const p = await postJson("/api/account-payments", {
+          account: `${account.value.replace(/\s+/g, "")}/${bank.value}`, amount: parseAmount(amount.value), note: note.value,
+        });
+        account.value = amount.value = note.value = "";
+        bank.value = "";
+        updateLength();
+        updateHint();
+        msg.className = "form-msg ok";
+        msg.textContent = p.kind === "transfer" ? `Posláno ${czk(p.amount)} pro ${nameOf(p.recipient)}`
+          : `Zaplaceno ${czk(p.amount)} na účet ${p.account}`;
+        await load();
+      } catch (err) {
+        msg.className = "form-msg error";
+        msg.textContent = errText(err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    view.append(header("Zaplatit", "main"), form);
+    accountForm = {
+      account, msg, loadBanks,
+      // Prefill from a contact: "number/bank" split into the two fields.
+      fill(full) {
+        const [number, code] = full.split("/");
+        account.value = number;
+        bank.value = [...bank.options].some((o) => o.value === code) ? code : "";
+        updateLength();
+        updateHint();
+        // The bank list may still be loading: select the bank once it is there.
+        if (!bank.value) loadBanks().then(() => { if (!bank.value) { bank.value = code; updateHint(); } });
+      },
+    };
+    return view;
+  }
+
+  function openAccountPay(full) {
+    accountForm.msg.className = "form-msg";
+    accountForm.msg.textContent = "";
+    accountForm.loadBanks();
+    if (full) accountForm.fill(full);
+    show("accountPay");
+    if (!full) accountForm.account.focus();
   }
 
   function show(name) {
     currentView = name;
     for (const [key, view] of Object.entries(ui.views)) view.classList.toggle("active", key === name);
     root.scrollTop = 0;
+  }
+
+  // The request being confirmed and the view the back arrow returns to.
+  let confirmRequest = null;
+  let confirmReturn = "main";
+  let confirmDone = false;
+
+  function openConfirm(r) {
+    confirmRequest = r;
+    confirmDone = false;
+    if (currentView !== "confirm") confirmReturn = currentView || "main";
+    const body = ui.confirmBody;
+    body.className = "confirm-body";
+    body.onclick = null;
+    const payee = el("div", "confirm-payee");
+    payee.append(avatar({ id: r.requester, name: nameOf(r.requester) }), el("div", "pay-name", nameOf(r.requester)));
+    body.replaceChildren(payee, el("div", "confirm-amount", czk(r.amount)));
+    if (r.note) body.append(el("div", "confirm-note", r.note));
+    // The request_received event carries group_id only; the loaded to_pay rows carry the group.
+    const group = ((state.to_pay || []).find((x) => x.id === r.id) || r).group;
+    if (group) body.append(el("div", "confirm-group", `Skupina: ${group.title}`));
+    ui.confirmMsg.textContent = "";
+    ui.confirmActions.hidden = false;
+    ui.confirmCancel.disabled = false;
+    ui.confirmOk.disabled = false;
+    show("confirm");
+  }
+
+  async function payConfirmed() {
+    const r = confirmRequest;
+    if (!r || confirmDone) return;
+    ui.confirmMsg.textContent = "";
+    ui.confirmCancel.disabled = true;
+    ui.confirmOk.disabled = true;
+    try {
+      await postJson(`/api/requests/${r.id}/pay`);
+    } catch (e) {
+      ui.confirmMsg.textContent = errText(e);
+      ui.confirmCancel.disabled = false;
+      ui.confirmOk.disabled = false;
+      return;
+    }
+    confirmDone = true;
+    ui.confirmActions.hidden = true;
+    ui.confirmBody.append(el("div", "confirm-done", "Zaplaceno ✓"));
+    const leave = () => {
+      if (currentView !== "confirm" || confirmRequest !== r) return;
+      confirmRequest = null;
+      show("main");
+      load();
+    };
+    ui.confirmBody.onclick = leave;
+    setTimeout(leave, 1000);
   }
 
   function openPay(id) {
@@ -343,7 +555,8 @@
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const rows = state.history.slice(0, 3).map((p) => {
       const incoming = p.kind === "income" || (p.kind === "transfer" && p.recipient === state.me.id);
-      const label = p.kind === "card" ? (p.note || "Platba kartou")
+      const label = p.kind === "account" ? accountLabel(p.account)
+        : p.kind === "card" ? (p.note || "Platba kartou")
         : p.kind === "income" ? (p.note || "Příchozí platba")
         : `${incoming ? "Od" : "Pro"} ${nameOf(incoming ? p.sender : p.recipient)}`;
       const when = p.created_at.slice(0, 10) === today ? p.created_at.slice(11, 16) : stamp(p.created_at).split(" ")[0];
@@ -355,10 +568,58 @@
     ui.widgetRecent.replaceChildren(...rows);
   }
 
+  // Known outside contacts (state.contacts, absent on old servers), by normalised account.
+  const contactName = (account) => (state?.contacts || []).find((c) => c.account === account)?.name || "";
+  const accountLabel = (account) => contactName(account) ? `Pro ${contactName(account)}` : `Na účet ${account}`;
+
+  const accountOf = (id) => state.people.find((p) => p.id === id)?.account || "";
+
+  // Not yet my friend (and the server does track friends): offer "+ Přítel" / "Přidat do přátel".
+  const canbefriend = (id) => Boolean(state.friends) && id !== state.me.id && !state.friends.includes(id);
+  // A friend request: mine waiting for their answer, or theirs waiting for mine.
+  const requestSent = (id) => Boolean(state.friend_requests_sent?.includes(id));
+  const requestReceived = (id) => Boolean(state.friend_requests?.includes(id));
+  // Ask `id` to be friends; resolves to "requested", or "friends" if they had already asked me.
+  const addFriendById = async (id) => {
+    const { status } = await postJson("/api/friends", { account: accountOf(id) });
+    await load();
+    return status;
+  };
+  const answerFriendRequest = async (id, action) => {
+    await postJson(`/api/friends/requests/${id}/${action}`);
+    await load();
+  };
+
+  // Small "+ Přítel" button for a history row; an error replaces it for a moment.
+  // A pending request shows "Odesláno" instead, and one they sent me is accepted with "Přijmout".
+  function befriendButton(id) {
+    if (requestSent(id)) {
+      const sent = button("befriend-btn", "Odesláno");
+      sent.disabled = true;
+      return sent;
+    }
+    const accepting = requestReceived(id);
+    const btn = button("befriend-btn", accepting ? "Přijmout" : "+ Přítel");
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      btn.disabled = true;
+      try {
+        if (accepting) await answerFriendRequest(id, "accept");
+        else await addFriendById(id);
+      } catch (err) {
+        const note = el("span", "befriend-err", errText(err, false));
+        btn.replaceWith(note);
+        setTimeout(() => { if (note.isConnected) note.replaceWith(btn); btn.disabled = false; }, 3000);
+      }
+    });
+    return btn;
+  }
+
   function refresh() {
     const { me, balance, history } = state;
     ui.balance.textContent = czk(balance);
     ui.widgetBalance.textContent = czk(balance);
+    renderFriends();
     showChange(ui.change, state.today_change);
     showChange(ui.widgetChange, state.today_change);
     renderWidgetRecent();
@@ -367,6 +628,15 @@
     const rows = [];
     if (history.length === 0) rows.push(el("div", "empty", "Zatím žádné platby"));
     for (const p of history) {
+      if (p.kind === "account") {
+        const row = el("div", "tx");
+        const info = el("div", "tx-info");
+        const when = stamp(p.created_at);
+        info.append(el("div", "tx-name", accountLabel(p.account)), el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
+        row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
+        rows.push(row);
+        continue;
+      }
       if (p.kind === "card") {
         const row = el("div", "tx");
         const info = el("div", "tx-info");
@@ -387,11 +657,17 @@
       const other = outgoing ? p.recipient : p.sender;
       const row = el("div", "tx");
       const info = el("div", "tx-info");
-      info.append(el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`));
+      // Every transfer is with a Geoff user: say so, and offer to befriend them.
+      const name = el("div", "tx-name", `${outgoing ? "Pro" : "Od"} ${nameOf(other)}`);
+      name.append(el("span", "geoff-badge", "Geoff"));
+      info.append(name);
       const when = stamp(p.created_at);
-      info.append(el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
+      // One short line: the note if there is one, else where the money came from.
+      const meta = p.note ? `${p.note} · ${when}` : outgoing ? when : `z účtu ${accountOf(p.sender)} · ${when}`;
+      info.append(el("div", "tx-meta", meta));
       row.append(avatar({ id: other, name: nameOf(other) }), info,
         el("div", "tx-amount " + (outgoing ? "out" : "in"), `${outgoing ? "−" : "+"}${czk(p.amount)}`));
+      if (canbefriend(other)) row.append(befriendButton(other));
       rows.push(row);
     }
     ui.historyList.replaceChildren(...rows);
@@ -481,6 +757,103 @@
     } finally {
       toggling = false;
     }
+  }
+
+  // The Friends list: people I've befriended (everyone if the server doesn't say), plus my pending
+  // requests greyed out; incoming requests get their own section above with Odmítnout / Přijmout.
+  function renderFriends() {
+    const { me, people, friends } = state;
+    const sent = state.friend_requests_sent || [];
+    const incoming = people.filter((p) => (state.friend_requests || []).includes(p.id));
+    const shown = people.filter((p) => p.id !== me.id && (!friends || friends.includes(p.id) || sent.includes(p.id)));
+    const nodes = [];
+    if (incoming.length) {
+      const list = el("div", "card-list friend-requests");
+      for (const p of incoming) {
+        const who = el("span", "contact-who");
+        who.append(el("span", "contact-name", p.name), el("span", "contact-account", p.account || ""));
+        const decline = button("req-btn decline", "Odmítnout");
+        const accept = button("req-btn pay", "Přijmout");
+        const msg = el("div", "form-msg error");
+        const answer = (action) => async () => {
+          decline.disabled = accept.disabled = true;
+          try {
+            await answerFriendRequest(p.id, action);
+          } catch (err) {
+            msg.textContent = errText(err);
+            decline.disabled = accept.disabled = false;
+          }
+        };
+        decline.addEventListener("click", answer("decline"));
+        accept.addEventListener("click", answer("accept"));
+        const top = el("div", "req-top");
+        top.append(avatar(p), who);
+        const actions = el("div", "req-actions");
+        actions.append(decline, accept);
+        const row = el("div", "req");
+        row.append(top, actions, msg);
+        list.append(row);
+      }
+      nodes.push(el("h3", "topay-section", "Žádosti o přátelství"), list);
+    }
+    if (shown.length === 0) {
+      const empty = el("div", "card-list");
+      empty.append(el("div", "empty", "Zatím žádní přátelé – přidej je podle čísla účtu."));
+      nodes.push(empty);
+    } else {
+      const list = el("div", "card-list");
+      list.append(...shown.map((p) => {
+        const who = el("span", "contact-who");
+        who.append(el("span", "contact-name", p.name));
+        if (sent.includes(p.id)) {
+          who.append(el("span", "contact-account", "čeká na potvrzení"));
+          const row = el("div", "contact pending");
+          row.append(avatar(p), who);
+          return row;
+        }
+        who.append(el("span", "contact-account", p.account || ""));
+        const row = button("contact", avatar(p), who, icon("chevron", "chev"));
+        row.addEventListener("click", () => openPay(p.id));
+        return row;
+      }));
+      nodes.push(list);
+    }
+    ui.friendList.replaceChildren(...nodes);
+  }
+
+  // "Přidat přítele": send a request by account number; the other person gets a notification to confirm.
+  function showAddFriendPopup() {
+    const input = el("input", "field");
+    Object.assign(input, { type: "text", maxLength: 30, autocomplete: "off", placeholder: "2222222222/0800" });
+    const msg = el("div", "form-msg error");
+    const go = el("button", "send-btn", "Přidat");
+    go.type = "button";
+    const cancel = el("button", "popup-secondary", "Zrušit");
+    cancel.type = "button";
+    const close = Phone.popup([
+      el("h3", "popup-title", "Přidat přítele"),
+      el("div", "popup-sub", "Zadej číslo účtu v Geoff, třeba 2222222222/0800."),
+      input, go, msg, cancel,
+    ]);
+    cancel.addEventListener("click", () => close());
+    const submit = async () => {
+      if (go.disabled) return;
+      go.disabled = true;
+      msg.textContent = "";
+      try {
+        const { status } = await postJson("/api/friends", { account: input.value });
+        msg.className = "form-msg";
+        msg.textContent = status === "friends" ? "Jste přátelé ✓" : "Žádost odeslána";
+        await load();
+        setTimeout(close, 900);
+      } catch (err) {
+        msg.textContent = errText(err);
+        go.disabled = false;
+      }
+    };
+    go.addEventListener("click", submit);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    input.focus();
   }
 
   // Before Start: pick which friends to invite into the shared session (none = solo).
@@ -776,15 +1149,129 @@
     ["Kolik dlužím?", "Komu a kolik dlužím?"],
     ["Kdo dluží mně?", "Kdo a kolik dluží mně?"],
     ["Moje skupiny", "Jak jsou na tom moje skupiny?"],
+    ["Moje účty", "Jak jsou na tom moje další účty?"],
+    ["Graf výdajů", "Ukaž mi graf výdajů po měsících."],
   ];
   const chatHistory = []; // {role, content}; lives only until reload; errors never enter it
+
+  // ---- Charts in the chat: inline SVG, no library; all text goes in through textContent ----
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const CHART_COLORS = ["#3b6fe0", "#e0773b", "#2fa37a", "#b04fc4", "#d6a31f", "#d6486a", "#4aa8c7", "#7a7f8c"];
+  const svg = (tag, attrs = {}, text) => {
+    const n = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  };
+  const num = (n) => Number(n).toLocaleString("cs-CZ", { maximumFractionDigits: 2 });
+  // Money in the donut centre, legends and tooltips gets two decimals; tick labels stay compact (num).
+  const withUnit = (n, unit) => (unit === "Kč" ? czk(Number(n)) : `${num(n)} ${unit}`);
+
+  // Round gridline values: ~3 steps of 1/2/5 x 10^k covering [lo, hi]
+  function niceTicks(lo, hi) {
+    if (hi <= lo) hi = lo + 1;
+    const raw = (hi - lo) / 3;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw);
+    const ticks = [];
+    for (let t = Math.floor(lo / step) * step; t < hi + step - 1e-9; t += step) ticks.push(+t.toFixed(10));
+    return ticks;
+  }
+
+  function lineChart(c) {
+    const W = 300, H = 170, L = 46, R = 10, T = 8, B = 22;
+    const unit = c.unit || "Kč";
+    const all = c.series.flatMap((s) => s.values);
+    const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
+    const lo = ticks[0], hi = ticks[ticks.length - 1];
+    const x = (i) => L + (c.labels.length === 1 ? (W - L - R) / 2 : (i * (W - L - R)) / (c.labels.length - 1));
+    const y = (v) => T + ((hi - v) / (hi - lo)) * (H - T - B);
+    const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart-svg", role: "img" });
+    root.append(svg("title", {}, c.title));
+    for (const t of ticks) {
+      root.append(svg("line", { x1: L, x2: W - R, y1: y(t), y2: y(t), class: "chart-grid" }));
+      root.append(svg("text", { x: L - 4, y: y(t) + 3, "text-anchor": "end", "font-size": 9 }, num(t)));
+    }
+    const every = Math.ceil(c.labels.length / 6); // thin the x labels out
+    c.labels.forEach((l, i) => {
+      // the last label is right-aligned so it is not cut off at the edge
+      if (i % every === 0) root.append(svg("text", { x: x(i), y: H - 6, "text-anchor": i === c.labels.length - 1 ? "end" : "middle", "font-size": 9 }, l));
+    });
+    c.series.forEach((s, k) => {
+      const color = CHART_COLORS[k % CHART_COLORS.length];
+      root.append(svg("polyline", {
+        points: s.values.map((v, i) => `${x(i)},${y(v)}`).join(" "),
+        fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round",
+      }));
+      s.values.forEach((v, i) => {
+        const d = svg("circle", { cx: x(i), cy: y(v), r: 3, fill: color });
+        d.append(svg("title", {}, `${s.name}, ${c.labels[i]}: ${withUnit(v, unit)}`));
+        root.append(d);
+      });
+    });
+    const parts = [root];
+    if (c.series.length > 1) {
+      const legend = el("div", "chart-legend");
+      c.series.forEach((s, k) => {
+        const item = el("span", "chart-legend-item");
+        const sw = el("span", "chart-swatch");
+        sw.style.background = CHART_COLORS[k % CHART_COLORS.length];
+        item.append(sw, el("span", "name", s.name));
+        legend.append(item);
+      });
+      parts.push(legend);
+    }
+    return parts;
+  }
+
+  function pieChart(c) {
+    const unit = c.unit || "Kč";
+    const total = c.values.reduce((a, b) => a + b, 0);
+    const R = 70, SW = 28, C = 2 * Math.PI * R;
+    const root = svg("svg", { viewBox: "0 0 200 200", class: "chart-svg", role: "img" });
+    root.style.maxWidth = "13em";
+    root.style.margin = "0 auto";
+    root.append(svg("title", {}, c.title));
+    let used = 0;
+    c.values.forEach((v, i) => {
+      if (!(v > 0)) return;
+      const len = (v / total) * C;
+      // a stroked circle cut into dashes: a single 100% slice is a full ring, no arc edge cases
+      const slice = svg("circle", {
+        cx: 100, cy: 100, r: R, fill: "none", stroke: CHART_COLORS[i % CHART_COLORS.length], "stroke-width": SW,
+        "stroke-dasharray": `${len} ${C - len}`, "stroke-dashoffset": -used, transform: "rotate(-90 100 100)",
+      });
+      slice.append(svg("title", {}, `${c.labels[i]}: ${withUnit(v, unit)}`));
+      root.append(slice);
+      used += len;
+    });
+    root.append(svg("text", { x: 100, y: 104, "text-anchor": "middle", class: "chart-center" }, withUnit(total, unit)));
+    const legend = el("div", "chart-legend pie");
+    c.values.forEach((v, i) => {
+      const item = el("span", "chart-legend-item");
+      const sw = el("span", "chart-swatch");
+      sw.style.background = CHART_COLORS[i % CHART_COLORS.length];
+      item.append(sw, el("span", "name", c.labels[i]),
+        el("span", "val", `${withUnit(v, unit)} · ${Math.round((v / total) * 100)} %`));
+      legend.append(item);
+    });
+    return [root, legend];
+  }
+
+  function chartBox(c) {
+    const box = el("div", "chat-chart");
+    try {
+      box.append(el("div", "chart-title", c.title), ...(c.type === "pie" ? pieChart(c) : lineChart(c)));
+    } catch { return null; } // a malformed spec must not break the answer text
+    return box;
+  }
 
   // Built once in build(); refresh() never touches it, so the conversation survives.
   function buildChat() {
     const chat = el("section", "chat");
     chat.style.setProperty("--accent", Phone.colors[state.me.id]);
     const list = el("div", "chat-list");
-    const empty = el("div", "chat-empty", "Zeptej se mě na své platby.");
+    const empty = el("div", "chat-empty", "Zeptej se mě na cokoliv o financích");
     list.append(empty);
     const chips = el("div", "chat-chips");
     const form = el("form", "chat-form");
@@ -833,6 +1320,12 @@
           const reply = data.reply.trim();
           if (reply) chatHistory.push({ role: "assistant", content: reply.slice(0, 1000) });
           wait.textContent = reply || "Geoff nemá co dodat.";
+          // charts hang under the text bubble; they stay in the DOM only, never in chatHistory
+          let last = wait;
+          for (const spec of Array.isArray(data.charts) ? data.charts : []) {
+            const box = chartBox(spec);
+            if (box) { last.after(box); last = box; }
+          }
         } else {
           chatHistory.pop(); // keep the history ending on a user message that got no answer out
           wait.textContent = typeof data.detail === "string" && data.detail ? data.detail : `Selhalo (${r.status})`;
@@ -1031,7 +1524,7 @@
   }
 
   async function addExpense() {
-    const amount = ui.exAmount.value === "" ? null : Number(ui.exAmount.value);
+    const amount = parseAmount(ui.exAmount.value);
     ui.exBtn.disabled = true;
     ui.exMsg.className = "form-msg";
     ui.exMsg.textContent = "";
@@ -1133,7 +1626,7 @@
     const payBtn = button("req-btn pay", "Zaplatit");
     const msg = el("div", "form-msg error");
     decline.addEventListener("click", () => answer(r.id, "decline", msg, [decline, payBtn]));
-    payBtn.addEventListener("click", () => answer(r.id, "pay", msg, [decline, payBtn]));
+    payBtn.addEventListener("click", () => openConfirm(r));
     actions.append(decline, payBtn);
     row.append(top, actions, msg);
     return row;
@@ -1166,7 +1659,7 @@
   async function send() {
     setMsg(null, "");
     ui.sendBtn.disabled = true;
-    const amount = ui.amount.value === "" ? null : Number(ui.amount.value);
+    const amount = parseAmount(ui.amount.value);
     try {
       const requesting = mode === "request";
       const r = await fetch(requesting ? "/api/requests" : "/api/payments", {
@@ -1198,7 +1691,14 @@
   Phone.onEvent((event) => {
     if (event.type === "payment_received") {
       const note = event.payment.note ? `\n${event.payment.note}` : "";
-      Phone.notify({ title: event.from, body: event.text + note, color: Phone.colors[event.payment.sender] });
+      const sender = event.payment.sender;
+      Phone.notify({
+        title: event.from, body: event.text + note, color: Phone.colors[sender],
+        // A Geoff user I haven't befriended (or asked) yet can be added right here.
+        actions: canbefriend(sender) && !requestSent(sender)
+          ? [{ label: "Přidat do přátel", onClick: async () => (await addFriendById(sender)) === "friends" ? "Přidáno ✓" : "Žádost odeslána" }]
+          : undefined,
+      });
       load();
     } else if (event.type === "request_received" || event.type === "request_declined") {
       const sender = event.type === "request_received" ? event.request.requester : event.request.payer;
@@ -1214,7 +1714,8 @@
         title: event.from, body: event.text + note, color: Phone.colors[sender],
         actions: event.type === "request_received" ? [
           { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
-          { label: "Zaplatit", onClick: answer("pay", `Zaplaceno ${czk(event.request.amount)} ✓`) },
+          // Paying needs a deliberate confirmation, so this opens it in Geoff.
+          { label: "Zaplatit", onClick: async () => { Phone.closeShade(); Phone.openApp("app"); openConfirm(event.request); return "Otevřeno"; } },
         ] : undefined,
       });
       load();
@@ -1290,7 +1791,23 @@
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
       load();
-    } else if (["payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
+    } else if (event.type === "friend_request") {
+      const answer = (action, done) => async () => {
+        await answerFriendRequest(event.from_id, action);
+        return done;
+      };
+      Phone.notify({
+        title: event.from, body: event.text, color: Phone.colors[event.from_id],
+        actions: [
+          { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
+          { label: "Přijmout", onClick: answer("accept", "Přidáno ✓") },
+        ],
+      });
+      load();
+    } else if (event.type === "friend_accepted") {
+      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.from_id] });
+      load();
+    } else if (["friends_changed", "payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
       load();
     }
   });
@@ -1310,7 +1827,7 @@
     demoMsg.className = "demo-msg";
     demoMsg.textContent = "";
     try {
-      await postJson("/api/card-payments", { amount: amount.value === "" ? null : Number(amount.value), note: note.value });
+      await postJson("/api/card-payments", { amount: parseAmount(amount.value), note: note.value });
       amount.value = "";
       note.value = "";
       demoMsg.className = "demo-msg ok";

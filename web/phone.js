@@ -1,7 +1,10 @@
 // Phone shell. Gives the app a small API on window.Phone:
 //   Phone.notify({title, body, color, action?: {label, onClick}})
 //                                       show a banner and add it to the pull-down list;
-//                                       the action button runs onClick, then opens Geoff
+//                                       the action button runs onClick, then opens Geoff.
+//                                       In the list a notification goes away with its x, a
+//                                       horizontal swipe, or "Smazat vše"; a banner can be
+//                                       swiped sideways or up to hide it early
 //   Phone.onEvent(fn)                   receive every event the orchestrator pushes
 //   Phone.me / Phone.ready              who this phone belongs to
 //   Phone.colors                        person id -> colour
@@ -20,11 +23,11 @@
 (function () {
   const PERSON_COLORS = { 1: "#3b6cff", 2: "#2bb673", 3: "#f5a623", 4: "#e5487a" };
   const BANNER_MS = 4000;
-  const EMPTY_SLOTS = 3;
 
   const screen = document.getElementById("screen");
   const shade = document.getElementById("shade");
   const shadeList = document.getElementById("shadeList");
+  const shadeClear = document.getElementById("shadeClear");
   const pullZone = document.getElementById("pullZone");
   const bannerLayer = document.getElementById("banners");
   const appEl = document.getElementById("app");
@@ -78,7 +81,7 @@
     if (n.bannerEl && n.bannerEl.isConnected) n.bannerEl.replaceChildren(...noteContent(n, "teď"));
   }
 
-  function noteContent(n, timeText = n.time) {
+  function noteContent(n, timeText = n.time, closable = false) {
     const icon = document.createElement("div");
     icon.className = "note-icon";
     icon.style.background = n.color;
@@ -95,6 +98,16 @@
     time.className = "note-time";
     time.textContent = timeText;
     head.append(title, time);
+    if (closable) {
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "note-close";
+      x.setAttribute("aria-label", "Smazat oznámení");
+      x.textContent = "×";
+      x.addEventListener("pointerdown", (e) => e.stopPropagation());
+      x.addEventListener("click", (e) => { e.stopPropagation(); dismiss(n); });
+      head.append(x);
+    }
     const body = document.createElement("div");
     body.className = "note-body";
     body.textContent = n.body;
@@ -145,19 +158,99 @@
   }
 
   function renderShadeList() {
+    shadeClear.hidden = notifications.length === 0;
     shadeList.replaceChildren();
     for (const n of notifications) {
       const item = document.createElement("div");
       item.className = "shade-item";
-      item.append(...noteContent(n));
+      item.append(...noteContent(n, n.time, true));
+      makeSwipeable(item, { onDismiss: () => dismiss(n) });
       shadeList.append(item);
     }
-    for (let i = notifications.length; i < EMPTY_SLOTS; i++) {
-      const slot = document.createElement("div");
-      slot.className = "shade-slot";
-      slot.textContent = "místo pro oznámení";
-      shadeList.append(slot);
+  }
+
+  // Take a notification out of the list (and its banner off the screen) for good.
+  function dismiss(n) {
+    const i = notifications.indexOf(n);
+    if (i >= 0) notifications.splice(i, 1);
+    if (n.bannerEl) n.bannerEl.remove();
+    renderShadeList();
+  }
+
+  shadeClear.addEventListener("pointerdown", (e) => e.stopPropagation());
+  shadeClear.addEventListener("click", () => {
+    for (const n of notifications) if (n.bannerEl) n.bannerEl.remove();
+    notifications.length = 0;
+    bannerLayer.replaceChildren();
+    renderShadeList();
+  });
+
+  // Drag an element sideways (or, with `up`, upwards) to dismiss it. Uses pointer events, so a
+  // mouse drag works too. Once the gesture is clearly a swipe it takes over from the panel's
+  // own pull gesture; a tap or a mostly vertical drag is left alone. Returns a function that says
+  // whether a gesture on the element is in progress.
+  let swipedAt = 0; // a click right after a swipe must not count as a tap
+  function makeSwipeable(el, { up = false, onDismiss }) {
+    let g = null;
+    const THRESHOLD = 60;
+
+    function move(e) {
+      if (!g) return;
+      const dx = e.clientX - g.x;
+      const dy = e.clientY - g.y;
+      if (!g.mode) {
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) g.mode = "x";
+        else if (up && dy < -8 && -dy > Math.abs(dx)) g.mode = "y";
+        else if (Math.abs(dy) > 8) g.mode = "none";
+        if (g.mode === "x" || g.mode === "y") {
+          // Cancel the pull-down gesture that pointerdown started.
+          drag = null;
+          shade.classList.remove("dragging");
+          shade.style.transform = "";
+          el.style.transition = "none";
+        }
+      }
+      if (g.mode === "x") {
+        el.style.transform = `translateX(${dx}px)`;
+        el.style.opacity = String(Math.max(0.2, 1 - Math.abs(dx) / 260));
+      } else if (g.mode === "y") {
+        el.style.transform = `translateY(${Math.min(0, dy)}px)`;
+        el.style.opacity = String(Math.max(0.2, 1 + dy / 120));
+      }
     }
+
+    function end(e) {
+      if (!g) return;
+      const { mode } = g;
+      const dx = e.clientX - g.x;
+      const dy = e.clientY - g.y;
+      g = null;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (mode !== "x" && mode !== "y") return;
+      swipedAt = Date.now();
+      const gone = mode === "x" ? Math.abs(dx) > THRESHOLD : -dy > THRESHOLD / 1.5;
+      el.style.transition = "transform 0.2s, opacity 0.2s";
+      if (gone) {
+        el.style.transform = mode === "x" ? `translateX(${dx > 0 ? 120 : -120}%)` : "translateY(-160%)";
+        el.style.opacity = "0";
+        setTimeout(onDismiss, 200);
+      } else {
+        el.style.transform = "";
+        el.style.opacity = "";
+        setTimeout(() => { el.style.transition = ""; }, 220);
+      }
+    }
+
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button > 0 || g) return;
+      g = { x: e.clientX, y: e.clientY, mode: null };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", end);
+      window.addEventListener("pointercancel", end);
+    });
+    return () => g !== null;
   }
 
   function showBanner(n) {
@@ -169,12 +262,18 @@
     bannerLayer.append(banner);
 
     const hide = () => {
-      // Never pull the banner out from under a drag; try again once it's over.
-      if (drag) { setTimeout(hide, 500); return; }
+      // Never pull the banner out from under a drag or a swipe; try again once it's over.
+      if (drag || swiping()) { setTimeout(hide, 500); return; }
       banner.classList.remove("show");
       setTimeout(() => banner.remove(), 450);
     };
-    banner.addEventListener("click", () => { hide(); openApp(appEl); });
+    banner.addEventListener("click", () => {
+      if (Date.now() - swipedAt < 400) return;
+      hide();
+      openApp(appEl);
+    });
+    // Swiping it sideways or up hides it early; the notification stays in the pull-down list.
+    const swiping = makeSwipeable(banner, { up: true, onDismiss: () => banner.remove() });
     // Pulling the banner down opens the panel, like pulling the top edge.
     banner.addEventListener("pointerdown", (e) => startDrag(e, true));
     banner.addEventListener("pointermove", moveDrag);
@@ -382,6 +481,7 @@
     me: null,
     colors: PERSON_COLORS,
     initials,
+    closeShade() { setOpen(false); bannerLayer.replaceChildren(); },
     openApp: (id) => openApp(id ? document.getElementById(id) : null),
     widget: document.getElementById("widget"),
     notify,

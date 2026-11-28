@@ -51,7 +51,7 @@ def test_expenses_listed_with_total_and_no_money_moves(db):
     assert [get_balance(db, n) for n in (1, 2, 3, 4)] == [10000] * 4
 
 
-@pytest.mark.parametrize("amount,desc", [(0, "x"), (-5, "x"), (2.5, "x"), ("5", "x"), (5, ""), (5, "y" * 61)])
+@pytest.mark.parametrize("amount,desc", [(0, "x"), (-5, "x"), (2.555, "x"), ("5", "x"), (5, ""), (5, "y" * 61)])
 def test_invalid_expense(db, amount, desc):
     g = create_group(db, 1, "Chata", [2], accepted=True)
     with pytest.raises(PaymentError):
@@ -102,12 +102,12 @@ def test_approve_turns_split_into_requests(db):
     add_expense(db, g["id"], 1, 900, "Cabin")
     seen = {}
 
-    def split(members, expenses):
+    def split(members, expenses):  # the split slot works in haléře
         seen["members"], seen["expenses"] = sorted(members), [e["amount"] for e in expenses]
-        return [(2, 1, 300), (3, 4, 100)]
+        return [(2, 1, 30000), (3, 4, 10000)]
 
     done = approve_group(db, g["id"], 1, split=split)
-    assert seen == {"members": [1, 2, 3, 4], "expenses": [900]}
+    assert seen == {"members": [1, 2, 3, 4], "expenses": [90000]}
     assert sorted((r["payer"], r["requester"], r["amount"]) for r in done["requests"]) == [(2, 1, 300), (3, 4, 100)]
 
     todo2 = open_requests_for(db, 2)
@@ -128,7 +128,7 @@ def test_reset_clears_groups(db):
 def test_group_reports_how_many_requests_were_sent(db):
     g = create_group(db, 1, "Chata", [2, 3], accepted=True)
     assert groups_for(db, 3)[0]["requests_sent"] == 0
-    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 300)])
+    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 30000)])
     # Pepa is neither payer nor payee, and Jirka's request may later be paid: both still see it was sent.
     assert groups_for(db, 3)[0]["requests_sent"] == 1
     assert groups_for(db, 2)[0]["requests_sent"] == 1
@@ -174,7 +174,7 @@ def test_only_creator_deletes_group(db):
 
 def test_delete_cancels_open_settlement_requests_and_keeps_paid_ones(db):
     g = create_group(db, 1, "Chata", [2, 3], accepted=True)
-    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 300), (3, 1, 200)])
+    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 30000), (3, 1, 20000)])
     paid = [r for r in open_requests_for(db, 2)][0]
     pay_request(db, paid["id"], 2)
     done = delete_group(db, g["id"], 1)
@@ -187,7 +187,7 @@ def test_delete_cancels_open_settlement_requests_and_keeps_paid_ones(db):
 
 def test_cancelled_request_cannot_be_paid(db):
     g = create_group(db, 1, "Chata", [2], accepted=True)
-    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 300)])
+    approve_group(db, g["id"], 1, split=lambda m, e: [(2, 1, 30000)])
     rid = open_requests_for(db, 2)[0]["id"]
     delete_group(db, g["id"], 1)
     with pytest.raises(PaymentError):

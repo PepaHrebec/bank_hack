@@ -10,6 +10,7 @@ from server.db import (
     init_db,
     open_requests_for,
     send_payment,
+    to_hal,
 )
 from server.seed import seed_db
 
@@ -66,12 +67,12 @@ def test_monthly_salary(seeded):
 def test_balances_consistent_and_never_negative(seeded):
     db, _ = seeded
     for p in (1, 2, 3, 4):
-        balance = START_BALANCE
+        balance = to_hal(START_BALANCE)  # summed in haléře, so decimal amounts add up exactly
         for i in reversed(history(db, p)):
             incoming = i["kind"] == "income" or (i["kind"] == "transfer" and i["recipient"] == p)
-            balance += i["amount"] if incoming else -i["amount"]
+            balance += to_hal(i["amount"]) if incoming else -to_hal(i["amount"])
             assert balance >= 0
-        assert balance == get_balance(db, p)
+        assert balance == to_hal(get_balance(db, p))
 
 
 def test_nothing_in_the_future_and_some_today(seeded):

@@ -22,9 +22,14 @@ WEEKDAYS = ["pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota", "
 SYSTEM_PROMPT = """\
 Jsi Geoff, asistent v bankovní aplikaci Geoff. Mluvíš s uživatelem {name}. Dnes je {weekday} {date}.
 Přátelé uživatele: {friends}.
-Odpovídej vždy česky, stručně (nejvýš pár řádků), částky piš jako „1 234 Kč“.
+Odpovídej vždy česky, stručně (nejvýš pár řádků), částky piš vždy se dvěma desetinnými místy jako „1 234,50 Kč“ (nástroje vrací částky v Kč, 123.5 je 123,50 Kč). Tykej a piš genderově neutrálně:
+ne „utratil(a) jsi“, ale třeba „utratilo se“, „odešlo“, „šlo na“.
 Čísla ber jen z nástrojů, nic si nevymýšlej. Umíš: shrnout platby za období, říct, kdo komu dluží (otevřené žádosti),
-ukázat platby s jedním přítelem a stav skupinových vyrovnání. Peníze posílat ani žádosti platit neumíš.
+ukázat platby s jedním přítelem, stav skupinových vyrovnání a přehled dalších účtů (kreditní karta, spořicí účet, penzijní spoření). Peníze posílat ani žádosti platit neumíš.
+Umíš nakreslit graf: čárový (plot_line) pro vývoj v čase a koláčový (plot_pie) pro podíly na celku. Graf nakresli,
+když o něj uživatel požádá nebo když je trend či rozdělení na obrázku srozumitelnější. Nejdřív získej čísla z datových
+nástrojů (money_series, spending_breakdown), potom zavolej plot nástroj a v textu odpověz stručně, bez opakování všech čísel. Graf aplikace ukáže sama, nepiš, kde je (ani „výše“, ani „níže“).
+O dalších účtech uživatele (kreditní karta, spořicí účet, penzijní spoření) řekni přes accounts_overview.
 Na jiné otázky odpověz, že s tím nepomůžeš, a nabídni, co umíš."""
 
 
@@ -40,7 +45,7 @@ def system_prompt(person_id, today):
     )
 
 
-async def run(db_path, person_id, messages, complete, today=None):
+async def run(db_path, person_id, messages, complete, today=None, charts=None):
     today = today or date.today()
     convo = [{"role": "system", "content": system_prompt(person_id, today)}, *messages]
     for _ in range(MAX_ROUNDS):
@@ -68,6 +73,10 @@ async def run(db_path, person_id, messages, complete, today=None):
                     args = None
             if not isinstance(args, dict):
                 result = {"error": "Neplatné argumenty nástroje"}
+            elif fn.get("name") in chat_tools.PLOT_TOOLS:
+                spec, result = chat_tools.chart(fn["name"], args)
+                if spec is not None and charts is not None:
+                    charts.append(spec)
             else:
                 result = await asyncio.to_thread(
                     chat_tools.call, db_path, person_id, fn.get("name"), args, today

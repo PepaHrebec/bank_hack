@@ -1,0 +1,40 @@
+/* Safari: a live page in an iframe under a Safari-style address bar. */
+#safari {
+  display: flex;
+  flex-direction: column;
+  padding-top: 3.2em;
+  background: #f2f2f7;
+  overflow: hidden;
+}
+
+#safari .sa-bar {
+  flex: none;
+  padding: 0.4em 0.9em 0.6em;
+}
+
+#safari .sa-url {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  padding: 0.55em 0.9em;
+  border-radius: 0.8em;
+  background: #e3e3e8;
+  color: #1c1c1e;
+  font-size: 0.85em;
+}
+
+#safari .sa-url::before {
+  content: "";
+  width: 0.65em;
+  height: 0.75em;
+  border-radius: 0.15em;
+  background: #8e8e93;
+}
+
+#safari iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}

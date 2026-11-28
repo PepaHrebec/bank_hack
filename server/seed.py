@@ -10,7 +10,7 @@ CARDS_PER_PERSON = 160
 TRANSFERS_PER_PAIR = 24  # each person is in 3 pairs: ~72 transfers vs ~163 other items, i.e. ~30 %
 SALARY_RANGE = (32000, 48000)
 
-# (note, min, max) in whole Kč; most are rounded to 10 Kč below
+# (note, min, max) in whole Kč; most are rounded to 10 Kč below, some end in ,90 like real prices
 BUSINESSES = [
     ("Albert", 120, 1400), ("Lidl", 150, 1500), ("Kaufland", 200, 2200), ("Billa", 100, 1200),
     ("Penny Market", 80, 900), ("Tesco", 150, 1800), ("Rohlik.cz", 500, 2600),
@@ -105,13 +105,18 @@ def _time_on(rng, day, now):
 
 
 def _card_amount(rng, low, high):
-    # Skewed towards the cheap end, like real shopping; rounded to 10 Kč except small ones.
+    """A shop price in haléře, skewed towards the cheap end like real shopping.
+
+    Rounded to 10 Kč except small ones; about a third end in ,90 (129,90 Kč) like shelf prices."""
     amount = int(low + (high - low) * rng.random() ** 2)
-    return amount if amount < 100 else amount // 10 * 10
+    if amount >= 100:
+        amount = amount // 10 * 10
+    hal = amount * 100
+    return hal - 10 if rng.random() < 0.35 else hal
 
 
 def _build_events(rng, now):
-    """All events as (datetime, kind, data), unsorted."""
+    """All events as (datetime, kind, data), unsorted; amounts in haléře."""
     first_day = (now - timedelta(days=DAYS - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
     days = [first_day + timedelta(days=i) for i in range(DAYS)]
     today = days[-1]
@@ -121,7 +126,7 @@ def _build_events(rng, now):
         for day in days:
             if day.day == 10:
                 events.append((_time_on(rng, day, now), "income",
-                               (person, rng.randrange(SALARY_RANGE[0], SALARY_RANGE[1] + 1, 100), "Výplata")))
+                               (person, rng.randrange(SALARY_RANGE[0], SALARY_RANGE[1] + 1, 100) * 100, "Výplata")))
         for i in range(CARDS_PER_PERSON):
             # the first two are today's, so the "today's change" line always has something to show
             day = today if i < 2 else rng.choice(days)
@@ -135,13 +140,13 @@ def _build_events(rng, now):
             day = today if i == 0 else rng.choice(days)
             amount = rng.choice([50, 80, 100, 120, 150, 200, 250, 300, 350, 400, 500, 800, 1000, 1500])
             events.append((_time_on(rng, day, now), "transfer",
-                           (sender, recipient, amount, rng.choice(TRANSFER_NOTES))))
+                           (sender, recipient, amount * 100, rng.choice(TRANSFER_NOTES))))
     return events
 
 
 def _write(path, events):
-    """Insert the events oldest first, dropping any debit the account could not cover."""
-    balances = {p: db.START_BALANCE for p in db.PEOPLE}
+    """Insert the events oldest first, dropping any debit the account could not cover. Amounts are haléře."""
+    balances = {p: db.to_hal(db.START_BALANCE) for p in db.PEOPLE}
     with db._transaction(path) as conn:
         # restart ids at 1 so seeding twice gives identical rows
         conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('payments', 'card_payments', 'income')")

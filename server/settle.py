@@ -1,8 +1,8 @@
 """The split slot for Group Settle: an equal split with the fewest transfers.
 
 `settle` gets the group's member ids and its expenses ({"payer", "amount", ...}) and returns
-who pays whom: a list of (payer, payee, amount) in whole CZK. Approving a group turns each
-tuple into a payment request from payee to payer.
+who pays whom: a list of (payer, payee, amount). All amounts are integer haléře (1 Kč = 100), so
+the arithmetic is exact. Approving a group turns each tuple into a payment request from payee to payer.
 
 Everyone owes an equal share of the total; a member's balance is what they paid minus their
 share. The balances that aren't zero are split into as many disjoint zero-sum groups as
@@ -12,9 +12,9 @@ transfers. That gives the minimum number of transfers: people - groups.
 
 
 def shares(members, total):
-    """Each member's equal share of `total` in whole CZK, {person: amount}.
+    """Each member's equal share of `total` haléře, {person: haléře}.
 
-    When the total doesn't divide evenly, the first `total % n` members by id owe 1 CZK more,
+    When the total doesn't divide evenly, the first `total % n` members by id owe 1 haléř more,
     so the shares always add up to the total exactly.
     """
     ids = sorted(set(members))

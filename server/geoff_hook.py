@@ -17,7 +17,8 @@ log = logging.getLogger("geoff.hook")
 HOOK_DEADLINE = 5
 DEFAULT_GROUP = "Skupinová platba"
 
-_TIME = re.compile(r"\b\d{1,2}[:.]\d{2}\b")
+# A clock time; "12.50 Kč" with a currency marker is a price, not a time.
+_TIME = re.compile(r"\b\d{1,2}[:.]\d{2}\b(?!\s*(?:kc\b|korun))")
 _NUMBER = re.compile(r"\d{2,}")
 # Folded (no diacritics, lower-case). "kc" needs word edges; the rest are stems.
 _WORDS = re.compile(
@@ -38,7 +39,7 @@ Rozhodni, zda zpráva nabízí bankovní akci:
 - "none": cokoli jiného (i nejasná částka u „request“).
 „note“ je jen důvod platby jedním až třemi slovy (např. „pivo“), ne opis zprávy. „name“ je krátký název
 skupiny podle účelu (např. „Chata“, „Dovolená“), ne věta. Odpověz POUZE JSON bez dalšího textu:
-{{"action": "none"|"request"|"group", "amount": celé číslo v Kč nebo null, "note": "krátký popis česky",
+{{"action": "none"|"request"|"group", "amount": částka v Kč (číslo, nejvýš dvě desetinná místa) nebo null, "note": "krátký popis česky",
 "name": "krátký název skupiny nebo null", "others": ["jména dalších přátel ve skupině"]}}"""
 
 
@@ -54,7 +55,11 @@ def prefilter(text):
 
 
 _DATE = re.compile(r"\b\d{1,2}\.\s?\d{1,2}\.(?:\s?\d{2,4})?")
-_AMOUNT = re.compile(r"(?<![\d.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d{1,3}(?:\.\d{3})+|\d+)(?![\d])(\s*(?:kc\b|korun|koruny|,-|\.-))?")
+# Whole crowns (thousands grouped by spaces or dots), then optional haléře after "," or "." (123,50 / 123.50).
+_AMOUNT = re.compile(
+    r"(?<![\d.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d{1,3}(?:\.\d{3})+|\d+)(?:[.,](\d{2}))?(?![\d])"
+    r"(\s*(?:kc\b|korun|koruny|,-|\.-))?"
+)
 
 
 def extract_amount(text):
@@ -64,12 +69,13 @@ def extract_amount(text):
     t = _DATE.sub(" ", _TIME.sub(" ", _fold(text)))
     best = None  # (has currency marker, value)
     for m in _AMOUNT.finditer(t):
-        value = int(re.sub(r"\D", "", m.group(1)))
-        if value <= 0 or (not m.group(2) and value < 10):
+        hal = int(re.sub(r"\D", "", m.group(1))) * 100 + int(m.group(2) or 0)
+        marked = bool(m.group(3))
+        if hal <= 0 or (not marked and hal < 1000):
             continue
-        if best is None or (bool(m.group(2)), value) > best:
-            best = (bool(m.group(2)), value)
-    return best[1] if best else None
+        if best is None or (marked, hal) > best:
+            best = (marked, hal)
+    return db.from_hal(best[1]) if best else None
 
 
 def _parse(content):
@@ -85,12 +91,12 @@ def _parse(content):
     return data if isinstance(data, dict) else None
 
 
-def _whole(value):
-    if isinstance(value, bool):
+def _amount(value):
+    """The model's amount in CZK if it is a positive number with at most two decimals, else None."""
+    try:
+        return db.from_hal(db.to_hal(value))
+    except db.PaymentError:
         return None
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    return value if isinstance(value, int) and value > 0 else None
 
 
 def _text(value, limit):
@@ -99,7 +105,7 @@ def _text(value, limit):
 
 def _validate(data, sender, recipient, text=""):
     action = data.get("action")
-    amount = _whole(data.get("amount")) or extract_amount(text)
+    amount = _amount(data.get("amount")) or extract_amount(text)
     note = _text(data.get("note"), 80)
     if action == "request":
         if amount is None:

@@ -49,7 +49,7 @@ def test_double_spend(db):
     assert get_balance(db, 1) == 4000
 
 
-@pytest.mark.parametrize("recipient,amount", [(2, 0), (2, -5), (9, 10), (1, 10), (2, True), (2, 2.5)])
+@pytest.mark.parametrize("recipient,amount", [(2, 0), (2, -5), (9, 10), (1, 10), (2, True), (2, 2.555)])
 def test_invalid(db, recipient, amount):
     with pytest.raises(PaymentError):
         send_payment(db, 1, recipient, amount)
@@ -84,7 +84,7 @@ def test_request_shows_up_for_payer(db):
     assert balances(db) == [10000] * 4
 
 
-@pytest.mark.parametrize("payer,amount", [(2, 0), (2, -1), (2, 2.5), (2, "5"), (1, 10), (9, 10)])
+@pytest.mark.parametrize("payer,amount", [(2, 0), (2, -1), (2, 2.555), (2, "5"), (1, 10), (9, 10)])
 def test_invalid_request(db, payer, amount):
     with pytest.raises(PaymentError):
         create_request(db, 1, payer, amount)
@@ -210,7 +210,7 @@ def test_card_payment_insufficient_funds(db):
     assert history(db, 1) == []
 
 
-@pytest.mark.parametrize("amount", [0, -1, 2.5, "5", True])
+@pytest.mark.parametrize("amount", [0, -1, 2.555, "5", True])
 def test_card_payment_invalid_amount(db, amount):
     with pytest.raises(PaymentError):
         card_payment(db, 1, amount)

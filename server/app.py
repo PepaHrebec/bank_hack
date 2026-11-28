@@ -10,7 +10,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from server import chat, db
+from server import accounts, chat, db
+from server.banks import BANKS
 from server.orchestrator import Orchestrator
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -91,8 +92,12 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
     @app.get("/api/state")
     def state():
         return {
-            "me": {"id": person_id, "name": db.PEOPLE[person_id]},
-            "people": [{"id": i, "name": n} for i, n in db.PEOPLE.items()],
+            "me": {"id": person_id, "name": db.PEOPLE[person_id], "account": db.ACCOUNTS[person_id]},
+            "people": [{"id": i, "name": n, "account": db.ACCOUNTS[i]} for i, n in db.PEOPLE.items()],
+            "friends": db.friends_of(db_path, person_id),
+            "friend_requests": db.friend_requests_for(db_path, person_id),
+            "friend_requests_sent": db.friend_requests_by(db_path, person_id),
+            "contacts": [{"account": a, "name": n} for a, n in db.CONTACTS.items()],
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
             "today_change": db.day_change(db_path, person_id),
@@ -104,6 +109,19 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "session_invites": db.session_invites_for(db_path, person_id),
             "chats": db.chats(db_path, person_id),
         }
+
+    @app.get("/api/accounts")
+    def other_accounts():
+        return {"accounts": accounts.other_accounts(person_id)}
+
+    async def notify_received(payment):
+        sender_name = db.PEOPLE[person_id]
+        await orch.send(payment["recipient"], {
+            "type": "payment_received",
+            "payment": payment,
+            "from": sender_name,
+            "text": f"{sender_name} ti poslal(a) {db.czk_text(payment['amount'])}",
+        })
 
     @app.post("/api/payments")
     async def pay(request: Request):
@@ -118,15 +136,62 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
 
-        sender_name = db.PEOPLE[person_id]
-        await orch.send(recipient, {
-            "type": "payment_received",
-            "payment": payment,
-            "from": sender_name,
-            "text": f"{sender_name} ti poslal(a) {amount} Kč",
-        })
+        await notify_received(payment)
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
+
+    def friend_json(friend):
+        return {"id": friend, "name": db.PEOPLE[friend], "account": db.ACCOUNTS[friend], "geoff": True}
+
+    async def friends_changed(other):
+        await orch.send(person_id, {"type": "friends_changed"})
+        await orch.send(other, {"type": "friends_changed"})
+
+    async def notify_accepted(other):
+        await orch.send(other, {
+            "type": "friend_accepted",
+            "from": me,
+            "from_id": person_id,
+            "text": f"{me} přijímá tvou žádost o přátelství",
+        })
+
+    @app.post("/api/friends")
+    async def add_friend(request: Request):
+        try:
+            body = await _json_object(request)
+            friend, status = await run_in_threadpool(db.add_friend, db_path, person_id, body.get("account"))
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        if status == "requested":
+            await orch.send(friend, {
+                "type": "friend_request",
+                "from": me,
+                "from_id": person_id,
+                "text": f"{me} ti posílá žádost o přátelství",
+            })
+        else:
+            await notify_accepted(friend)
+        await friends_changed(friend)
+        return {"friend": friend_json(friend), "status": status}
+
+    @app.post("/api/friends/requests/{requester}/accept")
+    async def accept_friend(requester: int):
+        try:
+            await run_in_threadpool(db.accept_friend_request, db_path, person_id, requester)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await notify_accepted(requester)
+        await friends_changed(requester)
+        return {"friend": friend_json(requester)}
+
+    @app.post("/api/friends/requests/{requester}/decline")
+    async def decline_friend(requester: int):
+        try:
+            await run_in_threadpool(db.decline_friend_request, db_path, person_id, requester)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await friends_changed(requester)
+        return {"ok": True}
 
     @app.post("/api/card-payments")
     async def card_pay(request: Request):
@@ -137,13 +202,34 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
-        text = f"Platba kartou {payment['amount']} Kč" + (f" · {payment['note']}" if payment["note"] else "")
+        text = f"Platba kartou {db.czk_text(payment['amount'])}" + (f" · {payment['note']}" if payment["note"] else "")
         event = {"type": "card_payment", "payment": payment, "text": text}
         if await run_in_threadpool(db.recording, db_path, person_id):
             event["text"] += " · přidáno do skupinové platby"
             event["recording"] = True
         await orch.send(person_id, event)
         return payment
+
+    @app.post("/api/account-payments")
+    async def account_pay(request: Request):
+        try:
+            body = await _json_object(request)
+            account = body.get("account")
+            if not isinstance(account, str):
+                raise BadInput("Neplatné číslo účtu")
+            payment = await run_in_threadpool(
+                db.account_payment, db_path, person_id, account, body.get("amount"), _note(body)
+            )
+        except (BadInput, db.PaymentError) as e:
+            return _bad(str(e))
+        if payment.get("kind") == "transfer":
+            await notify_received(payment)
+        await orch.send(person_id, {"type": "payment_sent", "payment": payment})
+        return payment
+
+    @app.get("/api/banks")
+    def banks():
+        return BANKS
 
     @app.post("/api/recording/start")
     async def recording_start(request: Request):
@@ -232,7 +318,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
     background = set()
 
     async def announce_request(req, title=None):
-        text = f"{me} žádá o {req['amount']} Kč" + (f" za {title}" if title else "")
+        text = f"{me} žádá o {db.czk_text(req['amount'])}" + (f" za {title}" if title else "")
         await orch.send(req["payer"], {"type": "request_received", "request": req, "from": me, "text": text})
 
     @app.post("/api/requests")
@@ -289,7 +375,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "type": "payment_received",
             "payment": payment,
             "from": me,
-            "text": f"{me} zaplatil(a) tvoji žádost: {payment['amount']} Kč",
+            "text": f"{me} zaplatil(a) tvoji žádost: {db.czk_text(payment['amount'])}",
         })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         await notify_group(req["group_id"], {person_id, payment["recipient"]})
@@ -305,7 +391,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "type": "request_declined",
             "request": req,
             "from": me,
-            "text": f"{me} odmítl(a) tvoji žádost: {req['amount']} Kč",
+            "text": f"{me} odmítl(a) tvoji žádost: {db.czk_text(req['amount'])}",
         })
         await orch.send(person_id, {"type": "requests_changed"})
         await notify_group(req["group_id"], {person_id, req["requester"]})
@@ -432,7 +518,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                 "type": "request_received",
                 "request": req,
                 "from": payee,
-                "text": f"{payee} žádá o {req['amount']} Kč za {group['name']}",
+                "text": f"{payee} žádá o {db.czk_text(req['amount'])} za {group['name']}",
             })
         await group_changed(group)
         for p in group["cancelled_invites"]:
@@ -494,15 +580,16 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                 {"detail": "Chat není nastavený (chybí OPENROUTER_API_KEY nebo OPENROUTER_MODEL)."},
                 status_code=503,
             )
+        charts = []
         try:
             reply = await asyncio.wait_for(
-                chat.run(db_path, person_id, messages, complete), chat.DEADLINE
+                chat.run(db_path, person_id, messages, complete, charts=charts), chat.DEADLINE
             )
         except (chat.UpstreamError, asyncio.TimeoutError) as e:
             # The client only sees a generic message; the cause must be findable in the server log.
             logging.getLogger(__name__).warning("Chat upstream failure: %s", str(e) or type(e).__name__)
             return JSONResponse({"detail": "Geoff teď neodpovídá, zkus to prosím znovu."}, status_code=502)
-        return {"reply": reply}
+        return {"reply": reply, "charts": charts}
 
     @app.websocket("/ws")
     async def ws(websocket: WebSocket):

@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="/static/fillers.css">
   <link rel="stylesheet" href="/static/whatsapp.css">
   <link rel="stylesheet" href="/static/surfers.css">
+  <link rel="stylesheet" href="/static/klipy.css">
+  <link rel="stylesheet" href="/static/safari.css">
 </head>
 <body>
   <div class="phone">
@@ -18,29 +20,31 @@
         <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
       </div>
 
-      <!-- Home screen. Geoff opens our app; Tinder and Spotify open filler mock-ups. -->
+      <!-- Home screen. Geoff opens our app; Spotify opens a filler mock-up. -->
       <div class="home" id="home">
         <div class="widget" id="widget" data-opens="app"></div>
         <div class="icon-grid">
-          <button class="icon" type="button" data-opens="tinder"><img src="/static/icons/tinder.png" alt=""><span>Tinder</span></button>
-          <button class="icon" type="button"><img src="/static/icons/youtube.png" alt=""><span>YouTube</span></button>
-          <button class="icon" type="button" data-opens="app"><img src="/static/icons/geoff.svg" alt=""><span>Geoff</span></button>
+          <button class="icon" type="button" data-opens="reels"><img src="/static/icons/klipy.svg" alt=""><span>Klipy</span></button>
           <button class="icon" type="button" data-opens="surfers"><img src="/static/icons/surfers.svg" alt=""><span>Surfers</span></button>
         </div>
         <div class="dock">
-          <button class="icon" type="button"><img src="/static/icons/safari.png" alt="Safari"></button>
-          <button class="icon" type="button" data-opens="whatsapp"><img src="/static/icons/whatsapp.png" alt="WhatsApp"></button>
+          <button class="icon" type="button" data-opens="safari"><img src="/static/icons/safari.png" alt="Safari"></button>
+          <button class="icon" type="button" data-opens="app"><img src="/static/icons/geoff.svg" alt="Geoff"></button>
           <button class="icon" type="button" data-opens="spotify"><img src="/static/icons/spotify.png" alt="Spotify"></button>
-          <button class="icon" type="button"><img src="/static/icons/instagram.png" alt="Instagram"></button>
+          <button class="icon" type="button" data-opens="whatsapp"><img src="/static/icons/whatsapp.png" alt="WhatsApp"></button>
         </div>
       </div>
 
       <main id="app" class="app-window open"></main>
-      <section id="tinder" class="app-window filler-app"></section>
       <section id="spotify" class="app-window filler-app" data-statusbar="light"></section>
 
       <section id="whatsapp" class="app-window" data-statusbar="light"></section>
       <section id="surfers" class="app-window" data-statusbar="light"></section>
+      <section id="reels" class="app-window" data-statusbar="light"></section>
+      <section id="safari" class="app-window">
+        <div class="sa-bar"><div class="sa-url">davidvobecky.com</div></div>
+        <iframe src="https://www.davidvobecky.com/" title="davidvobecky.com" loading="lazy"></iframe>
+      </section>
 
       <div class="banner-layer" id="banners"></div>
 
@@ -49,6 +53,7 @@
           <span class="shade-time clock"></span>
           <span class="bars"><i></i><i></i><i></i><i></i><i></i></span>
         </div>
+        <button type="button" class="shade-clear" id="shadeClear" hidden>Smazat vše</button>
         <div class="shade-list" id="shadeList"></div>
         <div class="shade-grab"></div>
       </div>
@@ -65,7 +70,7 @@
     <div class="demo-panel">
       <h4>Platba kartou (demo)<button type="button" class="demo-close" id="demoClose" aria-label="Zavřít">&#x2715;</button></h4>
       <form id="demoPay">
-        <input id="demoAmount" type="number" min="1" step="1" placeholder="Částka (Kč)">
+        <input id="demoAmount" type="text" inputmode="decimal" autocomplete="off" placeholder="Částka (Kč)">
         <input id="demoNote" type="text" maxlength="60" placeholder="Poznámka">
         <button type="submit">Zaplatit</button>
       </form>
@@ -77,6 +82,7 @@
   <script src="/static/fillers.js"></script>
   <script src="/static/whatsapp.js"></script>
   <script src="/static/surfers.js"></script>
+  <script src="/static/klipy.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

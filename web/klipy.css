@@ -1,0 +1,281 @@
+/* Klipy: vertical feed of short clips. --u is one pixel of the 360px-wide layout, scaled with the phone. */
+#reels {
+  --u: calc(var(--w) / 360);
+  background: #000;
+  color: #fff;
+  padding: 0;
+  overflow: hidden;
+}
+
+#reels[hidden], #reels [hidden] { display: none !important; }
+
+#reels .kl-head {
+  position: absolute;
+  top: 3.4em;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 calc(14 * var(--u));
+  pointer-events: none;
+}
+
+#reels .kl-head h2 {
+  margin: 0;
+  font-size: calc(20 * var(--u));
+  font-weight: 800;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+#reels .kl-home {
+  pointer-events: auto;
+  border: none;
+  border-radius: 1em;
+  padding: 0.35em 0.9em;
+  background: #fff;
+  color: #000;
+  font: inherit;
+  font-size: 0.8em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#reels .kl-feed {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+
+#reels .kl-feed::-webkit-scrollbar { display: none; }
+
+#reels .clip {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  background: linear-gradient(160deg, var(--a), var(--b));
+  touch-action: pan-y;
+}
+
+/* The scene is drawn at 360 wide; cover keeps its proportions on the taller phone screen. */
+#reels .cv, #reels .vid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#reels .cv { object-fit: cover; }
+
+#reels .vid {
+  inset: auto 0 0 0;
+  height: 50%;
+  object-fit: contain;
+  border-top: 2px solid #fff4;
+}
+
+#reels .ttl {
+  position: absolute;
+  left: calc(14 * var(--u));
+  right: calc(70 * var(--u));
+  top: calc(92 * var(--u));
+  margin: 0;
+  font-size: calc(26 * var(--u));
+  line-height: 1.1;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+#reels .side {
+  position: absolute;
+  right: calc(10 * var(--u));
+  bottom: calc(150 * var(--u));
+  display: flex;
+  flex-direction: column;
+  gap: calc(18 * var(--u));
+}
+
+#reels .act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3 * var(--u));
+  border: none;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: calc(12 * var(--u));
+  font-weight: 700;
+  cursor: pointer;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+#reels .act svg {
+  width: calc(30 * var(--u));
+  height: calc(30 * var(--u));
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+#reels .act[aria-pressed="true"] svg { fill: #ff4d6d; stroke: #ff4d6d; }
+
+#reels .by {
+  position: absolute;
+  left: calc(14 * var(--u));
+  right: calc(76 * var(--u));
+  bottom: calc(44 * var(--u));
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: calc(6 * var(--u)) calc(8 * var(--u));
+  font-size: calc(13 * var(--u));
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+#reels .av {
+  width: calc(34 * var(--u));
+  height: calc(34 * var(--u));
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: calc(15 * var(--u));
+  text-shadow: none;
+}
+
+#reels .d0 { background: #6a4cff; }
+#reels .d1 { background: #e0457b; }
+#reels .d2 { background: #1fb3a8; }
+#reels .d3 { background: #d6951a; }
+
+#reels .hd { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#reels .fol {
+  border: 1.5px solid #fff;
+  border-radius: calc(7 * var(--u));
+  padding: calc(4 * var(--u)) calc(10 * var(--u));
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#reels .fol[aria-pressed="true"] { background: #fff; color: #000; text-shadow: none; }
+
+#reels .cap { grid-column: 1 / -1; margin: 0; line-height: 1.3; }
+
+#reels .pg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(3 * var(--u));
+  background: #fff3;
+  pointer-events: none;
+}
+
+#reels .pg i { display: block; height: 100%; width: 0; background: #fff; }
+
+#reels .clip.on .pg i { animation: kl-pg 8s linear infinite; }
+
+@keyframes kl-pg { from { width: 0; } to { width: 100%; } }
+
+#reels .burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(110 * var(--u));
+  height: calc(110 * var(--u));
+  margin: calc(-55 * var(--u)) 0 0 calc(-55 * var(--u));
+  pointer-events: none;
+  animation: kl-burst 0.7s ease-out forwards;
+}
+
+#reels .burst svg { width: 100%; height: 100%; fill: #ff4d6d; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5)); }
+
+@keyframes kl-burst {
+  0% { transform: scale(0.3); opacity: 0; }
+  30% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+/* ---- comments sheet ---- */
+
+#reels .kl-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  max-height: 58%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #111;
+  border-radius: calc(18 * var(--u)) calc(18 * var(--u)) 0 0;
+  padding: calc(14 * var(--u)) calc(14 * var(--u)) calc(40 * var(--u));
+  font-size: calc(14 * var(--u));
+}
+
+#reels .kl-sh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.6em;
+}
+
+#reels .kl-sh h3 { margin: 0; font-size: 1.05em; }
+
+#reels .kl-x { border: none; background: none; font: inherit; font-size: 1.2em; cursor: pointer; color: #555; }
+
+#reels .kl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 3em;
+  scrollbar-width: none;
+}
+
+#reels .kl-list li { padding: 0.45em 0; border-bottom: 1px solid #eee; overflow-wrap: anywhere; }
+
+#reels .kl-add { display: flex; gap: 0.5em; margin-top: 0.7em; }
+
+#reels .kl-add input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #ccc;
+  border-radius: 1.2em;
+  padding: 0.5em 0.9em;
+  font: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+#reels .kl-add button {
+  border: none;
+  border-radius: 50%;
+  width: 2.4em;
+  background: #6a4cff;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #reels .clip.on .pg i { animation: none; width: 100%; }
+  #reels .burst { animation: none; }
+}
