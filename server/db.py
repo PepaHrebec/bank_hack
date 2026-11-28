@@ -8,6 +8,9 @@ from datetime import datetime
 from server import settle as split_slot
 
 PEOPLE = {1: "Štěpán Pressl", 2: "Jirka Měřínský", 3: "Pepa Hřebec", 4: "Petr Šafář"}
+GEOFF_BANK = "0800"  # bank code of accounts held at Geoff
+# Each person's Geoff account: person N has NNNNNNNNNN/0800 (repeated digits pass the mod-11 check).
+ACCOUNTS = {pid: f"{str(pid) * 10}/{GEOFF_BANK}" for pid in PEOPLE}
 START_BALANCE = 10000
 
 
@@ -264,6 +267,12 @@ def parse_account(text):
         raise PaymentError("Neplatné číslo účtu")
     prefix, number = prefix.lstrip("0"), number.lstrip("0")
     return f"{prefix + '-' if prefix else ''}{number}/{bank}"
+
+
+def person_by_account(text):
+    """The person holding Czech account `text` at Geoff, or None (invalid numbers raise PaymentError)."""
+    account = parse_account(text)
+    return next((pid for pid, acc in ACCOUNTS.items() if acc == account), None)
 
 
 def account_payment(path, person, account, amount, note=""):

@@ -26,7 +26,7 @@ def make_group(clients, members, name="Chata", **extra):
 
 def test_state(clients):
     s = clients[1].get("/api/state").json()
-    assert s["me"] == {"id": 1, "name": "Štěpán Pressl"}
+    assert s["me"] == {"id": 1, "name": "Štěpán Pressl", "account": "1111111111/0800"}
     assert s["balance"] == 10000
     assert len(s["people"]) == 4
     assert s["history"] == []

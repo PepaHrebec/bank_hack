@@ -91,8 +91,8 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
     @app.get("/api/state")
     def state():
         return {
-            "me": {"id": person_id, "name": db.PEOPLE[person_id]},
-            "people": [{"id": i, "name": n} for i, n in db.PEOPLE.items()],
+            "me": {"id": person_id, "name": db.PEOPLE[person_id], "account": db.ACCOUNTS[person_id]},
+            "people": [{"id": i, "name": n, "account": db.ACCOUNTS[i]} for i, n in db.PEOPLE.items()],
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
             "today_change": db.day_change(db_path, person_id),

@@ -78,3 +78,10 @@ def test_endpoint_errors(client):
 def test_parse_account_rejects_non_ascii_digits():
     with pytest.raises(db.PaymentError):
         db.parse_account("١٩-2000145399/0800")
+
+
+def test_every_person_has_a_valid_geoff_account():
+    for pid in db.PEOPLE:
+        assert db.ACCOUNTS[pid] == f"{str(pid) * 10}/0800"
+        assert db.person_by_account(db.ACCOUNTS[pid]) == pid
+    assert db.person_by_account("19-2000145399/0800") is None
