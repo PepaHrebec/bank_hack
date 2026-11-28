@@ -152,13 +152,12 @@ h1, h2, p { margin: 0; }
 #s-matrix { align-items: center; }
 .matrix {
   --red: #E5242B;
-  display: grid; grid-template-columns: auto 1fr 1fr; grid-template-rows: auto 1fr 1fr;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
   gap: 1.1rem 1.2rem;
   width: min(100%, 1240px); height: min(68vh, 720px);
 }
-.matrix .ax { font-weight: 700; font-size: clamp(1.2rem, 1.7vw, 1.7rem); letter-spacing: -.01em; color: var(--moss); }
-.matrix .col { text-align: center; padding-bottom: .2rem; }
-.matrix .row { writing-mode: vertical-rl; rotate: 180deg; text-align: center; padding-left: .2rem; }
+.matrix h3 { margin: 0 0 .7em; font-weight: 700; font-size: clamp(1.1rem, 1.55vw, 1.55rem); letter-spacing: -.01em; color: var(--moss); }
+.matrix .bad h3 { color: var(--red); opacity: .75; }
 .matrix .cell {
   position: relative;
   background: var(--foam);
@@ -339,7 +338,15 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .chat-chips { display: flex; flex-wrap: wrap; gap: .4em; }
 .chat-chips span { padding: .3em .7em; border-radius: 1em; background: #eceef2; color: #1c1e24; font-size: .78em; }
 .chat-form { display: flex; gap: .4em; }
-.chat-input { flex: 1; min-width: 0; padding: .45em .8em; border: 1px solid #d8dbe2; border-radius: 1em; font-size: .85em; }
+.chat-input { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; padding: .45em .8em; border: 1px solid #d8dbe2; border-radius: 1em; font-size: .85em; }
+.chat-input .ph { color: #9aa0aa; }
+.chat-input.focus { border-color: var(--acc); }
+.cacts { display: flex; gap: .4em; margin-top: .5em; }
+.cacts span, .req-acts span { flex: 1; padding: .45em .8em; border-radius: .9em; background: var(--acc); color: #fff; font-weight: 600; text-align: center; }
+.cacts span.sec, .req-acts span.sec { background: #e2e4ea; color: #1c1e24; }
+.cdone { margin-top: .4em; font-weight: 600; color: #1f9d5c; }
+.req-acts { display: flex; gap: .5em; margin-top: .4em; font-size: .9em; }
+.req-acts[hidden] { display: none; }
 .chat-send { padding: .45em .9em; border-radius: 1em; background: var(--acc); color: #fff; font-size: .85em; }
 
 .clist { background: #fff; border-radius: 1.3em; padding: .3em 1em; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
@@ -366,7 +373,7 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .pay-who { display: flex; align-items: center; gap: .7em; margin-bottom: .9em; font-weight: 600; font-size: 1.05em; }
 .pay-who .av { width: 2.6em; height: 2.6em; }
 .segm { display: flex; padding: .2em; margin-bottom: .8em; border-radius: .8em; background: #f2f3f7; }
-.segm span { flex: 1; padding: .5em; border-radius: .65em; text-align: center; font-size: .9em; font-weight: 600; opacity: .6; }
+.segm span { transition: background .25s, opacity .25s, box-shadow .25s; flex: 1; padding: .5em; border-radius: .65em; text-align: center; font-size: .9em; font-weight: 600; opacity: .6; }
 .segm span.on { background: #fff; opacity: 1; box-shadow: 0 .08em .3em rgba(0, 0, 0, .12); }
 .field { display: flex; align-items: center; min-height: 2.6em; margin-bottom: .55em; padding: .7em .8em; border-radius: .8em; background: #f2f3f7; transition: box-shadow .2s; }
 .field.big { font-size: 1.3em; font-weight: 700; min-height: 2.1em; padding: .4em .6em; }
@@ -409,9 +416,6 @@ body[data-phone="on"] .stage { transform: translateY(-50%); opacity: 1; }
 .n-res:empty { display: none; }
 
 /* qr */
-.qr-card { margin-bottom: .9em; padding: 1.2em 1.2em 1em; border-radius: 1.3em; background: #fff; text-align: center; box-shadow: 0 .08em .25em rgba(0, 0, 0, .06); }
-.qr-card svg { display: block; width: 80%; height: auto; margin: 0 auto; }
-.qr-card .cap { margin-top: .7em; min-height: 1.3em; font-weight: 600; }
 
 /* stop popup: sheet over the whole screen */
 .sheet-bg { position: absolute; inset: 0; z-index: 50; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .45); opacity: 0; transition: opacity .3s; }
@@ -532,17 +536,12 @@ body.show-notes .notes { display: block; }
 
 <!-- 4 -->
 <section class="slide" id="s-matrix" data-dur="9" data-bg="#EEF4FD"
-  data-notes="Co od banky opravdu chceme? QR kód, přehled a platby už existují, stačí je udělat jednoduše. Převody mezi vlastními účty, finanční zdraví a statistiky se mají dít samy. Vyžádání platby a dělené platby mezi přáteli chybí. A pak je tu všechno, co se na nás valí: hypotéky, úvěry, pojištění a další produkty.">
+  data-notes="Co od banky opravdu chceme? QR kód, přehled a platby. Převody mezi vlastními účty, finanční zdraví a statistiky stačí na požádání. Vyžádání platby a dělené platby mezi přáteli potřebujeme. A pak je tu všechno komplexní: hypotéky, úvěry, pojištění a další produkty.">
   <div class="matrix">
-    <div></div>
-    <div class="ax col f" style="--d:0">Žádoucí</div>
-    <div class="ax col f" style="--d:0">Automatizovat</div>
-    <div class="ax row f" style="--d:1">Existující</div>
-    <div class="cell f" style="--d:2"><ul><li>QR kód</li><li>Přehled</li><li>Platby</li></ul></div>
-    <div class="cell f" style="--d:4"><ul><li>Převody mezi vlastními účty</li><li>Finanční zdraví</li><li>Statistiky</li></ul></div>
-    <div class="ax row f" style="--d:5">Neexistující</div>
-    <div class="cell f" style="--d:6"><ul><li>Vyžádání platby</li><li>Dělené platby mezi přáteli</li></ul></div>
-    <div class="cell bad f" id="burst" style="--d:9"><ul><li>Hypotéky</li><li>Úvěry</li><li>Pojištění</li><li>Produkty</li></ul></div>
+    <div class="cell f" style="--d:1"><h3>Žádoucí</h3><ul><li>QR kód</li><li>Přehled</li><li>Platby</li></ul></div>
+    <div class="cell f" style="--d:3"><h3>Na požádání</h3><ul><li>Převody mezi vlastními účty</li><li>Finanční zdraví</li><li>Statistiky</li></ul></div>
+    <div class="cell f" style="--d:5"><h3>Potřebné</h3><ul><li>Vyžádání platby</li><li>Dělené platby mezi přáteli</li></ul></div>
+    <div class="cell bad f" id="burst" style="--d:8"><h3>Komplexní…</h3><ul><li>Hypotéky</li><li>Úvěry</li><li>Pojištění</li><li>Produkty</li></ul></div>
   </div>
 </section>
 
@@ -597,7 +596,7 @@ body.show-notes .notes { display: block; }
     <ul class="four">
       <li><span class="r"><span style="--d:2">Kolik máte peněz.</span></span></li>
       <li><span class="r"><span style="--d:3">Peníze mezi přáteli.</span></span></li>
-      <li><span class="r"><span style="--d:4">QR kódy.</span></span></li>
+      <li><span class="r"><span style="--d:4">Žádosti o platbu.</span></span></li>
       <li><span class="r"><span style="--d:5">A bowling <span class="muted">rozdělený mezi 5 přátel.</span></span></span></li>
     </ul>
   </div>
@@ -619,33 +618,33 @@ body.show-notes .notes { display: block; }
 
 <!-- 8 -->
 <section class="slide with-phone" id="s-pay" data-dur="19" data-hold="3" data-bg="#EEF4FD" data-phone="on"
-  data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, zaplatíte rovnou z notifikace. Aplikaci ani nemusíte otevírat.">
+  data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, přijde vám notifikace. Klepnete na ni a žádost zaplatíte jedním klepnutím.">
   <div class="copy">
     <p class="kicker f">Peníze mezi přáteli</p>
     <h2 class="h">
       <span class="r"><span style="--d:0">Jméno, částka,</span></span>
       <span class="r"><span style="--d:1">odeslat.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte rovnou z notifikace.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte jedním klepnutím.</span></span></p>
   </div>
 </section>
 
 <!-- 9 -->
-<section class="slide with-phone" id="s-qr" data-dur="10" data-hold="3" data-bg="#EEF4FD" data-phone="on"
-  data-notes="Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.">
+<section class="slide with-phone" id="s-request" data-dur="10" data-hold="3" data-bg="#EEF4FD" data-phone="on"
+  data-notes="Zaplatili jste za kamaráda lístky do kina? Klepnete na jeho jméno, přepnete na žádost, napíšete částku a odešlete. On dostane notifikaci, zaplatí jedním klepnutím a peníze jsou zpátky. Žádné upomínání, žádné čísla účtů.">
   <div class="copy">
-    <p class="kicker f">QR kódy</p>
+    <p class="kicker f">Žádost o platbu</p>
     <h2 class="h">
-      <span class="r"><span style="--d:0">Ukažte kód.</span></span>
-      <span class="r"><span style="--d:1">Hotovo.</span></span>
+      <span class="r"><span style="--d:0">Vyžádat.</span></span>
+      <span class="r"><span style="--d:1">Bez připomínání.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Pro každého, koho v kontaktech nemáte.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Kamarád dostane žádost a zaplatí jedním klepnutím.</span></span></p>
   </div>
 </section>
 
 <!-- 10 -->
 <section class="slide with-phone" id="s-beers" data-dur="32" data-bg="#EEF4FD" data-phone="on"
-  data-notes="A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
+  data-notes="A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti ji zaplatí jedním klepnutím.">
   <div class="copy">
     <p class="kicker f">Skupinová platba</p>
     <h2 class="h">
@@ -663,14 +662,14 @@ body.show-notes .notes { display: block; }
 
 <!-- 11 -->
 <section class="slide with-phone" id="s-chat" data-dur="16" data-bg="#EEF4FD" data-phone="on"
-  data-notes="A věci, na které zapomenout nechcete, třeba občas přehled nebo statistiku? Jednoduše se Geoffa zeptejte, jedním klepnutím nebo vlastními slovy. Odpoví česky z vašich plateb a sám s penězi nikdy nepohne. V základu vám nebude nutit nic, co běžný den nepotřebujete.">
+  data-notes="A věci, na které zapomenout nechcete, třeba občas přehled nebo statistiku? Jednoduše se Geoffa zeptejte, jedním klepnutím nebo vlastními slovy. Odpoví česky z vašich plateb. A když chcete, přesune peníze mezi vašimi účty, třeba na spoření. Vždycky se ale nejdřív zeptá. V základu vám nebude nutit nic, co běžný den nepotřebujete.">
   <div class="copy">
     <p class="kicker f">Všechno ostatní</p>
     <h2 class="h">
       <span class="r"><span style="--d:0">Chcete přehled?</span></span>
       <span class="r"><span style="--d:1">Zeptejte se.</span></span>
     </h2>
-    <p class="lede"><span class="r"><span style="--d:3">Ge<span class="off">off</span> odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.</span></span></p>
+    <p class="lede"><span class="r"><span style="--d:3">Ge<span class="off">off</span> odpoví z vašich plateb a přesune peníze mezi vašimi účty.</span></span></p>
   </div>
 </section>
 
@@ -748,7 +747,7 @@ body.show-notes .notes { display: block; }
           <div class="chat">
             <div class="chat-list" id="chatList"><div class="chat-empty" id="chatEmpty">Zeptej se mě na své platby.</div></div>
             <div class="chat-chips"><span>Dnes</span><span id="chipMonth">Tento měsíc</span><span id="chipOwe">Kolik dlužím?</span><span>Kdo dluží mně?</span><span>Moje skupiny</span></div>
-            <div class="chat-form"><span class="chat-input"><span class="ph" style="color:#9aa0aa">Napiš zprávu…</span></span><span class="chat-send">Poslat</span></div>
+            <div class="chat-form"><span class="chat-input" id="chatIn"><span class="ph">Napiš zprávu…</span></span><span class="chat-send" id="chatSend">Poslat</span></div>
           </div>
         </div>
 
@@ -777,7 +776,7 @@ body.show-notes .notes { display: block; }
           <div class="clist">
             <div class="crow"><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán Pressl</span><span class="chev ico" data-ico="chevron"></span></div>
             <div class="crow" id="cJirka"><span class="av" style="background:#2bb673">JM</span><span class="nm">Jirka Měřínský</span><span class="chev ico" data-ico="chevron"></span></div>
-            <div class="crow"><span class="av" style="background:#e5487a">PŠ</span><span class="nm">Petr Šafář</span><span class="chev ico" data-ico="chevron"></span></div>
+            <div class="crow" id="cPetr"><span class="av" style="background:#e5487a">PŠ</span><span class="nm">Petr Šafář</span><span class="chev ico" data-ico="chevron"></span></div>
             <div class="crow"><span class="av" style="background:#8b5cf6">OK</span><span class="nm">Ondra Kubát</span><span class="chev ico" data-ico="chevron"></span></div>
             <div class="crow"><span class="av" style="background:#14b8a6">BN</span><span class="nm">Bára Nováková</span><span class="chev ico" data-ico="chevron"></span></div>
           </div>
@@ -796,13 +795,28 @@ body.show-notes .notes { display: block; }
           </div>
         </div>
 
-        <!-- qr -->
-        <div class="scr" data-s="qr">
-          <div class="vh"><span class="back ico" data-ico="back"></span><h3>QR kód</h3></div>
-          <div class="qr-card"><svg id="qrSvg" viewBox="0 0 29 29" shape-rendering="crispEdges"></svg><div class="cap" id="qrCap">Naskenuj a zaplať</div></div>
+
+        <!-- to be paid -->
+        <div class="scr" data-s="topay">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3>K zaplacení</h3></div>
+          <div class="segm"><span class="on">Přijaté žádosti</span><span>Moje žádosti</span></div>
           <div class="pcard">
-            <div class="field" id="qrAmt"></div>
-            <div class="field" id="qrNote" style="margin-bottom:0"></div>
+            <div class="crow"><span class="av" style="background:#3b6cff">ŠP</span><span class="nm">Štěpán Pressl<span class="sub">kebab</span></span><span class="amt">120 Kč</span></div>
+            <div class="req-acts" id="tpActs"><span class="sec">Odmítnout</span><span id="tpPay">Zaplatit</span></div>
+            <div class="fmsg" id="tpMsg">Zaplaceno · 120 Kč pro Štěpána</div>
+          </div>
+        </div>
+
+        <!-- request -->
+        <div class="scr" data-s="request">
+          <div class="vh"><span class="back ico" data-ico="back"></span><h3 id="rqTitle">Poslat peníze</h3></div>
+          <div class="pay-who"><span class="av" style="background:#e5487a">PŠ</span>Petr Šafář</div>
+          <div class="pcard">
+            <div class="segm" id="rqSeg"><span class="on">Platba</span><span>Žádost</span></div>
+            <div class="field big" id="rqAmt"></div>
+            <div class="field" id="rqNote"></div>
+            <div class="sbtn" id="rqSend">Poslat</div>
+            <div class="fmsg" id="rqMsg">Žádost odeslána · 240 Kč od Petra</div>
           </div>
         </div>
 
@@ -1062,23 +1076,6 @@ body.show-notes .notes { display: block; }
   addEventListener("resize", () => { if (slides[cur] && slides[cur].id === "s-chaos") placeChips(); });
   function clearNoise() { noise.classList.remove("on", "swept"); chips.forEach((c) => c.classList.remove("in")); }
 
-  /* ---- QR pattern (decorative, deterministic) ---- */
-  (function qr() {
-    const n = 29, svg = $("#qrSvg");
-    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const finder = (x, y) => (x < 7 && y < 7) || (x > n - 8 && y < 7) || (x < 7 && y > n - 8);
-    let out = "";
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-      let on;
-      if (finder(x, y)) {
-        const fx = x > n - 8 ? x - (n - 7) : x, fy = y > n - 8 ? y - (n - 7) : y;
-        on = fx === 0 || fx === 6 || fy === 0 || fy === 6 || (fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4);
-      } else if ((x === 7 || y === 7 || x === n - 8 || y === n - 8) && (finder(x - 1, y) || finder(x + 1, y) || finder(x, y - 1) || finder(x, y + 1))) on = false;
-      else on = rnd() > .52;
-      if (on) out += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
-    }
-    svg.innerHTML = `<g fill="#0B1F42">${out}</g>`;
-  })();
 
   /* ---- scenes ---- */
   const scenes = {
@@ -1136,22 +1133,38 @@ body.show-notes .notes { display: block; }
       at(t + 250, () => note.classList.remove("focus", "caret"));
       at(t + 600, () => tap($("#paySend")));
       at(t + 900, () => { msg.classList.add("on"); setMoney(31265, -240); });
-      // a friend asks for money: pay it straight from the notification
-      at(8600, () => notify("Štěpán Pressl žádá 120 Kč · kebab", ["Zaplatit", "Odmítnout"]));
-      at(11400, () => tap($("#nActs span")));
-      at(11700, () => { $("#nActs").replaceChildren(); $("#nRes").textContent = "Zaplaceno"; setMoney(31145, -360); });
-      at(14800, hideBanner);
+      // a friend asks for money: the notification opens the request, paid with one tap
+      $("#tpActs").hidden = false; $("#tpMsg").classList.remove("on");
+      at(8600, () => notify("Štěpán Pressl žádá 120 Kč · kebab"));
+      at(10600, () => tap(banner));
+      at(10900, () => { hideBanner(); screen("topay"); });
+      at(12600, () => tap($("#tpPay")));
+      at(12900, () => { $("#tpActs").hidden = true; $("#tpMsg").classList.add("on"); setMoney(31145, -360); });
     },
-    "s-qr"() {
+    "s-request"() {
       resetPhone("22:40", 31145, -360); screen("main");
-      const a = $("#qrAmt"), n = $("#qrNote"), cap = $("#qrCap");
-      placeholder(a, "Částka (Kč)"); placeholder(n, "Poznámka (nepovinná)"); cap.textContent = "Naskenuj a zaplať";
-      at(600, () => tap($("#tQr")));
-      at(900, () => screen("qr"));
-      let t = type(a, "90", 2000, 140);
-      at(t + 50, () => { cap.textContent = "90 Kč"; a.classList.remove("focus", "caret"); });
-      t = type(n, "za kávu", t + 400, 80);
-      at(t + 50, () => { cap.textContent = "90 Kč · za kávu"; n.classList.remove("focus", "caret"); });
+      const amt = $("#rqAmt"), note = $("#rqNote"), msg = $("#rqMsg"), [segPay, segReq] = $$("#rqSeg span");
+      placeholder(amt, "Částka (Kč)"); placeholder(note, "Poznámka (nepovinná)"); msg.classList.remove("on");
+      segPay.classList.add("on"); segReq.classList.remove("on");
+      $("#rqTitle").textContent = "Poslat peníze"; $("#rqSend").textContent = "Poslat";
+      at(400, () => tap($("#tContacts")));
+      at(700, () => screen("contacts"));
+      at(1500, () => { tap($("#cPetr")); $("#cPetr").classList.add("tap"); });
+      at(1800, () => { screen("request"); $("#cPetr").classList.remove("tap"); });
+      // switch the form from paying to asking
+      at(2500, () => tap(segReq));
+      at(2650, () => {
+        segPay.classList.remove("on"); segReq.classList.add("on");
+        $("#rqTitle").textContent = "Vyžádat peníze"; $("#rqSend").textContent = "Vyžádat";
+      });
+      let t = type(amt, "240", 3000, 120);
+      at(t + 100, () => amt.classList.remove("focus", "caret"));
+      t = type(note, "lístky do kina", t + 250, 40);
+      at(t + 150, () => note.classList.remove("focus", "caret"));
+      at(t + 450, () => tap($("#rqSend")));
+      at(t + 700, () => msg.classList.add("on"));
+      // Petr pays it straight from his notification; the money is back
+      at(t + 1700, () => { notify("Petr Šafář zaplatil 240 Kč · lístky do kina"); setMoney(31385, -120); });
     },
     "s-beers"() {
       resetPhone("18:55", 31145, 0); screen("home");
@@ -1201,8 +1214,26 @@ body.show-notes .notes { display: block; }
       resetPhone("23:58", 30665, -480); screen("main");
       ask($("#chipMonth"), "Shrň mi platby za tento měsíc.",
         "Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pizzerie Napoli (1 680 Kč).", 1200);
-      ask($("#chipOwe"), "Komu a kolik dlužím?",
-        "Štěpánovi dlužíš 250 Kč za Chatu Krkonoše. Nikomu dalšímu nic nedlužíš.", 7600);
+      // Geoff can also move money between your own accounts, after you confirm
+      const input = $("#chatIn"), ask2 = "Pošli 2 000 Kč na spoření";
+      placeholder(input, "Napiš zprávu…");
+      let t = type(input, ask2, 6600, 45);
+      at(t + 300, () => tap($("#chatSend")));
+      at(t + 500, () => { bubble("user", ask2); placeholder(input, "Napiš zprávu…"); });
+      let wait;
+      at(t + 850, () => { wait = bubble("bot", "…"); });
+      at(t + 2300, () => {
+        wait.textContent = "Převést 2 000 Kč z běžného účtu na Spoření?";
+        const acts = Object.assign(document.createElement("div"), { className: "cacts" });
+        acts.innerHTML = '<span id="cOk">Převést</span><span class="sec">Zrušit</span>';
+        wait.append(acts);
+      });
+      at(t + 4000, () => tap($("#cOk")));
+      at(t + 4300, () => {
+        const acts = wait.querySelector(".cacts");
+        acts.replaceWith(Object.assign(document.createElement("div"), { className: "cdone", textContent: "Převedeno ✓" }));
+        setMoney(28665, -2480);
+      });
     },
   };
 
@@ -1211,7 +1242,7 @@ body.show-notes .notes { display: block; }
   const stills = {
     "s-balance"() { resetPhone("21:40"); screen("home"); },
     "s-pay"() { resetPhone("22:15"); screen("main"); },
-    "s-qr"() { resetPhone("22:40", 31145, -360); screen("main"); },
+    "s-request"() { resetPhone("22:40", 31145, -360); screen("main"); },
   };
   let pending = false; // the current slide still waits for its animation
 

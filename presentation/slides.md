@@ -59,14 +59,14 @@ Zbytek večera patří **skutečnému světu.**
 
 # 4 · Matice (9 s)
 
-_A two-by-two grid fills the slide. Column headings (Žádoucí, Automatizovat) and the vertical row headings (Existující, Neexistující) fade in first, then the cells one by one. The bottom-right cell arrives last, light red with a red border, pushed slightly out of the grid and tilted._
+_A two-by-two grid of cells fills the slide; each cell has a small title above its items. The cells fade in one by one. The bottom-right cell arrives last, light red with a red border, pushed slightly out of the grid and tilted, and then stays still._
 
-|                  | Žádoucí                                   | Automatizovat                                          |
-| ---------------- | ----------------------------------------- | ------------------------------------------------------ |
-| **Existující**   | QR kód · Přehled · Platby                 | Převody mezi vlastními účty · Finanční zdraví · Statistiky |
-| **Neexistující** | Vyžádání platby · Dělené platby mezi přáteli | **Hypotéky · Úvěry · Pojištění · Produkty** (red, overflowing) |
+- **Žádoucí:** QR kód · Přehled · Platby
+- **Na požádání:** Převody mezi vlastními účty · Finanční zdraví · Statistiky
+- **Potřebné:** Vyžádání platby · Dělené platby mezi přáteli
+- **Komplexní…** (red): Hypotéky · Úvěry · Pojištění · Produkty
 
-> Poznámky: Co od banky opravdu chceme? QR kód, přehled a platby už existují, stačí je udělat jednoduše. Převody mezi vlastními účty, finanční zdraví a statistiky se mají dít samy. Vyžádání platby a dělené platby mezi přáteli chybí. A pak je tu všechno, co se na nás valí: hypotéky, úvěry, pojištění a další produkty.
+> Poznámky: Co od banky opravdu chceme? QR kód, přehled a platby. Převody mezi vlastními účty, finanční zdraví a statistiky stačí na požádání. Vyžádání platby a dělené platby mezi přáteli potřebujeme. A pak je tu všechno komplexní: hypotéky, úvěry, pojištění a další produkty.
 
 # 5 · Bankéř (16 s)
 
@@ -94,7 +94,7 @@ _A phone swings up into place on the right and stays there through slide 11. It 
 
 - Kolik máte peněz.
 - Peníze mezi přáteli.
-- QR kódy.
+- Žádosti o platbu.
 - A bowling _rozdělený mezi 5 přátel._
 
 On the phone (app main screen): Zůstatek · 31 615 Kč · +110 Kč dnes · Kontakty · QR kód · Spustit skupinovou platbu · Zeptej se mě na své platby. · Dnes · Tento měsíc · Kolik dlužím? · Kdo dluží mně? · Moje skupiny · Napiš zprávu… · Poslat
@@ -129,35 +129,36 @@ On the phone:
 
 # 8 · Peníze mezi přáteli (19 s)
 
-_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Jirka (his row highlights). The pay screen slides in, and "350" and "lístek na koncert" are typed in with a blinking cursor. Poslat is tapped and a green confirmation appears; the balance drops. Then a notification slides down from the top with Zaplatit / Odmítnout buttons. Zaplatit is tapped, the buttons turn into a green "Zaplaceno", and the notification slides away._
+_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Jirka (his row highlights). The pay screen slides in, and "350" and "lístek na koncert" are typed in with a blinking cursor. Poslat is tapped and a green confirmation appears; the balance drops. Then a request notification slides down from the top (no buttons). Tapping it opens the app's "K zaplacení" screen with Štěpán's request and Odmítnout / Zaplatit buttons. Zaplatit is tapped and the buttons turn into a green "Zaplaceno · 120 Kč pro Štěpána"._
 
 Peníze mezi přáteli
 
 **Jméno, částka, odeslat.**
 
-Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte rovnou z notifikace.
+Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte jedním klepnutím.
 
 On the phone:
 
 - Kontakty: Skupinové vyrovnání · K zaplacení (badge 1) · Štěpán Pressl · Jirka Měřínský · Petr Šafář · Ondra Kubát · Bára Nováková
 - Poslat peníze: Jirka Měřínský · Platba / Žádost · 350 · lístek na koncert · Poslat · Odesláno · 350 Kč pro Jirku
-- Notification: Geoff · teď · Štěpán Pressl žádá 120 Kč · kebab · Zaplatit · Odmítnout → Zaplaceno
+- Notification: Geoff · teď · Štěpán Pressl žádá 120 Kč · kebab
+- K zaplacení · Přijaté žádosti / Moje žádosti · Štěpán Pressl · kebab · 120 Kč · Odmítnout · Zaplatit → Zaplaceno · 120 Kč pro Štěpána
 
-> Poznámky: Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, zaplatíte rovnou z notifikace. Aplikaci ani nemusíte otevírat.
+> Poznámky: Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, přijde vám notifikace. Klepnete na ni a žádost zaplatíte jedním klepnutím.
 
-# 9 · QR kódy (10 s)
+# 9 · Žádost o platbu (10 s)
 
-_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps the QR kód tile and the QR screen slides in. The amount and note are typed in, and the caption under the code updates as you type._
+_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Petr Šafář. On the payment screen it switches the toggle from Platba to Žádost, so the title becomes "Vyžádat peníze" and the button "Vyžádat". The amount and note are typed in, Vyžádat is tapped, and a green confirmation appears. A moment later a notification drops in: Petr has paid._
 
-QR kódy
+Žádost o platbu
 
-**Ukažte kód. Hotovo.**
+**Vyžádat. Bez připomínání.**
 
-Pro každého, koho v kontaktech nemáte.
+Kamarád dostane žádost a zaplatí jedním klepnutím.
 
-On the phone: QR kód · Naskenuj a zaplať → 90 Kč · za kávu · fields 90 and za kávu
+On the phone: Kontakty → Petr Šafář · Platba / **Žádost** · Vyžádat peníze · 240 · lístky do kina · Vyžádat → „Žádost odeslána · 240 Kč od Petra“ → notification „Petr Šafář zaplatil 240 Kč · lístky do kina“
 
-> Poznámky: Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.
+> Poznámky: Zaplatili jste za kamaráda lístky do kina? Klepnete na jeho jméno, přepnete na žádost, napíšete částku a odešlete. On dostane notifikaci, zaplatí jedním klepnutím a peníze jsou zpátky. Žádné upomínání, žádné čísla účtů.
 
 # 10 · Skupinová platba (32 s)
 
@@ -180,27 +181,28 @@ On the phone:
 - Nová skupina: Bowling · 2 platby · 2 880 Kč · zaplaceno tebou · Kdo je ve skupině: Štěpán Pressl, Jirka Měřínský, Petr Šafář, Ondra Kubát, Bára Nováková · Vytvořit skupinu
 - Bowling: Založeno mnou · 2 880 Kč · utraceno společně · Otevřená → Schválená · Ty, Štěpán, Jirka, Petr, Ondra, Bára · Výdaje: Bowling Strike (Ty · 19:10) 1 200 Kč, Pizzerie Napoli (Ty · 21:20) 1 680 Kč · Schválit a rozdělit · Žádosti · 480 Kč na osobu · Štěpán, Jirka, Petr, Ondra, Bára: Čeká → Zaplaceno
 
-> Poznámky: A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.
+> Poznámky: A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti ji zaplatí jedním klepnutím.
 
 # 11 · Všechno ostatní (16 s)
 
-_The phone is on the app's main screen at 23:58. The "Tento měsíc" chip is tapped: a blue question bubble pops in, then a grey "…" bubble that turns into Geoff's answer. The same happens with "Kolik dlužím?"._
+_The phone is on the app's main screen at 23:58. The "Tento měsíc" chip is tapped: a blue question bubble pops in, then a grey "…" bubble that turns into Geoff's answer. Then "Pošli 2 000 Kč na spoření" is typed into the message field and sent. Geoff asks "Převést 2 000 Kč z běžného účtu na Spoření?" with Převést / Zrušit buttons. Převést is tapped, the buttons turn into a green "Převedeno ✓" and the balance drops by 2 000 Kč._
 
 Všechno ostatní
 
 **Chcete přehled? Zeptejte se.**
 
-Ge**off** odpoví z vašich plateb. Jen čte, s penězi sám nikdy nepohne.
+Ge**off** odpoví z vašich plateb a přesune peníze mezi vašimi účty.
 
 On the phone:
 
 - Zůstatek · 30 665 Kč · −480 Kč dnes
 - Shrň mi platby za tento měsíc.
 - Za listopad ti přišlo 35 300 Kč a odešlo 27 960 Kč. Nejvíc šlo do Albertu (3 120 Kč) a do Pizzerie Napoli (1 680 Kč).
-- Komu a kolik dlužím?
-- Štěpánovi dlužíš 250 Kč za Chatu Krkonoše. Nikomu dalšímu nic nedlužíš.
+- Pošli 2 000 Kč na spoření
+- Převést 2 000 Kč z běžného účtu na Spoření? · Převést · Zrušit → Převedeno ✓
+- Zůstatek · 28 665 Kč · −2 480 Kč dnes
 
-> Poznámky: A věci, na které zapomenout nechcete, třeba občas přehled nebo statistiku? Jednoduše se Geoffa zeptejte, jedním klepnutím nebo vlastními slovy. Odpoví česky z vašich plateb a sám s penězi nikdy nepohne. V základu vám nebude nutit nic, co běžný den nepotřebujete.
+> Poznámky: A věci, na které zapomenout nechcete, třeba občas přehled nebo statistiku? Jednoduše se Geoffa zeptejte, jedním klepnutím nebo vlastními slovy. Odpoví česky z vašich plateb. A když chcete, přesune peníze mezi vašimi účty, třeba na spoření. Vždycky se ale nejdřív zeptá. V základu vám nebude nutit nic, co běžný den nepotřebujete.
 
 # 12 · Závěr (12 s)
 
