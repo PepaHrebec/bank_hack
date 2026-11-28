@@ -148,7 +148,34 @@ h1, h2, p { margin: 0; }
 .rest { margin-top: 6vh; font-size: clamp(1.7rem, 2.9vw, 2.9rem); font-weight: 600; letter-spacing: -.01em; }
 .rest b { color: var(--moss); font-weight: 750; }
 
-/* ---------- 4 principle ---------- */
+/* ---------- 4 matrix ---------- */
+#s-matrix { align-items: center; }
+.matrix {
+  --red: #E5242B;
+  display: grid; grid-template-columns: auto 1fr 1fr; grid-template-rows: auto 1fr 1fr;
+  gap: 1.1rem 1.2rem;
+  width: min(100%, 1240px); height: min(68vh, 720px);
+}
+.matrix .ax { font-weight: 700; font-size: clamp(1.2rem, 1.7vw, 1.7rem); letter-spacing: -.01em; color: var(--moss); }
+.matrix .col { text-align: center; padding-bottom: .2rem; }
+.matrix .row { writing-mode: vertical-rl; rotate: 180deg; text-align: center; padding-left: .2rem; }
+.matrix .cell {
+  position: relative;
+  background: var(--foam);
+  border: 1.5px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  border-radius: 24px;
+  padding: clamp(1rem, 2.2vw, 2rem);
+}
+.matrix ul { list-style: none; margin: 0; padding: 0; position: relative; z-index: 2; }
+.matrix li { font-size: clamp(1.35rem, 2.15vw, 2.25rem); font-weight: 750; letter-spacing: -.025em; line-height: 1.15; }
+.matrix li + li { margin-top: .3em; }
+.matrix .cell.bad {
+  background: #FDE6E6; border: 2px solid var(--red); color: var(--red);
+  translate: 1.8vw 2.2vh; rotate: 1.6deg;
+  box-shadow: 0 24px 50px -20px rgba(229, 36, 43, .45);
+}
+
+/* ---------- 5 principle ---------- */
 #s-banker { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 5vw; }
 .flow { width: 100%; max-width: 620px; justify-self: end; }
 .flow svg { width: 100%; height: auto; overflow: visible; }
@@ -162,7 +189,7 @@ h1, h2, p { margin: 0; }
 .flow .bin { fill: var(--foam); stroke: color-mix(in srgb, var(--ink) 15%, transparent); stroke-width: 1.5; }
 .flow .bin-fill { fill: color-mix(in srgb, var(--amber) 55%, var(--foam)); }
 
-/* ---------- 5 four things ---------- */
+/* ---------- 6 four things ---------- */
 .four { list-style: none; padding: 0; margin: 5vh 0 0; }
 .four li { font-size: clamp(1.7rem, 3vw, 3.1rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.12; }
 .four li + li { margin-top: .25em; }
@@ -179,7 +206,7 @@ h1, h2, p { margin: 0; }
 .math .row .big-stat, .math .row .lbl { opacity: .12; transition: opacity .6s var(--ease); }
 .math .row.on .big-stat, .math .row.on .lbl { opacity: 1; }
 
-/* ---------- 11 outro ---------- */
+/* ---------- 12 outro ---------- */
 #s-outro .display { max-width: 14ch; }
 #s-outro .second { margin-top: 5vh; font-size: clamp(1.9rem, 4vw, 4.3rem); font-weight: 500; letter-spacing: -.02em; line-height: 1.05; color: var(--moss); }
 #s-outro .sign { position: absolute; right: 7vw; bottom: 8vh; font-size: clamp(2.4rem, 4.8vw, 4.8rem); font-weight: 800; letter-spacing: -.05em; }
@@ -447,6 +474,8 @@ body.show-notes .notes { display: block; }
   body[data-phone="on"] .stage { transform: translateX(-50%); }
   .evening { grid-template-columns: 1fr; gap: 1.6rem; margin-top: 4vh; }
   #s-banker { grid-template-columns: 1fr; }
+  .matrix { gap: .6rem; height: 72vh; }
+  .matrix li { font-size: 1.05rem; }
   .hud { padding: 0 16px 2.6vh; }
   .ticks, .notes { left: 16px; right: 16px; }
 }
@@ -475,7 +504,7 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 3 -->
-<section class="slide" id="s-calm" data-dur="19" data-bg="#EEF4FD"
+<section class="slide" id="s-calm" data-dur="10" data-bg="#EEF4FD"
   data-notes="Já ale nechci, aby moji přátelé soutěžili s algoritmy o mou pozornost. Sedím s přáteli na bowlingu, chci otevřít aplikaci, zjistit, kolik mám, a odejít. Poslat peníze a do deseti sekund být zpátky. V tramvaji domů požádat přátele o jejich podíl a vrátit se do skutečného světa.">
   <h2 class="h">
     <span class="r"><span style="--d:0">Já chci být s přáteli,</span></span>
@@ -502,6 +531,22 @@ body.show-notes .notes { display: block; }
 </section>
 
 <!-- 4 -->
+<section class="slide" id="s-matrix" data-dur="9" data-bg="#EEF4FD"
+  data-notes="Co od banky opravdu chceme? QR kód, přehled a platby už existují, stačí je udělat jednoduše. Převody mezi vlastními účty, finanční zdraví a statistiky se mají dít samy. Vyžádání platby a dělené platby mezi přáteli chybí. A pak je tu všechno, co se na nás valí: hypotéky, úvěry, pojištění a další produkty.">
+  <div class="matrix">
+    <div></div>
+    <div class="ax col f" style="--d:0">Žádoucí</div>
+    <div class="ax col f" style="--d:0">Automatizovat</div>
+    <div class="ax row f" style="--d:1">Existující</div>
+    <div class="cell f" style="--d:2"><ul><li>QR kód</li><li>Přehled</li><li>Platby</li></ul></div>
+    <div class="cell f" style="--d:4"><ul><li>Převody mezi vlastními účty</li><li>Finanční zdraví</li><li>Statistiky</li></ul></div>
+    <div class="ax row f" style="--d:5">Neexistující</div>
+    <div class="cell f" style="--d:6"><ul><li>Vyžádání platby</li><li>Dělené platby mezi přáteli</li></ul></div>
+    <div class="cell bad f" id="burst" style="--d:9"><ul><li>Hypotéky</li><li>Úvěry</li><li>Pojištění</li><li>Produkty</li></ul></div>
+  </div>
+</section>
+
+<!-- 5 -->
 <section class="slide" id="s-banker" data-dur="16" data-bg="#EEF4FD"
   data-notes="Dřív byl účet v bance služba. Měli jste bankéře, který se o všechno postaral, a do banky jste vlastně nechodili. Dnešní technologie umožňují, aby banka zase fungovala takhle: výplata přijde a Geoff ji sám rozdělí mezi účet, spoření a stavebko.">
   <div>
@@ -544,7 +589,7 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 5 -->
+<!-- 6 -->
 <section class="slide with-phone" id="s-geoff" data-dur="12" data-bg="#EEF4FD" data-phone="on"
   data-notes="Věci jdou dělat jednoduše, jen jsme na to rezignovali. Nepřicházíme s deseti novými funkcemi ani s bankovnictvím v lednici. Přicházíme s Geoffem a se čtyřmi věcmi, které opravdu potřebujete.">
   <div class="copy">
@@ -558,7 +603,7 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 6 -->
+<!-- 7 -->
 <section class="slide with-phone" id="s-balance" data-dur="14" data-hold="3" data-bg="#EEF4FD" data-phone="on"
   data-notes="Kolik máte peněz, vidíte hned na ploše, i s tím, o kolik se to dnes změnilo. Žádné bannery, žádné nabídky. Klepnete a jste v aplikaci. Historie, i s výplatou, je o jedno klepnutí dál.">
   <div class="copy">
@@ -572,7 +617,7 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 7 -->
+<!-- 8 -->
 <section class="slide with-phone" id="s-pay" data-dur="19" data-hold="3" data-bg="#EEF4FD" data-phone="on"
   data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, zaplatíte rovnou z notifikace. Aplikaci ani nemusíte otevírat.">
   <div class="copy">
@@ -585,7 +630,7 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 8 -->
+<!-- 9 -->
 <section class="slide with-phone" id="s-qr" data-dur="10" data-hold="3" data-bg="#EEF4FD" data-phone="on"
   data-notes="Platíte někomu, koho nemáte v kontaktech? Ukážete QR kód. Částka, poznámka, hotovo.">
   <div class="copy">
@@ -598,7 +643,7 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 9 -->
+<!-- 10 -->
 <section class="slide with-phone" id="s-beers" data-dur="32" data-bg="#EEF4FD" data-phone="on"
   data-notes="A teď ten večer. Jdete s partou na bowling a tentokrát platíte vy. Na začátku jedním klepnutím na ploše spustíte skupinovou platbu. Všechno, co ten večer zaplatíte kartou, se samo sbírá: dráha na bowlingu i pizza pro všechny. Na konci ji ukončíte a vytvoříte skupinové vyrovnání. Zaškrtnete přátele a schválíte. Geoff spočítá podíly s co nejmenším počtem převodů a každému pošle žádost. Ti zaplatí jedním klepnutím přímo z notifikace.">
   <div class="copy">
@@ -616,7 +661,7 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 10 -->
+<!-- 11 -->
 <section class="slide with-phone" id="s-chat" data-dur="16" data-bg="#EEF4FD" data-phone="on"
   data-notes="A věci, na které zapomenout nechcete, třeba občas přehled nebo statistiku? Jednoduše se Geoffa zeptejte, jedním klepnutím nebo vlastními slovy. Odpoví česky z vašich plateb a sám s penězi nikdy nepohne. V základu vám nebude nutit nic, co běžný den nepotřebujete.">
   <div class="copy">
@@ -629,14 +674,14 @@ body.show-notes .notes { display: block; }
   </div>
 </section>
 
-<!-- 11 -->
+<!-- 12 -->
 <section class="slide" id="s-outro" data-dur="12" data-bg="#EEF4FD"
-  data-notes="A to je všechno, co Geoff nabízí. Protože svět je komplikovaný už teď.">
+  data-notes="A to je všechno, co Geoff nabízí. Protože svět je sám o sobě složitý.">
   <h2 class="display">
     <span class="r"><span style="--d:0">A to je všechno,</span></span>
     <span class="r"><span style="--d:1">co Ge<span class="off">off</span> nabízí.</span></span>
   </h2>
-  <p class="second"><span class="r"><span style="--d:14">Protože svět je komplikovaný už teď.</span></span></p>
+  <p class="second"><span class="r"><span style="--d:14">Protože svět je sám o sobě složitý.</span></span></p>
   <div class="sign f" style="--d:18">Ge<span class="off">off</span>.</div>
 </section>
 
