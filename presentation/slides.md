@@ -127,38 +127,41 @@ On the phone:
 
 > Poznámky: Kolik máte peněz, vidíte hned na ploše, i s tím, o kolik se to dnes změnilo. Žádné bannery, žádné nabídky. Klepnete a jste v aplikaci. Historie, i s výplatou, je o jedno klepnutí dál.
 
-# 8 · Peníze mezi přáteli (19 s)
+# 8 · Peníze mezi přáteli (13 s)
 
-_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Jirka (his row highlights). The pay screen slides in, and "350" and "lístek na koncert" are typed in with a blinking cursor. Poslat is tapped and a green confirmation appears; the balance drops. Then a request notification slides down from the top (no buttons). Tapping it opens the app's "K zaplacení" screen with Štěpán's request and Odmítnout / Zaplatit buttons. Zaplatit is tapped and the buttons turn into a green "Zaplaceno · 120 Kč pro Štěpána"._
+_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Jirka (his row highlights). The pay screen slides in, and "350" and "lístek na koncert" are typed in with a blinking cursor. Poslat is tapped and a green confirmation appears; the balance drops. Then a notification slides down from the top: Ondra has sent you 200 Kč, and the balance goes up._
 
 Peníze mezi přáteli
 
 **Jméno, částka, odeslat.**
 
-Přátelé, ne čísla účtů. Žádost od kamaráda zaplatíte jedním klepnutím.
+Přátelé, ne čísla účtů. A když vám někdo pošle peníze, hned o tom víte.
 
 On the phone:
 
 - Kontakty: Skupinové vyrovnání · K zaplacení (badge 1) · Štěpán Pressl · Jirka Měřínský · Petr Šafář · Ondra Kubát · Bára Nováková
 - Poslat peníze: Jirka Měřínský · Platba / Žádost · 350 · lístek na koncert · Poslat · Odesláno · 350 Kč pro Jirku
-- Notification: Geoff · teď · Štěpán Pressl žádá 120 Kč · kebab
-- K zaplacení · Přijaté žádosti / Moje žádosti · Štěpán Pressl · kebab · 120 Kč · Odmítnout · Zaplatit → Zaplaceno · 120 Kč pro Štěpána
+- Notification: Geoff · teď · Ondra Kubát vám poslal 200 Kč · benzín
 
-> Poznámky: Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, přijde vám notifikace. Klepnete na ni a žádost zaplatíte jedním klepnutím.
+> Poznámky: Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když vám někdo pošle peníze, hned o tom víte.
 
-# 9 · Žádost o platbu (10 s)
+# 9 · Žádost o platbu (16 s)
 
-_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Petr Šafář. On the payment screen it switches the toggle from Platba to Žádost, so the title becomes "Vyžádat peníze" and the button "Vyžádat". The amount and note are typed in, Vyžádat is tapped, and a green confirmation appears. A moment later a notification drops in: Petr has paid._
+_Two steps. First the text rises in and the phone stays still on the app's main screen. On the next click (or after 3 s in autoplay) the animation starts: the phone taps Kontakty, then Petr Šafář. On the payment screen it switches the toggle from Platba to Žádost, so the title becomes "Vyžádat peníze" and the button "Vyžádat". The amount and note are typed in, Vyžádat is tapped, and a green confirmation appears. A moment later a notification drops in: Petr has paid. Then the other way round: a request notification from Štěpán slides down (no buttons). Tapping it opens the app's "K zaplacení" screen with his request and Odmítnout / Zaplatit buttons. Zaplatit is tapped and the buttons turn into a green "Zaplaceno · 120 Kč pro Štěpána"._
 
 Žádost o platbu
 
 **Vyžádat. Bez připomínání.**
 
-Kamarád dostane žádost a zaplatí jedním klepnutím.
+Kamarád dostane žádost a zaplatí. Žádost od kamaráda zaplatíte jedním klepnutím.
 
-On the phone: Kontakty → Petr Šafář · Platba / **Žádost** · Vyžádat peníze · 240 · lístky do kina · Vyžádat → „Žádost odeslána · 240 Kč od Petra“ → notification „Petr Šafář zaplatil 240 Kč · lístky do kina“
+On the phone:
 
-> Poznámky: Zaplatili jste za kamaráda lístky do kina? Klepnete na jeho jméno, přepnete na žádost, napíšete částku a odešlete. On dostane notifikaci, zaplatí jedním klepnutím a peníze jsou zpátky. Žádné upomínání, žádné čísla účtů.
+- Kontakty → Petr Šafář · Platba / **Žádost** · Vyžádat peníze · 240 · lístky do kina · Vyžádat → „Žádost odeslána · 240 Kč od Petra“ → notification „Petr Šafář zaplatil 240 Kč · lístky do kina“
+- Notification: Geoff · teď · Štěpán Pressl žádá 120 Kč · kebab
+- K zaplacení · Přijaté žádosti / Moje žádosti · Štěpán Pressl · kebab · 120 Kč · Odmítnout · Zaplatit → Zaplaceno · 120 Kč pro Štěpána
+
+> Poznámky: Zaplatili jste za kamaráda lístky do kina? Klepnete na jeho jméno, přepnete na žádost, napíšete částku a odešlete. On dostane notifikaci, zaplatí a peníze jsou zpátky. A funguje to i obráceně: když po vás kamarád chce peníze, přijde vám notifikace. Klepnete na ni a žádost zaplatíte jedním klepnutím.
 
 # 10 · Skupinová platba (32 s)
 

@@ -2180,11 +2180,11 @@
         <section
             class="slide with-phone"
             id="s-pay"
-            data-dur="19"
+            data-dur="13"
             data-hold="3"
             data-bg="#EEF4FD"
             data-phone="on"
-            data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když po vás kamarád chce peníze, přijde vám notifikace. Klepnete na ni a žádost zaplatíte jedním klepnutím."
+            data-notes="Kontakty jsou vaši přátelé, ne čísla účtů. Klepnete na jméno, napíšete částku, odešlete. A když vám někdo pošle peníze, hned o tom víte."
         >
             <div class="copy">
                 <p class="kicker f">Peníze mezi přáteli</p>
@@ -2197,8 +2197,8 @@
                 <p class="lede">
                     <span class="r"
                         ><span style="--d: 3"
-                            >Přátelé, ne čísla účtů. Žádost od kamaráda
-                            zaplatíte jedním klepnutím.</span
+                            >Přátelé, ne čísla účtů. A když vám někdo pošle
+                            peníze, hned o tom víte.</span
                         ></span
                     >
                 </p>
@@ -2209,11 +2209,11 @@
         <section
             class="slide with-phone"
             id="s-request"
-            data-dur="10"
+            data-dur="16"
             data-hold="3"
             data-bg="#EEF4FD"
             data-phone="on"
-            data-notes="Zaplatili jste za kamaráda lístky do kina? Klepnete na jeho jméno, přepnete na žádost, napíšete částku a odešlete. On dostane notifikaci, zaplatí jedním klepnutím a peníze jsou zpátky. Žádné upomínání, žádné čísla účtů."
+            data-notes="Zaplatili jste za kamaráda lístky do kina? Klepnete na jeho jméno, přepnete na žádost, napíšete částku a odešlete. On dostane notifikaci, zaplatí a peníze jsou zpátky. A funguje to i obráceně: když po vás kamarád chce peníze, přijde vám notifikace. Klepnete na ni a žádost zaplatíte jedním klepnutím."
         >
             <div class="copy">
                 <p class="kicker f">Žádost o platbu</p>
@@ -2226,8 +2226,8 @@
                 <p class="lede">
                     <span class="r"
                         ><span style="--d: 3"
-                            >Kamarád dostane žádost a zaplatí jedním
-                            klepnutím.</span
+                            >Kamarád dostane žádost a zaplatí. Žádost od
+                            kamaráda zaplatíte jedním klepnutím.</span
                         ></span
                     >
                 </p>
@@ -3492,27 +3492,17 @@
                             msg.classList.add("on");
                             setMoney(31265, -240);
                         });
-                        // a friend asks for money: the notification opens the request, paid with one tap
-                        $("#tpActs").hidden = false;
-                        $("#tpMsg").classList.remove("on");
-                        at(8600, () =>
-                            notify("Štěpán Pressl žádá 120 Kč · kebab"),
-                        );
-                        at(10600, () => tap(banner));
-                        at(10900, () => {
-                            hideBanner();
-                            screen("topay");
-                        });
-                        at(12600, () => tap($("#tpPay")));
-                        at(12900, () => {
-                            $("#tpActs").hidden = true;
-                            $("#tpMsg").classList.add("on");
-                            setMoney(31145, -360);
+                        // money comes in: a notification, and the balance goes up
+                        at(7600, () => {
+                            notify("Ondra Kubát vám poslal 200 Kč · benzín");
+                            setMoney(31465, -40);
                         });
                     },
                     "s-request"() {
-                        resetPhone("22:40", 31145, -360);
+                        resetPhone("22:40", 31465, -40);
                         screen("main");
+                        $("#tpActs").hidden = false;
+                        $("#tpMsg").classList.remove("on");
                         const amt = $("#rqAmt"),
                             note = $("#rqNote"),
                             msg = $("#rqMsg"),
@@ -3557,7 +3547,23 @@
                             notify(
                                 "Petr Šafář zaplatil 240 Kč · lístky do kina",
                             );
-                            setMoney(31385, -120);
+                            setMoney(31705, 200);
+                        });
+                        // and the other way round: a friend asks, the notification opens the request
+                        at(8600, hideBanner);
+                        at(9200, () =>
+                            notify("Štěpán Pressl žádá 120 Kč · kebab"),
+                        );
+                        at(10800, () => tap(banner));
+                        at(11100, () => {
+                            hideBanner();
+                            screen("topay");
+                        });
+                        at(12300, () => tap($("#tpPay")));
+                        at(12600, () => {
+                            $("#tpActs").hidden = true;
+                            $("#tpMsg").classList.add("on");
+                            setMoney(31585, 80);
                         });
                     },
                     "s-beers"() {
@@ -3717,7 +3723,7 @@
                         screen("main");
                     },
                     "s-request"() {
-                        resetPhone("22:40", 31145, -360);
+                        resetPhone("22:40", 31465, -40);
                         screen("main");
                     },
                 };
