@@ -1,9 +1,15 @@
-"""SQLite storage for the payments and payment requests of the four mockup people."""
+"""SQLite storage for the payments and payment requests of the four mockup people.
 
+Money is stored as integer haléře (1 Kč = 100 haléřů), but every public function takes and returns
+amounts in CZK: an int when whole, otherwise a float with at most two decimals (`to_hal` / `from_hal`).
+"""
+
+import math
 import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
+from decimal import Decimal
 
 from server import settle as split_slot
 
@@ -13,11 +19,56 @@ GEOFF_BANK = "0800"  # bank code of accounts held at Geoff
 ACCOUNTS = {pid: f"{str(pid) * 10}/{GEOFF_BANK}" for pid in PEOPLE}
 # Known outside contacts (not Geoff users, no phone of their own): normalised account -> name.
 CONTACTS = {"5555555555/0100": "Timothy Liška"}
-START_BALANCE = 10000
+START_BALANCE = 10000  # CZK
+# PRAGMA user_version: 1 = money columns hold haléře (older databases held whole crowns).
+SCHEMA_VERSION = 1
+# Every column holding money, as (table, column); the haléře migration multiplies these by 100.
+MONEY_COLUMNS = [
+    ("accounts", "balance"), ("payments", "amount"), ("card_payments", "amount"), ("account_payments", "amount"),
+    ("income", "amount"), ("requests", "amount"), ("expenses", "amount"),
+]
 
 
 class PaymentError(Exception):
     pass
+
+
+def to_hal(amount, positive=True):
+    """CZK (int or float, at most two decimals) -> integer haléře.
+
+    Raises PaymentError for anything else, and (unless `positive` is off) for amounts that aren't above zero.
+    Goes through the decimal text of the float, so 1.1 is 110 and float noise like 0.1 + 0.2 is 30."""
+    if type(amount) not in (int, float) or not math.isfinite(amount) or (positive and amount <= 0):
+        raise PaymentError("Částka musí být číslo větší než nula")
+    hal = Decimal(str(amount)) * 100
+    whole = hal.to_integral_value()
+    if abs(hal - whole) > Decimal("1e-6"):
+        raise PaymentError("Částka může mít nejvýš dvě desetinná místa")
+    if positive and whole <= 0:
+        raise PaymentError("Částka musí být číslo větší než nula")
+    return int(whole)
+
+
+def from_hal(hal):
+    """Integer haléře -> CZK: an int when whole (12), otherwise a float rounded to 2 dp (12.5)."""
+    return hal // 100 if hal % 100 == 0 else round(hal / 100, 2)
+
+
+def _czk(row, *keys):
+    """A row as a dict with its money fields (default "amount") converted from haléře to CZK."""
+    d = dict(row)
+    for k in keys or ("amount",):
+        if d.get(k) is not None:
+            d[k] = from_hal(d[k])
+    return d
+
+
+def czk_text(amount):
+    """CZK as Czech text with two decimals, e.g. 1234.5 -> "1 234,50 Kč" (for notification texts)."""
+    hal = to_hal(amount, positive=False)
+    sign = "-" if hal < 0 else ""
+    crowns, rest = divmod(abs(hal), 100)
+    return f"{sign}{crowns:,}".replace(",", "\u00a0") + f",{rest:02d} Kč"
 
 
 @contextmanager
@@ -142,12 +193,28 @@ def init_db(path):
             " requester INTEGER NOT NULL, recipient INTEGER NOT NULL, created_at TEXT NOT NULL,"
             " PRIMARY KEY (requester, recipient))"
         )
+        _migrate(conn)
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
                 " ON CONFLICT(id) DO UPDATE SET name = excluded.name",
-                (pid, name, START_BALANCE),
+                (pid, name, START_BALANCE * 100),
             )
+
+
+def _migrate(conn):
+    """Bring the money columns up to SCHEMA_VERSION, once: the version is checked and set in one transaction."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if conn.execute("PRAGMA user_version").fetchone()[0] < 1:
+            # Whole crowns -> haléře. A brand-new database has no rows yet, so this changes nothing there.
+            for table, column in MONEY_COLUMNS:
+                conn.execute(f"UPDATE {table} SET {column} = {column} * 100")
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def reset_db(path):
@@ -168,7 +235,7 @@ def reset_db(path):
         conn.execute("DELETE FROM messages")
         conn.execute("DELETE FROM friends")
         conn.execute("DELETE FROM friend_requests")
-        conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
+        conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE * 100,))
         conn.execute("COMMIT")
 
 
@@ -177,16 +244,11 @@ def get_balance(path, person_id):
         row = conn.execute("SELECT balance FROM accounts WHERE id = ?", (person_id,)).fetchone()
     if row is None:
         raise PaymentError(f"Neznámá osoba {person_id}")
-    return row["balance"]
+    return from_hal(row["balance"])
 
 
 def _now():
     return datetime.now().isoformat(timespec="seconds")
-
-
-def _check_amount(amount):
-    if type(amount) is not int or amount <= 0:
-        raise PaymentError("Částka musí být celé číslo korun větší než nula")
 
 
 def _check_pair(me, other, unknown="Neznámý příjemce", self_msg="Nemůžeš platit sám sobě"):
@@ -208,38 +270,38 @@ def _transaction(path):
             raise
 
 
-def _debit(conn, person, amount):
-    """Take money from an account inside an open transaction, if it has enough."""
+def _debit(conn, person, hal):
+    """Take `hal` haléře from an account inside an open transaction, if it has enough."""
     balance = conn.execute("SELECT balance FROM accounts WHERE id = ?", (person,)).fetchone()["balance"]
-    if balance < amount:
+    if balance < hal:
         raise PaymentError("Nedostatek prostředků")
-    conn.execute("UPDATE accounts SET balance = balance - ? WHERE id = ?", (amount, person))
+    conn.execute("UPDATE accounts SET balance = balance - ? WHERE id = ?", (hal, person))
 
 
-def _transfer(conn, sender, recipient, amount, note):
-    """Move money inside an open transaction and record the payment."""
-    _debit(conn, sender, amount)
-    conn.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (amount, recipient))
+def _transfer(conn, sender, recipient, hal, note):
+    """Move `hal` haléře inside an open transaction and record the payment."""
+    _debit(conn, sender, hal)
+    conn.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (hal, recipient))
     created_at = _now()
     cur = conn.execute(
         "INSERT INTO payments (sender, recipient, amount, note, created_at) VALUES (?, ?, ?, ?, ?)",
-        (sender, recipient, amount, note, created_at),
+        (sender, recipient, hal, note, created_at),
     )
     return {
         "id": cur.lastrowid,
         "sender": sender,
         "recipient": recipient,
-        "amount": amount,
+        "amount": from_hal(hal),
         "note": note,
         "created_at": created_at,
     }
 
 
 def send_payment(path, sender, recipient, amount, note=""):
-    _check_amount(amount)
+    hal = to_hal(amount)
     _check_pair(sender, recipient)
     with _transaction(path) as conn:
-        return _transfer(conn, sender, recipient, amount, (note or "").strip())
+        return _transfer(conn, sender, recipient, hal, (note or "").strip())
 
 
 CARD_NOTE_MAX = 60
@@ -247,20 +309,20 @@ CARD_NOTE_MAX = 60
 
 def card_payment(path, person, amount, note=""):
     """Pay a shop by card: the money leaves `person`'s account and goes nowhere in the app."""
-    _check_amount(amount)
+    hal = to_hal(amount)
     if person not in PEOPLE:
         raise PaymentError("Neznámá osoba")
     note = (note or "").strip()
     if len(note) > CARD_NOTE_MAX:
         raise PaymentError(f"Poznámka může mít nejvýše {CARD_NOTE_MAX} znaků")
     with _transaction(path) as conn:
-        _debit(conn, person, amount)
+        _debit(conn, person, hal)
         created_at = _now()
         cur = conn.execute(
             "INSERT INTO card_payments (person, amount, note, created_at) VALUES (?, ?, ?, ?)",
-            (person, amount, note, created_at),
+            (person, hal, note, created_at),
         )
-    return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
+    return {"id": cur.lastrowid, "person": person, "amount": from_hal(hal), "note": note, "created_at": created_at}
 
 
 _ACCOUNT_RE = re.compile(r"(?:([0-9]{1,6})-)?([0-9]{2,10})/([0-9]{4})")
@@ -293,7 +355,7 @@ def person_by_account(text):
 def account_payment(path, person, account, amount, note=""):
     """Pay a Czech bank account. An account of another Geoff person is a normal transfer
     (returned with "kind": "transfer"); otherwise the money leaves the app."""
-    _check_amount(amount)
+    hal = to_hal(amount)
     if person not in PEOPLE:
         raise PaymentError("Neznámá osoba")
     account = parse_account(account)
@@ -304,13 +366,13 @@ def account_payment(path, person, account, amount, note=""):
         return {"kind": "transfer", **send_payment(path, person, recipient, amount, note)}
     note = (note or "").strip()
     with _transaction(path) as conn:
-        _debit(conn, person, amount)
+        _debit(conn, person, hal)
         created_at = _now()
         cur = conn.execute(
             "INSERT INTO account_payments (person, account, amount, note, created_at) VALUES (?, ?, ?, ?, ?)",
-            (person, account, amount, note, created_at),
+            (person, account, hal, note, created_at),
         )
-    return {"id": cur.lastrowid, "person": person, "account": account, "amount": amount, "note": note,
+    return {"id": cur.lastrowid, "person": person, "account": account, "amount": from_hal(hal), "note": note,
             "created_at": created_at}
 
 
@@ -349,8 +411,8 @@ def _recording(conn, person):
     starter = row["session_starter"]
     return {
         "started_at": row["started_at"],
-        "payments": payments,
-        "total": sum(p["amount"] for p in payments),
+        "payments": [_czk(p) for p in payments],
+        "total": from_hal(sum(p["amount"] for p in payments)),
         "starter": starter,
         "participants": _participants(conn, starter, ended=False),
         "invited": _session_invited(conn, starter),
@@ -467,8 +529,8 @@ def stop_recording(path, person):
         )
     return {
         "started_at": result["started_at"],
-        "payments": payments,
-        "total": sum(p["amount"] for p in payments),
+        "payments": [_czk(p) for p in payments],
+        "total": from_hal(sum(p["amount"] for p in payments)),
         "participants": result["participants"],
         "shared": True,
     }
@@ -512,22 +574,27 @@ def discard_session(path, starter):
 
 def add_income(path, person, amount, note=""):
     """Credit `person` with money from outside the app, e.g. a salary."""
-    _check_amount(amount)
+    hal = to_hal(amount)
     if person not in PEOPLE:
         raise PaymentError("Neznámá osoba")
     note = (note or "").strip()
     with _transaction(path) as conn:
-        conn.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (amount, person))
+        conn.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (hal, person))
         created_at = _now()
         cur = conn.execute(
             "INSERT INTO income (person, amount, note, created_at) VALUES (?, ?, ?, ?)",
-            (person, amount, note, created_at),
+            (person, hal, note, created_at),
         )
-    return {"id": cur.lastrowid, "person": person, "amount": amount, "note": note, "created_at": created_at}
+    return {"id": cur.lastrowid, "person": person, "amount": from_hal(hal), "note": note, "created_at": created_at}
 
 
 def history(path, person_id):
     """Transfers, card payments and income of one person, newest first."""
+    return [_czk(i) for i in _history(path, person_id)]
+
+
+def _history(path, person_id):
+    """`history` with amounts still in haléře."""
     with _connect(path) as conn:
         transfers = conn.execute(
             "SELECT * FROM payments WHERE sender = ? OR recipient = ?", (person_id, person_id)
@@ -547,30 +614,30 @@ def day_change(path, person_id, day=None):
     """How much `person_id`'s balance moved on `day` ("YYYY-MM-DD", default today): in minus out."""
     day = day or _now()[:10]
     change = 0
-    for item in history(path, person_id):
+    for item in _history(path, person_id):
         if item["created_at"][:10] != day:
             continue
         incoming = item["kind"] == "income" or (item["kind"] == "transfer" and item["recipient"] == person_id)
         change += item["amount"] if incoming else -item["amount"]
-    return change
+    return from_hal(change)
 
 
 # ---- payment requests ----
 
 
-def _insert_request(conn, requester, payer, amount, note, group_id=None):
+def _insert_request(conn, requester, payer, hal, note, group_id=None):
     created_at = _now()
     cur = conn.execute(
         "INSERT INTO requests (group_id, requester, payer, amount, note, created_at)"
         " VALUES (?, ?, ?, ?, ?, ?)",
-        (group_id, requester, payer, amount, note, created_at),
+        (group_id, requester, payer, hal, note, created_at),
     )
     return {
         "id": cur.lastrowid,
         "group_id": group_id,
         "requester": requester,
         "payer": payer,
-        "amount": amount,
+        "amount": from_hal(hal),
         "note": note,
         "status": "open",
         "created_at": created_at,
@@ -579,18 +646,19 @@ def _insert_request(conn, requester, payer, amount, note, group_id=None):
 
 def create_request(path, requester, payer, amount, note=""):
     """Ask `payer` to send `amount` CZK to `requester`."""
-    _check_amount(amount)
+    hal = to_hal(amount)
     _check_pair(requester, payer, "Neznámý kontakt", "Nemůžeš žádat peníze sám od sebe")
     with _transaction(path) as conn:
-        return _insert_request(conn, requester, payer, amount, (note or "").strip())
+        return _insert_request(conn, requester, payer, hal, (note or "").strip())
 
 
 def create_group_request(path, requester, title, shares, note=""):
     """One request per payer in `shares` ({payer_id: amount}), grouped under `title`."""
     if not shares:
         raise PaymentError("Vyber alespoň jednu osobu")
+    hals = {}
     for payer, amount in shares.items():
-        _check_amount(amount)
+        hals[payer] = to_hal(amount)
         _check_pair(requester, payer, "Neznámý kontakt", "Nemůžeš žádat peníze sám od sebe")
     title = (title or "").strip() or "Skupinová platba"
     note = (note or "").strip()
@@ -600,12 +668,12 @@ def create_group_request(path, requester, title, shares, note=""):
             "INSERT INTO request_groups (requester, title, created_at) VALUES (?, ?, ?)",
             (requester, title, created_at),
         ).lastrowid
-        requests = [_insert_request(conn, requester, p, a, note, group_id) for p, a in shares.items()]
+        requests = [_insert_request(conn, requester, p, h, note, group_id) for p, h in hals.items()]
     return {
         "id": group_id,
         "requester": requester,
         "title": title,
-        "total": sum(shares.values()),
+        "total": from_hal(sum(hals.values())),
         "created_at": created_at,
         "requests": requests,
     }
@@ -621,8 +689,8 @@ def _group_info(conn, group_id):
         "title": g["title"],
         "requester": g["requester"],
         "settle_group_id": g["settle_group_id"],
-        "total": sum(m["amount"] for m in members),
-        "members": [dict(m) for m in members],
+        "total": from_hal(sum(m["amount"] for m in members)),
+        "members": [_czk(m) for m in members],
     }
 
 
@@ -634,7 +702,7 @@ def open_requests_for(path, payer):
         ).fetchall()
         result = []
         for r in rows:
-            item = dict(r)
+            item = _czk(r)
             item["group"] = _group_info(conn, r["group_id"]) if r["group_id"] else None
             result.append(item)
     return result
@@ -648,7 +716,7 @@ def requests_by(path, requester):
         ).fetchall()
         result = []
         for r in rows:
-            item = dict(r)
+            item = _czk(r)
             item["group"] = _group_info(conn, r["group_id"]) if r["group_id"] else None
             result.append(item)
     return result
@@ -677,12 +745,12 @@ def pay_request(path, request_id, payer):
 def get_request(path, request_id):
     with _connect(path) as conn:
         r = conn.execute("SELECT * FROM requests WHERE id = ?", (request_id,)).fetchone()
-    return dict(r) if r else None
+    return _czk(r) if r else None
 
 
 def decline_request(path, request_id, payer):
     with _transaction(path) as conn:
-        r = dict(_open_request(conn, request_id, payer))
+        r = _czk(_open_request(conn, request_id, payer))
         conn.execute("UPDATE requests SET status = 'declined' WHERE id = ?", (request_id,))
     r["status"] = "declined"
     return r
@@ -725,6 +793,7 @@ def _group_dict(conn, g):
         (g["id"], status))] for status in ("accepted", "invited"))
     expenses = [dict(r) for r in conn.execute(
         "SELECT * FROM expenses WHERE group_id = ? ORDER BY id DESC", (g["id"],))]
+    total = from_hal(sum(e["amount"] for e in expenses))
     requests_sent = conn.execute(
         "SELECT COUNT(*) FROM requests r JOIN request_groups rg ON rg.id = r.group_id"
         " WHERE rg.settle_group_id = ?",
@@ -734,8 +803,8 @@ def _group_dict(conn, g):
         **dict(g),
         "members": members,
         "invited": invited,
-        "expenses": expenses,
-        "total": sum(e["amount"] for e in expenses),
+        "expenses": [_czk(e) for e in expenses],
+        "total": total,
         "requests_sent": requests_sent,
     }
 
@@ -758,8 +827,7 @@ def create_group(path, creator, name, members, expense=None, sources=None, accep
     if expense is not None:
         if not isinstance(expense, dict):
             raise PaymentError("Výdaj musí mít částku a popis")
-        _check_amount(expense.get("amount"))
-        expense = {**expense, "description": _text(expense.get("description"), EXPENSE_DESC_MAX, "Za co to bylo")}
+        expense = {**expense, "amount": to_hal(expense.get("amount")), "description": _text(expense.get("description"), EXPENSE_DESC_MAX, "Za co to bylo")}
     sources = _check_sources(sources)
     with _transaction(path) as conn:
         return _insert_group(conn, creator, name, members, accepted, expense, sources)
@@ -788,18 +856,18 @@ def _insert_group(conn, creator, name, members, accepted, expense, sources):
     return _group_dict(conn, g)
 
 
-def _insert_expense(conn, group_id, payer, amount, description, source_kind=None, source_id=None):
+def _insert_expense(conn, group_id, payer, hal, description, source_kind=None, source_id=None):
     created_at = _now()
     expense_id = conn.execute(
         "INSERT INTO expenses (group_id, payer, amount, description, created_at, source_kind, source_id)"
         " VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (group_id, payer, amount, description, created_at, source_kind, source_id),
+        (group_id, payer, hal, description, created_at, source_kind, source_id),
     ).lastrowid
     return {
         "id": expense_id,
         "group_id": group_id,
         "payer": payer,
-        "amount": amount,
+        "amount": from_hal(hal),
         "description": description,
         "created_at": created_at,
         "source_kind": source_kind,
@@ -809,11 +877,11 @@ def _insert_expense(conn, group_id, payer, amount, description, source_kind=None
 
 def add_expense(path, group_id, payer, amount, description):
     """Record that `payer` paid `amount` for the group. No money moves."""
-    _check_amount(amount)
+    hal = to_hal(amount)
     description = _text(description, EXPENSE_DESC_MAX, "Za co to bylo")
     with _transaction(path) as conn:
         _require_open(_group_row(conn, group_id, payer))
-        return _insert_expense(conn, group_id, payer, amount, description)
+        return _insert_expense(conn, group_id, payer, hal, description)
 
 
 def _check_sources(sources):
@@ -889,7 +957,9 @@ def delete_expense(path, group_id, expense_id, person):
 
 
 def approve_group(path, group_id, person, split=None):
-    """Creator only: lock the group and turn the split into payment requests."""
+    """Creator only: lock the group and turn the split into payment requests.
+
+    `split` works in haléře: it gets the expenses with haléře amounts and returns (payer, payee, haléře)."""
     split = split or split_slot.settle
     with _transaction(path) as conn:
         g = _group_row(conn, group_id, person)
@@ -897,7 +967,8 @@ def approve_group(path, group_id, person, split=None):
             raise PaymentError("Skupinu může schválit jen její zakladatel")
         _require_open(g)
         info = _group_dict(conn, g)
-        transfers = split(list(info["members"]), list(reversed(info["expenses"])))
+        expenses = [{**e, "amount": to_hal(e["amount"])} for e in reversed(info["expenses"])]
+        transfers = split(list(info["members"]), expenses)
         requests = []
         if transfers:
             request_group = conn.execute(
@@ -907,7 +978,8 @@ def approve_group(path, group_id, person, split=None):
             for payer, payee, amount in transfers:
                 if payer not in info["members"] or payee not in info["members"] or payer == payee:
                     raise PaymentError("Vyrovnání vrátilo platbu mimo skupinu")
-                _check_amount(amount)
+                if type(amount) is not int or amount <= 0:
+                    raise PaymentError("Vyrovnání vrátilo neplatnou částku")
                 requests.append(_insert_request(conn, payee, payer, amount, "", request_group))
         cancelled_invites = info["invited"]
         conn.execute("DELETE FROM settle_members WHERE group_id = ? AND status = 'invited'", (group_id,))
@@ -930,7 +1002,7 @@ def delete_group(path, group_id, person):
         if g["creator"] != person:
             raise PaymentError("Skupinu může smazat jen její zakladatel")
         info = _group_dict(conn, g)
-        cancelled = [dict(r) for r in conn.execute(
+        cancelled = [_czk(r) for r in conn.execute(
             "SELECT r.* FROM requests r JOIN request_groups rg ON rg.id = r.group_id"
             " WHERE rg.settle_group_id = ? AND r.status = 'open' ORDER BY r.id",
             (group_id,),

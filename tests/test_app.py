@@ -39,7 +39,7 @@ def test_payment_notifies_recipient(clients):
         assert r.status_code == 200
         ev = ws2.receive_json()
         assert ev["type"] == "payment_received"
-        assert ev["text"] == "Štěpán Pressl ti poslal(a) 250 Kč"
+        assert ev["text"] == "Štěpán Pressl ti poslal(a) 250,00 Kč"
         assert ev["from"] == "Štěpán Pressl"
         assert ev["payment"]["note"] == "lunch"
         assert ws1.receive_json()["type"] == "payment_sent"
@@ -59,7 +59,7 @@ def test_two_tabs_same_person(clients):
     "body",
     [
         {"recipient": 2, "amount": "250"},
-        {"recipient": 2, "amount": 2.5},
+        {"recipient": 2, "amount": 2.555},
         {"recipient": 2, "amount": 0},
         {"recipient": 2, "amount": -1},
         {"recipient": 2},
@@ -123,7 +123,7 @@ def test_request_flow(clients):
         rid = r.json()["id"]
         ev = ws2.receive_json()
         assert ev["type"] == "request_received"
-        assert ev["text"] == "Štěpán Pressl žádá o 250 Kč"
+        assert ev["text"] == "Štěpán Pressl žádá o 250,00 Kč"
         assert ws1.receive_json()["type"] == "request_sent"
 
         todo = clients[2].get("/api/state").json()["to_pay"]
@@ -133,7 +133,7 @@ def test_request_flow(clients):
         assert r.status_code == 200
         ev = ws1.receive_json()
         assert ev["type"] == "payment_received"
-        assert ev["text"] == "Jirka Měřínský zaplatil(a) tvoji žádost: 250 Kč"
+        assert ev["text"] == "Jirka Měřínský zaplatil(a) tvoji žádost: 250,00 Kč"
         assert ws2.receive_json()["type"] == "payment_sent"
 
     assert clients[2].get("/api/state").json()["to_pay"] == []
@@ -146,7 +146,7 @@ def test_decline_flow(clients):
         assert clients[2].post(f"/api/requests/{rid}/decline").status_code == 200
         ev = ws1.receive_json()
         assert ev["type"] == "request_declined"
-        assert ev["text"] == "Jirka Měřínský odmítl(a) tvoji žádost: 50 Kč"
+        assert ev["text"] == "Jirka Měřínský odmítl(a) tvoji žádost: 50,00 Kč"
     assert clients[2].get("/api/state").json()["to_pay"] == []
 
 
@@ -172,7 +172,7 @@ def test_group_request_api(clients):
         assert r.status_code == 200
         ev = ws3.receive_json()
         assert ev["type"] == "request_received"
-        assert ev["text"] == "Štěpán Pressl žádá o 200 Kč za Dinner"
+        assert ev["text"] == "Štěpán Pressl žádá o 200,00 Kč za Dinner"
     todo = clients[3].get("/api/state").json()["to_pay"]
     assert todo[0]["group"]["title"] == "Dinner"
 
@@ -232,13 +232,13 @@ def test_approve_api(clients):
 
 def test_approve_sends_requests(clients, monkeypatch):
     from server import settle
-    monkeypatch.setattr(settle, "settle", lambda members, expenses: [(2, 1, 300)])
+    monkeypatch.setattr(settle, "settle", lambda members, expenses: [(2, 1, 30000)])
     gid = make_group(clients, [2])
     with clients[2].websocket_connect("/ws") as ws2:
         clients[1].post(f"/api/groups/{gid}/approve")
         events = [ws2.receive_json(), ws2.receive_json()]
     received = [e for e in events if e["type"] == "request_received"]
-    assert received and received[0]["text"] == "Štěpán Pressl žádá o 300 Kč za Chata"
+    assert received and received[0]["text"] == "Štěpán Pressl žádá o 300,00 Kč za Chata"
     assert clients[2].get("/api/state").json()["to_pay"][0]["amount"] == 300
 
 
@@ -271,17 +271,17 @@ def test_card_payment_endpoint(clients):
         assert r.status_code == 200 and r.json()["amount"] == 480
         ev = ws1.receive_json()
         assert ev["type"] == "card_payment"
-        assert ev["text"] == "Platba kartou 480 Kč · Pivnice U Tygra"
+        assert ev["text"] == "Platba kartou 480,00 Kč · Pivnice U Tygra"
         assert ev["payment"]["id"] == r.json()["id"]
         clients[1].post("/api/card-payments", json={"amount": 50})
-        assert ws1.receive_json()["text"] == "Platba kartou 50 Kč"
+        assert ws1.receive_json()["text"] == "Platba kartou 50,00 Kč"
     s = clients[1].get("/api/state").json()
     assert s["balance"] == 10000 - 530
     assert [h["kind"] for h in s["history"]] == ["card", "card"]
 
 
 def test_card_payment_bad_bodies(clients):
-    for body in [{}, {"amount": 0}, {"amount": "5"}, {"amount": 2.5}, {"amount": 5, "note": 3},
+    for body in [{}, {"amount": 0}, {"amount": "5"}, {"amount": 2.555}, {"amount": 5, "note": 3},
                  {"amount": 5, "note": "x" * 61}, {"amount": 10001}, []]:
         assert clients[1].post("/api/card-payments", json=body).status_code == 400, body
     assert clients[1].get("/api/state").json()["balance"] == 10000

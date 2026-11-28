@@ -142,37 +142,52 @@ def _name(person):
     return db.PEOPLE.get(person, f"#{person}")
 
 
+def _hal(amount):
+    """CZK from the db -> haléře, so sums are exact; results go back out through db.from_hal."""
+    return db.to_hal(amount, positive=False)
+
+
+def _sum(amounts):
+    """Exact CZK sum of CZK amounts."""
+    return db.from_hal(sum(_hal(a) for a in amounts))
+
+
 def _flow(db_path, person_id, first, last):
-    """Sums of one person's money movements between two inclusive dates (the shared counting logic)."""
+    """Sums of one person's money movements between two inclusive dates (the shared counting logic).
+
+    Sums are kept in haléře and reported in CZK."""
     income = card = to_accounts = transfers_in = transfers_out = count = 0
     outgoing = []
     for item in db.history(db_path, person_id):
         if not first.isoformat() <= item["created_at"][:10] <= last.isoformat():
             continue
         count += 1
+        hal = _hal(item["amount"])
         if item["kind"] == "income":
-            income += item["amount"]
+            income += hal
         elif item["kind"] == "card":
-            card += item["amount"]
+            card += hal
             outgoing.append({"kind": "card", "amount": item["amount"], "note": item["note"],
                              "created_at": item["created_at"]})
         elif item["kind"] == "account":
-            to_accounts += item["amount"]
+            to_accounts += hal
             outgoing.append({"kind": "account", "amount": item["amount"], "note": item["note"],
                              "person": (f"Pro {db.CONTACTS[item['account']]}" if item["account"] in db.CONTACTS
                                        else f"Na účet {item['account']}"), "created_at": item["created_at"]})
         elif item["recipient"] == person_id:
-            transfers_in += item["amount"]
+            transfers_in += hal
         else:
-            transfers_out += item["amount"]
+            transfers_out += hal
             outgoing.append({"kind": "transfer", "amount": item["amount"], "note": item["note"],
                              "person": _name(item["recipient"]), "created_at": item["created_at"]})
     outgoing.sort(key=lambda i: i["amount"], reverse=True)
     total_in, total_out = income + transfers_in, card + to_accounts + transfers_out
+    czk = db.from_hal
     return {
         "from": first.isoformat(), "to": last.isoformat(),
-        "income": income, "card": card, "to_accounts": to_accounts, "transfers_in": transfers_in, "transfers_out": transfers_out,
-        "total_in": total_in, "total_out": total_out, "net": total_in - total_out,
+        "income": czk(income), "card": czk(card), "to_accounts": czk(to_accounts),
+        "transfers_in": czk(transfers_in), "transfers_out": czk(transfers_out),
+        "total_in": czk(total_in), "total_out": czk(total_out), "net": czk(total_in - total_out),
         "count": count, "outgoing": outgoing,
     }
 
@@ -230,11 +245,12 @@ def spending_breakdown(db_path, person_id, period, today):
             label = o["person"]
         else:
             label = f"Převod: {o['person'].split()[0]}"
-        sums[label] = sums.get(label, 0) + o["amount"]
+        sums[label] = sums.get(label, 0) + _hal(o["amount"])
     items = sorted(({"label": k, "amount": v} for k, v in sums.items()), key=lambda i: (-i["amount"], i["label"]))
     if len(items) > BREAKDOWN_TOP + 1:
         rest = sum(i["amount"] for i in items[BREAKDOWN_TOP:])
         items = items[:BREAKDOWN_TOP] + [{"label": "Ostatní", "amount": rest}]
+    items = [{**i, "amount": db.from_hal(i["amount"])} for i in items]
     return {"from": flow["from"], "to": flow["to"], "total": flow["total_out"], "items": items}
 
 
@@ -252,8 +268,8 @@ def debts(db_path, person_id):
         for r in db.requests_by(db_path, person_id) if r["status"] == "open"
     ]
     return {
-        "i_owe": i_owe, "i_owe_total": sum(r["amount"] for r in i_owe),
-        "owed_to_me": owed, "owed_to_me_total": sum(r["amount"] for r in owed),
+        "i_owe": i_owe, "i_owe_total": _sum(r["amount"] for r in i_owe),
+        "owed_to_me": owed, "owed_to_me_total": _sum(r["amount"] for r in owed),
     }
 
 
@@ -285,8 +301,8 @@ def with_person(db_path, person_id, person, today, days=30):
         i for i in db.history(db_path, person_id)
         if i["kind"] == "transfer" and other in (i["sender"], i["recipient"]) and i["created_at"][:10] >= since
     ]
-    sent = sum(t["amount"] for t in transfers if t["sender"] == person_id)
-    received = sum(t["amount"] for t in transfers if t["recipient"] == person_id)
+    sent = _sum(t["amount"] for t in transfers if t["sender"] == person_id)
+    received = _sum(t["amount"] for t in transfers if t["recipient"] == person_id)
     return {
         "person": _name(other), "days": days, "sent": sent, "received": received,
         "transfers": [
@@ -294,8 +310,8 @@ def with_person(db_path, person_id, person, today, days=30):
              "amount": t["amount"], "note": t["note"], "created_at": t["created_at"]}
             for t in transfers[:LAST_TRANSFERS]
         ],
-        "i_owe": sum(r["amount"] for r in db.open_requests_for(db_path, person_id) if r["requester"] == other),
-        "owes_me": sum(
+        "i_owe": _sum(r["amount"] for r in db.open_requests_for(db_path, person_id) if r["requester"] == other),
+        "owes_me": _sum(
             r["amount"] for r in db.requests_by(db_path, person_id) if r["status"] == "open" and r["payer"] == other
         ),
     }
@@ -305,8 +321,8 @@ def my_groups(db_path, person_id):
     result = []
     with db._connect(db_path) as conn:
         for g in db.groups_for(db_path, person_id):
-            paid = sum(e["amount"] for e in g["expenses"] if e["payer"] == person_id)
-            share = settle.shares(g["members"], g["total"])[person_id]
+            paid = sum(_hal(e["amount"]) for e in g["expenses"] if e["payer"] == person_id)
+            share = settle.shares(g["members"], _hal(g["total"]))[person_id]
             # Open requests of this group's settlement, found through the request group's link.
             unpaid = conn.execute(
                 "SELECT r.payer, r.requester, r.amount FROM requests r JOIN request_groups rg"
@@ -316,9 +332,9 @@ def my_groups(db_path, person_id):
             result.append({
                 "name": g["name"], "status": g["status"], "creator": _name(g["creator"]),
                 "members": [_name(m) for m in g["members"]], "total": g["total"],
-                "i_paid": paid, "my_share": share, "balance": paid - share,
-                "unpaid": [{"payer": _name(u["payer"]), "payee": _name(u["requester"]), "amount": u["amount"]}
-                           for u in unpaid],
+                "i_paid": db.from_hal(paid), "my_share": db.from_hal(share), "balance": db.from_hal(paid - share),
+                "unpaid": [{"payer": _name(u["payer"]), "payee": _name(u["requester"]),
+                            "amount": db.from_hal(u["amount"])} for u in unpaid],
             })
     return result
 

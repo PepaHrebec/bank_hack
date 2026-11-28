@@ -79,7 +79,7 @@ def test_two_creditors():
     assert out == [(3, 1, 300), (4, 1, 100), (4, 2, 200)]
 
 
-def test_uneven_total_first_members_by_id_owe_the_extra_crown():
+def test_uneven_total_first_members_by_id_owe_the_extra_haler():
     assert shares([3, 1, 2], 100) == {1: 34, 2: 33, 3: 33}
     assert shares([2, 4], 7) == {2: 4, 4: 3}
     # 100 paid by 3: 1 owes 34, 2 owes 33, 3 keeps its own 33.
@@ -143,8 +143,10 @@ def test_approve_uses_the_equal_split(tmp_path):
     g = create_group(db, 1, "Chata", [2, 3], accepted=True)
     add_expense(db, g["id"], 1, 900, "Cabin")
     add_expense(db, g["id"], 2, 101, "Beer")
-    # 1001 total: 1 and 2 owe 334 (the leftover crowns), 3 owes 333. Nets: 1 +566, 2 -233, 3 -333.
+    # The split runs in haléře: 1001 Kč = 100100 h, so 1 and 2 owe 333,67 Kč (the leftover haléře) and
+    # 3 owes 333,66 Kč. Nets: 1 +566,33, 2 -232,67, 3 -333,66.
     done = approve_group(db, g["id"], 1)
-    assert sorted((r["payer"], r["requester"], r["amount"]) for r in done["requests"]) == [(2, 1, 233), (3, 1, 333)]
-    assert [(r["requester"], r["amount"]) for r in open_requests_for(db, 3)] == [(1, 333)]
+    assert sorted((r["payer"], r["requester"], r["amount"]) for r in done["requests"]) == [
+        (2, 1, 232.67), (3, 1, 333.66)]
+    assert [(r["requester"], r["amount"]) for r in open_requests_for(db, 3)] == [(1, 333.66)]
     assert [get_balance(db, n) for n in (1, 2, 3)] == [10000] * 3

@@ -120,7 +120,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "type": "payment_received",
             "payment": payment,
             "from": sender_name,
-            "text": f"{sender_name} ti poslal(a) {payment['amount']} Kč",
+            "text": f"{sender_name} ti poslal(a) {db.czk_text(payment['amount'])}",
         })
 
     @app.post("/api/payments")
@@ -202,7 +202,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             )
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
-        text = f"Platba kartou {payment['amount']} Kč" + (f" · {payment['note']}" if payment["note"] else "")
+        text = f"Platba kartou {db.czk_text(payment['amount'])}" + (f" · {payment['note']}" if payment["note"] else "")
         event = {"type": "card_payment", "payment": payment, "text": text}
         if await run_in_threadpool(db.recording, db_path, person_id):
             event["text"] += " · přidáno do skupinové platby"
@@ -318,7 +318,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
     background = set()
 
     async def announce_request(req, title=None):
-        text = f"{me} žádá o {req['amount']} Kč" + (f" za {title}" if title else "")
+        text = f"{me} žádá o {db.czk_text(req['amount'])}" + (f" za {title}" if title else "")
         await orch.send(req["payer"], {"type": "request_received", "request": req, "from": me, "text": text})
 
     @app.post("/api/requests")
@@ -375,7 +375,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "type": "payment_received",
             "payment": payment,
             "from": me,
-            "text": f"{me} zaplatil(a) tvoji žádost: {payment['amount']} Kč",
+            "text": f"{me} zaplatil(a) tvoji žádost: {db.czk_text(payment['amount'])}",
         })
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         await notify_group(req["group_id"], {person_id, payment["recipient"]})
@@ -391,7 +391,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "type": "request_declined",
             "request": req,
             "from": me,
-            "text": f"{me} odmítl(a) tvoji žádost: {req['amount']} Kč",
+            "text": f"{me} odmítl(a) tvoji žádost: {db.czk_text(req['amount'])}",
         })
         await orch.send(person_id, {"type": "requests_changed"})
         await notify_group(req["group_id"], {person_id, req["requester"]})
@@ -518,7 +518,7 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
                 "type": "request_received",
                 "request": req,
                 "from": payee,
-                "text": f"{payee} žádá o {req['amount']} Kč za {group['name']}",
+                "text": f"{payee} žádá o {db.czk_text(req['amount'])} za {group['name']}",
             })
         await group_changed(group)
         for p in group["cancelled_invites"]:
