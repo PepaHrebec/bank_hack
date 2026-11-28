@@ -9,6 +9,7 @@ from pathlib import Path
 import uvicorn
 
 from server.app import create_app
+from server import demo
 from server.db import PEOPLE, init_db, reset_db
 from server.orchestrator import Orchestrator
 from server.seed import seed_db
@@ -74,9 +75,17 @@ async def serve(db_path, host, shown_host, base_port=BASE_PORT):
     await asyncio.gather(*(s.serve() for s in servers))
 
 
+async def serve_demo(db_path, host, shown_host, base_port=BASE_PORT):
+    """The guided demo: only David's phone, on base-port + 5."""
+    port = base_port + demo.DAVID
+    config = uvicorn.Config(demo.create_demo_app(db_path), host=host, port=port, log_level="warning")
+    print(f"{demo.DAVID_NAME} (demo): http://{shown_host}:{port}", flush=True)
+    await uvicorn.Server(config).serve()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", default="bank.db", help="SQLite file (default: bank.db)")
+    parser.add_argument("--db", help="SQLite file (default: bank.db, demo.db with --demo)")
     parser.add_argument("--host", default="0.0.0.0",
                         help="address to listen on (default: all, so other devices on the network can connect)")
     parser.add_argument("--base-port", type=int, default=BASE_PORT,
@@ -84,7 +93,10 @@ def main():
     parser.add_argument("--reset", action="store_true", help="restore starting balances and exit")
     parser.add_argument("--seed", action="store_true",
                         help="fill the database with Czech mock data and exit")
+    parser.add_argument("--demo", action="store_true",
+                        help="guided demo: one phone for David Vobecký, a fresh database on every page load")
     args = parser.parse_args()
+    args.db = args.db or ("demo.db" if args.demo else "bank.db")
     load_env(ENV_FILE)
 
     if args.reset:
@@ -95,8 +107,11 @@ def main():
         for person_id, count in seed_db(args.db).items():
             print(f"{PEOPLE[person_id]}: {count} plateb")
         return
-    init_db(args.db)
     shown_host = display_host(lan_ip() if args.host == "0.0.0.0" else args.host)
+    if args.demo:
+        asyncio.run(serve_demo(args.db, args.host, shown_host, args.base_port))
+        return
+    init_db(args.db)
     asyncio.run(serve(args.db, args.host, shown_host, args.base_port))
 
 

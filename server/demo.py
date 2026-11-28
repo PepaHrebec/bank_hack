@@ -11,9 +11,12 @@ import random
 from datetime import datetime, timedelta
 
 import httpx
+from fastapi import Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.routing import Route
 
 from server import db, seed
-from server.app import create_app
+from server.app import WEB_DIR, create_app
 from server.orchestrator import Orchestrator
 
 log = logging.getLogger("geoff.demo")
@@ -147,3 +150,40 @@ class DemoOrchestrator(Orchestrator):
         if r.status_code != 200:
             raise db.PaymentError(r.json().get("detail", "Žádost se nepodařila"))
         return r.json()
+
+
+TOUR_CSS = '<link rel="stylesheet" href="/static/tour.css">'
+TOUR_JS = '<script src="/static/tour.js"></script>'
+
+
+def create_demo_app(db_path, delay=BOT_DELAY):
+    """David's phone: the normal app, whose page resets the database and brings the tour along."""
+    add_david()
+    db.init_db(db_path)
+    orch = DemoOrchestrator(db_path, delay)
+    app = create_app(DAVID, orch, db_path)
+
+    # Every page load is a fresh start. Only "/" resets: /api/state and the websocket reconnect
+    # are also hit by a tab that's already running.
+    app.router.routes[:] = [r for r in app.router.routes if not (isinstance(r, Route) and r.path == "/")]
+
+    @app.get("/")
+    def index():
+        orch.cancel_all()
+        seed_demo(db_path)
+        page = (WEB_DIR / "index.html").read_text(encoding="utf-8")
+        page = page.replace("</head>", f"  {TOUR_CSS}\n</head>").replace("</body>", f"  {TOUR_JS}\n</body>")
+        return HTMLResponse(page)
+
+    @app.post("/api/demo/bot-request")
+    async def bot_request(request: Request):
+        try:
+            body = await request.json()
+            requester = body.get("from")
+            if type(requester) is not int or requester not in BOTS:
+                raise db.PaymentError("Neznámý přítel")
+            return await orch.bot_request(requester, body.get("amount"), body.get("note", ""))
+        except (ValueError, AttributeError, db.PaymentError) as e:
+            return JSONResponse({"detail": str(e)}, status_code=400)
+
+    return app

@@ -29,6 +29,16 @@ local to this machine.
 Open each address in its own browser window. On a phone, drag down from the top edge
 of the screen to open the notification panel.
 
+## Demo
+
+```bash
+uv run run.py --demo
+```
+
+One phone for David Vobecký on port 3005 (`demo.db`), with a guided tour: a bubble shows what to
+tap next and everything else is blocked until the tour ends. Štěpán, Jirka, Pepa and Petr are bots
+that accept and pay whatever David sends them. Every page load starts over with a fresh database.
+
 ## Reset
 
 Every person starts with 10 000 CZK. To wipe all payments and restore that:
