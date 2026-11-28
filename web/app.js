@@ -128,12 +128,7 @@
     const recInfo = el("div", "rec-info");
     recInfo.hidden = true;
     main.append(card, tiles, recToggle, recInfo, chat);
-    // Interactive / Classic: the switch sits on top, Classic swaps the chat for the account list
-    const classic = buildClassic(card.querySelector(".balance-label"), chat);
-    main.prepend(classic.switcher);
-    main.append(classic.accounts);
     views.main = main;
-    views.credit = classic.creditView;
 
     // contacts
     const contacts = el("section", "view");
@@ -913,83 +908,119 @@
     ["Kdo dluží mně?", "Kdo a kolik dluží mně?"],
     ["Moje skupiny", "Jak jsou na tom moje skupiny?"],
     ["Moje účty", "Jak jsou na tom moje další účty?"],
+    ["Graf výdajů", "Ukaž mi graf výdajů po měsících."],
   ];
   const chatHistory = []; // {role, content}; lives only until reload; errors never enter it
 
-  // Mode switch and the extra accounts of Classic mode; the accounts are fetched once, on first need.
-  function buildClassic(balanceLabel, chat) {
-    const MODE_KEY = "geoff-mode";
-    let viewMode = "interactive";
-    try { if (localStorage.getItem(MODE_KEY) === "classic") viewMode = "classic"; } catch { /* storage unavailable */ }
+  // ---- Charts in the chat: inline SVG, no library; all text goes in through textContent ----
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const CHART_COLORS = ["#3b6fe0", "#e0773b", "#2fa37a", "#b04fc4", "#d6a31f", "#d6486a", "#4aa8c7", "#7a7f8c"];
+  const svg = (tag, attrs = {}, text) => {
+    const n = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  };
+  const num = (n) => Number(n).toLocaleString("cs-CZ", { maximumFractionDigits: 2 });
+  const withUnit = (n, unit) => `${num(n)} ${unit}`;
 
-    const switcher = el("div", "mode-switch");
-    const accounts = el("div", "accounts");
-    const list = el("div", "account-list");
-    accounts.append(el("h3", "accounts-title", "Účty"), list);
-    const creditView = el("section", "view");
-    const txList = el("div", "card-list");
-    creditView.append(header("Kreditní karta", "main"), txList);
+  // Round gridline values: ~3 steps of 1/2/5 x 10^k covering [lo, hi]
+  function niceTicks(lo, hi) {
+    if (hi <= lo) hi = lo + 1;
+    const raw = (hi - lo) / 3;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw);
+    const ticks = [];
+    for (let t = Math.floor(lo / step) * step; t < hi + step - 1e-9; t += step) ticks.push(+t.toFixed(10));
+    return ticks;
+  }
 
-    const row = (name, value, sub) => {
-      const info = el("div", "tx-info");
-      info.append(el("div", "tx-name", name));
-      if (sub) info.append(el("div", "tx-meta", sub));
-      const r = el("div", "tx");
-      r.append(info, el("div", "tx-amount", value));
-      return r;
-    };
-    const openCredit = (a) => {
-      txList.replaceChildren(...a.transactions.map((t) =>
-        row(t.note, `−${czk(t.amount)}`, `${+t.date.slice(8, 10)}.${+t.date.slice(5, 7)}.${t.date.slice(0, 4)}`)));
-      show("credit");
-    };
-    const card = (a) => {
-      if (a.kind === "credit") {
-        const c = button("account-card");
-        const bar = el("div", "account-bar");
-        const fill = el("div", "account-bar-fill");
-        fill.style.width = `${Math.min(100, Math.round((a.spent / a.limit) * 100))}%`;
-        bar.append(fill);
-        c.append(row(a.name, `${czk(a.spent)} / ${czk(a.limit)}`), bar);
-        c.addEventListener("click", () => openCredit(a));
-        return c;
-      }
-      const c = el("div", "account-card static");
-      c.append(row(a.name, czk(a.balance),
-        a.kind === "savings" ? `úrok ${a.rate.toLocaleString("cs-CZ", { minimumFractionDigits: 1 })} %` : `+ ${czk(a.monthly)} měsíčně`));
-      return c;
-    };
-    let loaded = false;
-    async function loadAccounts() {
-      loaded = true;
-      try {
-        const { accounts: items } = await (await fetch("/api/accounts")).json();
-        list.replaceChildren(...items.map(card));
-      } catch {
-        loaded = false; // retry the next time Classic is shown
-      }
+  function lineChart(c) {
+    const W = 300, H = 170, L = 46, R = 10, T = 8, B = 22;
+    const unit = c.unit || "Kč";
+    const all = c.series.flatMap((s) => s.values);
+    const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
+    const lo = ticks[0], hi = ticks[ticks.length - 1];
+    const x = (i) => L + (c.labels.length === 1 ? (W - L - R) / 2 : (i * (W - L - R)) / (c.labels.length - 1));
+    const y = (v) => T + ((hi - v) / (hi - lo)) * (H - T - B);
+    const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart-svg", role: "img" });
+    root.append(svg("title", {}, c.title));
+    for (const t of ticks) {
+      root.append(svg("line", { x1: L, x2: W - R, y1: y(t), y2: y(t), class: "chart-grid" }));
+      root.append(svg("text", { x: L - 4, y: y(t) + 3, "text-anchor": "end", "font-size": 9 }, num(t)));
     }
-
-    function apply() {
-      const classic = viewMode === "classic";
-      chat.hidden = classic;
-      accounts.hidden = !classic;
-      balanceLabel.textContent = classic ? "Běžný účet" : "Zůstatek";
-      for (const b of switcher.children) b.classList.toggle("active", b.dataset.mode === viewMode);
-      if (classic && !loaded) loadAccounts();
-    }
-    for (const [value, label] of [["interactive", "Interaktivní"], ["classic", "Klasický"]]) {
-      const b = button("mode-btn", label);
-      b.dataset.mode = value;
-      b.addEventListener("click", () => {
-        viewMode = value;
-        try { localStorage.setItem(MODE_KEY, viewMode); } catch { /* storage unavailable */ }
-        apply();
+    const every = Math.ceil(c.labels.length / 6); // thin the x labels out
+    c.labels.forEach((l, i) => {
+      // the last label is right-aligned so it is not cut off at the edge
+      if (i % every === 0) root.append(svg("text", { x: x(i), y: H - 6, "text-anchor": i === c.labels.length - 1 ? "end" : "middle", "font-size": 9 }, l));
+    });
+    c.series.forEach((s, k) => {
+      const color = CHART_COLORS[k % CHART_COLORS.length];
+      root.append(svg("polyline", {
+        points: s.values.map((v, i) => `${x(i)},${y(v)}`).join(" "),
+        fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round",
+      }));
+      s.values.forEach((v, i) => {
+        const d = svg("circle", { cx: x(i), cy: y(v), r: 3, fill: color });
+        d.append(svg("title", {}, `${s.name}, ${c.labels[i]}: ${withUnit(v, unit)}`));
+        root.append(d);
       });
-      switcher.append(b);
+    });
+    const parts = [root];
+    if (c.series.length > 1) {
+      const legend = el("div", "chart-legend");
+      c.series.forEach((s, k) => {
+        const item = el("span", "chart-legend-item");
+        const sw = el("span", "chart-swatch");
+        sw.style.background = CHART_COLORS[k % CHART_COLORS.length];
+        item.append(sw, el("span", "name", s.name));
+        legend.append(item);
+      });
+      parts.push(legend);
     }
-    apply();
-    return { switcher, accounts, creditView };
+    return parts;
+  }
+
+  function pieChart(c) {
+    const unit = c.unit || "Kč";
+    const total = c.values.reduce((a, b) => a + b, 0);
+    const R = 70, SW = 28, C = 2 * Math.PI * R;
+    const root = svg("svg", { viewBox: "0 0 200 200", class: "chart-svg", role: "img" });
+    root.style.maxWidth = "13em";
+    root.style.margin = "0 auto";
+    root.append(svg("title", {}, c.title));
+    let used = 0;
+    c.values.forEach((v, i) => {
+      if (!(v > 0)) return;
+      const len = (v / total) * C;
+      // a stroked circle cut into dashes: a single 100% slice is a full ring, no arc edge cases
+      const slice = svg("circle", {
+        cx: 100, cy: 100, r: R, fill: "none", stroke: CHART_COLORS[i % CHART_COLORS.length], "stroke-width": SW,
+        "stroke-dasharray": `${len} ${C - len}`, "stroke-dashoffset": -used, transform: "rotate(-90 100 100)",
+      });
+      slice.append(svg("title", {}, `${c.labels[i]}: ${withUnit(v, unit)}`));
+      root.append(slice);
+      used += len;
+    });
+    root.append(svg("text", { x: 100, y: 104, "text-anchor": "middle", class: "chart-center" }, withUnit(total, unit)));
+    const legend = el("div", "chart-legend pie");
+    c.values.forEach((v, i) => {
+      const item = el("span", "chart-legend-item");
+      const sw = el("span", "chart-swatch");
+      sw.style.background = CHART_COLORS[i % CHART_COLORS.length];
+      item.append(sw, el("span", "name", c.labels[i]),
+        el("span", "val", `${withUnit(v, unit)} · ${Math.round((v / total) * 100)} %`));
+      legend.append(item);
+    });
+    return [root, legend];
+  }
+
+  function chartBox(c) {
+    const box = el("div", "chat-chart");
+    try {
+      box.append(el("div", "chart-title", c.title), ...(c.type === "pie" ? pieChart(c) : lineChart(c)));
+    } catch { return null; } // a malformed spec must not break the answer text
+    return box;
   }
 
   // Built once in build(); refresh() never touches it, so the conversation survives.
@@ -1046,6 +1077,12 @@
           const reply = data.reply.trim();
           if (reply) chatHistory.push({ role: "assistant", content: reply.slice(0, 1000) });
           wait.textContent = reply || "Geoff nemá co dodat.";
+          // charts hang under the text bubble; they stay in the DOM only, never in chatHistory
+          let last = wait;
+          for (const spec of Array.isArray(data.charts) ? data.charts : []) {
+            const box = chartBox(spec);
+            if (box) { last.after(box); last = box; }
+          }
         } else {
           chatHistory.pop(); // keep the history ending on a user message that got no answer out
           wait.textContent = typeof data.detail === "string" && data.detail ? data.detail : `Selhalo (${r.status})`;

@@ -1029,75 +1029,24 @@ button {
 .confirm-btn.secondary { background: #fff; color: #111; border: 1px solid #d5d8e0; }
 .confirm-btn:disabled { opacity: 0.5; }
 
-/* ---- Interactive / Classic mode ---- */
+/* ---- Chat charts ---- */
 
-.mode-switch {
-  display: flex;
-  padding: 0.2em;
-  gap: 0.2em;
+.chat-chart {
+  align-self: stretch;
+  margin-top: 0.4em;
+  padding: 0.6em 0.7em;
   border-radius: 1em;
-  background: #eceef2;
-  flex: none;
+  background: #f5f6f9;
 }
 
-.mode-btn {
-  flex: 1;
-  padding: 0.4em 0;
-  border: 0;
-  border-radius: 0.8em;
-  background: none;
-  color: #5b5f6b;
-  font: inherit;
-  font-size: 0.85em;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.mode-btn.active {
-  background: #fff;
-  color: #1c1e24;
-  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.1);
-}
-
-.accounts { margin-top: 0.9em; }
-.accounts[hidden],
-.chat[hidden] { display: none; }
-
-.accounts-title {
-  margin: 0 0 0.5em;
-  font-size: 1em;
-}
-
-.account-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6em;
-}
-
-.account-card {
-  display: block;
-  width: 100%;
-  padding: 0.6em 1em 0.8em;
-  border: 0;
-  border-radius: 1.3em;
-  background: #fff;
-  box-shadow: 0 0.08em 0.25em rgba(0, 0, 0, 0.06);
-  font: inherit;
-  text-align: left;
-  color: inherit;
-}
-
-button.account-card { cursor: pointer; }
-
-.account-bar {
-  height: 0.35em;
-  border-radius: 0.2em;
-  background: #eceef2;
-  overflow: hidden;
-}
-
-.account-bar-fill {
-  height: 100%;
-  border-radius: 0.2em;
-  background: #3b6fe0;
-}
+.chart-title { margin-bottom: 0.3em; font-size: 0.85em; font-weight: 600; }
+.chart-svg { display: block; width: 100%; height: auto; }
+.chart-svg text { font-family: inherit; fill: #5b5f6b; }
+.chart-grid { stroke: #dfe2e8; stroke-width: 1; }
+.chart-center { font-size: 15px; font-weight: 700; fill: #1c1e24 !important; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 0.2em 0.8em; margin-top: 0.4em; font-size: 0.75em; color: #3a3d47; }
+.chart-legend.pie { flex-direction: column; flex-wrap: nowrap; gap: 0.25em; }
+.chart-legend-item { display: flex; align-items: center; gap: 0.4em; min-width: 0; }
+.chart-legend-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-legend-item .val { color: #5b5f6b; white-space: nowrap; }
+.chart-swatch { flex: none; width: 0.7em; height: 0.7em; border-radius: 50%; }
