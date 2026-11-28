@@ -159,7 +159,8 @@ def _flow(db_path, person_id, first, last):
         elif item["kind"] == "account":
             to_accounts += item["amount"]
             outgoing.append({"kind": "account", "amount": item["amount"], "note": item["note"],
-                             "person": f"Na účet {item['account']}", "created_at": item["created_at"]})
+                             "person": (f"Pro {db.CONTACTS[item['account']]}" if item["account"] in db.CONTACTS
+                                       else f"Na účet {item['account']}"), "created_at": item["created_at"]})
         elif item["recipient"] == person_id:
             transfers_in += item["amount"]
         else:

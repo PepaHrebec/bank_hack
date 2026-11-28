@@ -87,7 +87,7 @@ def test_endpoint_and_events(db):
     with c4.websocket_connect("/ws") as ws4, c1.websocket_connect("/ws") as ws1:
         r = c1.post("/api/friends", json={"account": "4444444444/0800"})
         assert r.status_code == 200
-        assert r.json() == {"friend": {"id": 4, "name": "Petr Šafář", "account": "4444444444/0800"}}
+        assert r.json() == {"friend": {"id": 4, "name": "Petr Šafář", "account": "4444444444/0800", "geoff": True}}
         added = ws4.receive_json()
         assert added == {"type": "friend_added", "from": "Štěpán Pressl", "from_id": 1,
                          "text": "Štěpán Pressl si tě přidává mezi přátele"}

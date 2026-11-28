@@ -341,8 +341,9 @@
     // Loaded on demand; a failed fetch is simply retried the next time the form opens.
     let banksLoading = null;
     const loadBanks = () => {
-      if (bank.options.length > 1 || banksLoading) return;
-      banksLoading = fetch("/api/banks").then((r) => {
+      if (bank.options.length > 1) return Promise.resolve();
+      if (banksLoading) return banksLoading;
+      return banksLoading = fetch("/api/banks").then((r) => {
         if (!r.ok) throw new Error("banks");
         return r.json();
       }).then((list) => {
@@ -363,12 +364,20 @@
     hint.hidden = true;
     // Bank 0800 is Geoff: say who owns the account, using the people the state already lists.
     const updateHint = () => {
-      hint.hidden = bank.value !== "0800";
-      if (hint.hidden) return;
       // Same normalisation as the server: leading zeros of prefix and number are dropped separately.
       const [number, prefix = ""] = account.value.replace(/\s+/g, "").split("-").reverse();
       const strip = (digits) => digits.replace(/^0+/, "");
-      const full = `${strip(prefix) ? `${strip(prefix)}-` : ""}${strip(number)}/0800`;
+      const full = `${strip(prefix) ? `${strip(prefix)}-` : ""}${strip(number)}/${bank.value}`;
+      const contact = contactName(full);
+      if (contact) {
+        const opt = [...bank.options].find((o) => o.value === bank.value);
+        const bankName = opt ? opt.text.split(" – ").slice(1).join(" – ") : "";
+        hint.hidden = false;
+        hint.textContent = `${contact} nepoužívá Geoff – platba odejde do banky ${bankName || bank.value}.`;
+        return;
+      }
+      hint.hidden = bank.value !== "0800";
+      if (hint.hidden) return;
       const owner = (state?.people || []).find((p) => p.account === full);
       hint.textContent = !account.value.trim() ? "Účet je u Geoff – platba proběhne okamžitě."
         : owner && owner.id === state.me.id ? "To je tvůj vlastní účet"
@@ -417,16 +426,28 @@
       }
     });
     view.append(header("Zaplatit", "main"), form);
-    accountForm = { account, msg, loadBanks };
+    accountForm = {
+      account, msg, loadBanks,
+      // Prefill from a contact: "number/bank" split into the two fields.
+      fill(full) {
+        const [number, code] = full.split("/");
+        account.value = number;
+        bank.value = [...bank.options].some((o) => o.value === code) ? code : "";
+        updateHint();
+        // The bank list may still be loading: select the bank once it is there.
+        if (!bank.value) loadBanks().then(() => { if (!bank.value) { bank.value = code; updateHint(); } });
+      },
+    };
     return view;
   }
 
-  function openAccountPay() {
+  function openAccountPay(full) {
     accountForm.msg.className = "form-msg";
     accountForm.msg.textContent = "";
     accountForm.loadBanks();
+    if (full) accountForm.fill(full);
     show("accountPay");
-    accountForm.account.focus();
+    if (!full) accountForm.account.focus();
   }
 
   function show(name) {
@@ -513,7 +534,7 @@
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const rows = state.history.slice(0, 3).map((p) => {
       const incoming = p.kind === "income" || (p.kind === "transfer" && p.recipient === state.me.id);
-      const label = p.kind === "account" ? `Na účet ${p.account}`
+      const label = p.kind === "account" ? accountLabel(p.account)
         : p.kind === "card" ? (p.note || "Platba kartou")
         : p.kind === "income" ? (p.note || "Příchozí platba")
         : `${incoming ? "Od" : "Pro"} ${nameOf(incoming ? p.sender : p.recipient)}`;
@@ -525,6 +546,10 @@
     });
     ui.widgetRecent.replaceChildren(...rows);
   }
+
+  // Known outside contacts (state.contacts, absent on old servers), by normalised account.
+  const contactName = (account) => (state?.contacts || []).find((c) => c.account === account)?.name || "";
+  const accountLabel = (account) => contactName(account) ? `Pro ${contactName(account)}` : `Na účet ${account}`;
 
   const accountOf = (id) => state.people.find((p) => p.id === id)?.account || "";
 
@@ -545,7 +570,7 @@
         const row = el("div", "tx");
         const info = el("div", "tx-info");
         const when = stamp(p.created_at);
-        info.append(el("div", "tx-name", `Na účet ${p.account}`), el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
+        info.append(el("div", "tx-name", accountLabel(p.account)), el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
         row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
         rows.push(row);
         continue;
@@ -672,7 +697,8 @@
   function renderFriends() {
     const { me, people, friends } = state;
     const shown = people.filter((p) => p.id !== me.id && (!friends || friends.includes(p.id)));
-    if (shown.length === 0) {
+    const outside = (state.contacts || []).filter((c) => (state.contact_friends || []).includes(c.account));
+    if (shown.length === 0 && outside.length === 0) {
       ui.friendList.replaceChildren(el("div", "empty", "Zatím žádní přátelé – přidej je podle čísla účtu."));
       return;
     }
@@ -682,7 +708,15 @@
       const row = button("contact", avatar(p), who, icon("chevron", "chev"));
       row.addEventListener("click", () => openPay(p.id));
       return row;
-    }));
+    }).concat(outside.map((c) => {
+      // Not a Geoff user: a neutral avatar, and tapping goes to the account payment form.
+      const face = el("span", "avatar neutral", Phone.initials(c.name));
+      const who = el("span", "contact-who");
+      who.append(el("span", "contact-name", c.name), el("span", "contact-account", `${c.account} · nepoužívá Geoff`));
+      const row = button("contact", face, who, icon("chevron", "chev"));
+      row.addEventListener("click", () => openAccountPay(c.account));
+      return row;
+    })));
   }
 
   // "Přidat přítele": connect by account number; the friend gets a notification.

@@ -1086,3 +1086,5 @@ button {
   font-size: 0.82em;
   color: #3b6cff;
 }
+
+.avatar.neutral { background: #8a8f9c; }

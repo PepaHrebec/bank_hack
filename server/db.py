@@ -11,6 +11,8 @@ PEOPLE = {1: "Štěpán Pressl", 2: "Jirka Měřínský", 3: "Pepa Hřebec", 4: 
 GEOFF_BANK = "0800"  # bank code of accounts held at Geoff
 # Each person's Geoff account: person N has NNNNNNNNNN/0800 (repeated digits pass the mod-11 check).
 ACCOUNTS = {pid: f"{str(pid) * 10}/{GEOFF_BANK}" for pid in PEOPLE}
+# Known outside contacts (not Geoff users, no phone of their own): normalised account -> name.
+CONTACTS = {"5555555555/0100": "Timothy Liška"}
 START_BALANCE = 10000
 
 
@@ -143,6 +145,21 @@ def init_db(path):
             conn.executemany(
                 "INSERT OR IGNORE INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
                 [(a, b, now) for a in PEOPLE for b in PEOPLE if a != b],
+            )
+        contacts_new = not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'contact_friends'"
+        ).fetchone()
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS contact_friends ("
+            " person INTEGER NOT NULL, account TEXT NOT NULL, created_at TEXT NOT NULL,"
+            " PRIMARY KEY (person, account))"
+        )
+        if contacts_new:
+            # Databases from before outside contacts existed: everyone knows every contact.
+            now = _now()
+            conn.executemany(
+                "INSERT OR IGNORE INTO contact_friends (person, account, created_at) VALUES (?, ?, ?)",
+                [(pid, acc, now) for pid in PEOPLE for acc in CONTACTS],
             )
         for pid, name in PEOPLE.items():
             conn.execute(
@@ -1063,11 +1080,29 @@ def friends_of(path, person):
         return [r["friend"] for r in rows]
 
 
+def contact_friends_of(path, person):
+    """Accounts of the outside contacts `person` has added, in order of the CONTACTS list."""
+    with _connect(path) as conn:
+        rows = conn.execute("SELECT account FROM contact_friends WHERE person = ?", (person,))
+        have = {r["account"] for r in rows}
+    return [a for a in CONTACTS if a in have]
+
+
 def add_friend(path, person, account):
-    """Befriend the Geoff user holding `account` (mutual); returns their id."""
+    """Befriend the Geoff user holding `account` (mutual) and return their id, or add a known
+    outside contact (one-sided) and return {"contact": account}."""
+    account = parse_account(account)
     friend = person_by_account(account)
     if friend is None:
-        raise PaymentError("Tento účet nepatří uživateli Geoff")
+        if account not in CONTACTS:
+            raise PaymentError("Tento účet nepatří uživateli Geoff")
+        with _transaction(path) as conn:
+            if conn.execute("SELECT 1 FROM contact_friends WHERE person = ? AND account = ?",
+                            (person, account)).fetchone():
+                raise PaymentError("Už jste přátelé")
+            conn.execute("INSERT INTO contact_friends (person, account, created_at) VALUES (?, ?, ?)",
+                         (person, account, _now()))
+        return {"contact": account}
     if friend == person:
         raise PaymentError("To je tvůj vlastní účet")
     with _transaction(path) as conn:
@@ -1082,10 +1117,16 @@ def add_friend(path, person, account):
 
 
 def reset_friends(path, loners=()):
-    """Rebuild the friend graph: everyone with everyone, except the people in `loners` (no friends)."""
+    """Rebuild the friend graph: everyone with everyone, except the people in `loners` (no friends).
+    Outside contacts are rebuilt the same way: every non-loner knows all of CONTACTS."""
     now = _now()
     with _transaction(path) as conn:
         conn.execute("DELETE FROM friends")
+        conn.execute("DELETE FROM contact_friends")
+        conn.executemany(
+            "INSERT INTO contact_friends (person, account, created_at) VALUES (?, ?, ?)",
+            [(a, acc, now) for a in PEOPLE if a not in loners for acc in CONTACTS],
+        )
         conn.executemany(
             "INSERT INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
             [(a, b, now) for a in PEOPLE for b in PEOPLE
