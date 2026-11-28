@@ -409,6 +409,9 @@ button {
   min-width: 0;
 }
 
+.friend-requests { margin-bottom: 0.8em; }
+.contact.pending { opacity: 0.5; cursor: default; }
+
 .contact-account {
   font-size: 0.8em;
   opacity: 0.55;

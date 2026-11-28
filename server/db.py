@@ -137,6 +137,11 @@ def init_db(path):
             " person INTEGER NOT NULL, friend INTEGER NOT NULL, created_at TEXT NOT NULL,"
             " PRIMARY KEY (person, friend))"
         )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS friend_requests ("
+            " requester INTEGER NOT NULL, recipient INTEGER NOT NULL, created_at TEXT NOT NULL,"
+            " PRIMARY KEY (requester, recipient))"
+        )
         for pid, name in PEOPLE.items():
             conn.execute(
                 "INSERT INTO accounts (id, name, balance) VALUES (?, ?, ?)"
@@ -162,6 +167,7 @@ def reset_db(path):
         conn.execute("DELETE FROM session_invites")
         conn.execute("DELETE FROM messages")
         conn.execute("DELETE FROM friends")
+        conn.execute("DELETE FROM friend_requests")
         conn.execute("UPDATE accounts SET balance = ?", (START_BALANCE,))
         conn.execute("COMMIT")
 
@@ -1057,8 +1063,35 @@ def friends_of(path, person):
         return [r["friend"] for r in rows]
 
 
+def friend_requests_for(path, person):
+    """Ids of the people who asked to befriend `person` and wait for an answer."""
+    with _connect(path) as conn:
+        rows = conn.execute(
+            "SELECT requester FROM friend_requests WHERE recipient = ? ORDER BY created_at, requester", (person,))
+        return [r["requester"] for r in rows]
+
+
+def friend_requests_by(path, person):
+    """Ids of the people `person` asked to befriend who haven't answered yet."""
+    with _connect(path) as conn:
+        rows = conn.execute(
+            "SELECT recipient FROM friend_requests WHERE requester = ? ORDER BY created_at, recipient", (person,))
+        return [r["recipient"] for r in rows]
+
+
+def _make_friends(conn, a, b):
+    now = _now()
+    conn.executemany(
+        "INSERT OR IGNORE INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
+        [(a, b, now), (b, a, now)],
+    )
+
+
 def add_friend(path, person, account):
-    """Befriend the Geoff user holding `account` (mutual) and return their id."""
+    """Ask the Geoff user holding `account` to be friends; return (their id, "requested" | "friends").
+
+    If they had already asked me, this accepts their request instead.
+    """
     account = parse_account(account)
     friend = person_by_account(account)
     if friend is None:
@@ -1068,9 +1101,36 @@ def add_friend(path, person, account):
     with _transaction(path) as conn:
         if conn.execute("SELECT 1 FROM friends WHERE person = ? AND friend = ?", (person, friend)).fetchone():
             raise PaymentError("Už jste přátelé")
-        now = _now()
-        conn.executemany(
-            "INSERT OR IGNORE INTO friends (person, friend, created_at) VALUES (?, ?, ?)",
-            [(person, friend, now), (friend, person, now)],
+        if conn.execute(
+            "SELECT 1 FROM friend_requests WHERE requester = ? AND recipient = ?", (person, friend)
+        ).fetchone():
+            raise PaymentError("Žádost už byla odeslána")
+        if conn.execute(
+            "DELETE FROM friend_requests WHERE requester = ? AND recipient = ?", (friend, person)
+        ).rowcount:
+            _make_friends(conn, person, friend)
+            return friend, "friends"
+        conn.execute(
+            "INSERT INTO friend_requests (requester, recipient, created_at) VALUES (?, ?, ?)",
+            (person, friend, _now()),
         )
-    return friend
+    return friend, "requested"
+
+
+def accept_friend_request(path, person, requester):
+    """`person` accepts `requester`'s request: they become friends both ways."""
+    with _transaction(path) as conn:
+        if not conn.execute(
+            "DELETE FROM friend_requests WHERE requester = ? AND recipient = ?", (requester, person)
+        ).rowcount:
+            raise PaymentError("Žádost nebyla nalezena")
+        _make_friends(conn, person, requester)
+
+
+def decline_friend_request(path, person, requester):
+    """`person` turns `requester`'s request down; it disappears."""
+    with _transaction(path) as conn:
+        if not conn.execute(
+            "DELETE FROM friend_requests WHERE requester = ? AND recipient = ?", (requester, person)
+        ).rowcount:
+            raise PaymentError("Žádost nebyla nalezena")

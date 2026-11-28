@@ -95,6 +95,8 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
             "me": {"id": person_id, "name": db.PEOPLE[person_id], "account": db.ACCOUNTS[person_id]},
             "people": [{"id": i, "name": n, "account": db.ACCOUNTS[i]} for i, n in db.PEOPLE.items()],
             "friends": db.friends_of(db_path, person_id),
+            "friend_requests": db.friend_requests_for(db_path, person_id),
+            "friend_requests_sent": db.friend_requests_by(db_path, person_id),
             "contacts": [{"account": a, "name": n} for a, n in db.CONTACTS.items()],
             "balance": db.get_balance(db_path, person_id),
             "history": db.history(db_path, person_id),
@@ -138,23 +140,58 @@ def create_app(person_id: int, orch: Orchestrator, db_path: str, chat_complete=N
         await orch.send(person_id, {"type": "payment_sent", "payment": payment})
         return payment
 
+    def friend_json(friend):
+        return {"id": friend, "name": db.PEOPLE[friend], "account": db.ACCOUNTS[friend], "geoff": True}
+
+    async def friends_changed(other):
+        await orch.send(person_id, {"type": "friends_changed"})
+        await orch.send(other, {"type": "friends_changed"})
+
+    async def notify_accepted(other):
+        await orch.send(other, {
+            "type": "friend_accepted",
+            "from": me,
+            "from_id": person_id,
+            "text": f"{me} přijímá tvou žádost o přátelství",
+        })
+
     @app.post("/api/friends")
     async def add_friend(request: Request):
         try:
             body = await _json_object(request)
-            friend = await run_in_threadpool(db.add_friend, db_path, person_id, body.get("account"))
+            friend, status = await run_in_threadpool(db.add_friend, db_path, person_id, body.get("account"))
         except (BadInput, db.PaymentError) as e:
             return _bad(str(e))
-        await orch.send(friend, {
-            "type": "friend_added",
-            "from": me,
-            "from_id": person_id,
-            "text": f"{me} si tě přidává mezi přátele",
-        })
-        await orch.send(person_id, {"type": "friends_changed"})
-        await orch.send(friend, {"type": "friends_changed"})
-        return {"friend": {"id": friend, "name": db.PEOPLE[friend], "account": db.ACCOUNTS[friend],
-                           "geoff": True}}
+        if status == "requested":
+            await orch.send(friend, {
+                "type": "friend_request",
+                "from": me,
+                "from_id": person_id,
+                "text": f"{me} ti posílá žádost o přátelství",
+            })
+        else:
+            await notify_accepted(friend)
+        await friends_changed(friend)
+        return {"friend": friend_json(friend), "status": status}
+
+    @app.post("/api/friends/requests/{requester}/accept")
+    async def accept_friend(requester: int):
+        try:
+            await run_in_threadpool(db.accept_friend_request, db_path, person_id, requester)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await notify_accepted(requester)
+        await friends_changed(requester)
+        return {"friend": friend_json(requester)}
+
+    @app.post("/api/friends/requests/{requester}/decline")
+    async def decline_friend(requester: int):
+        try:
+            await run_in_threadpool(db.decline_friend_request, db_path, person_id, requester)
+        except db.PaymentError as e:
+            return _bad(str(e))
+        await friends_changed(requester)
+        return {"ok": True}
 
     @app.post("/api/card-payments")
     async def card_pay(request: Request):

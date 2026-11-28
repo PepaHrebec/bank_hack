@@ -143,7 +143,7 @@
     const addFriendBtn = button("settle", icon("personadd", "settle-icon"), el("span", null, "Přidat přítele"));
     addFriendBtn.addEventListener("click", showAddFriendPopup);
     actions.append(settleBtn, toPayBtn, addFriendBtn);
-    const friendList = el("div", "card-list");
+    const friendList = el("div", "friend-wrap");
     contacts.append(header("Přátelé", "main"), actions, friendList);
     views.contacts = contacts;
 
@@ -397,7 +397,7 @@
     form.append(el("label", "form-label", "Číslo účtu"), accountRow, hint, amount, note, btn, msg);
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      msg.className = "form-msg";
+      msg.className = "form-msg ok";
       msg.textContent = "";
       splitPasted();
       updateHint();
@@ -555,19 +555,36 @@
 
   // Not yet my friend (and the server does track friends): offer "+ Přítel" / "Přidat do přátel".
   const canbefriend = (id) => Boolean(state.friends) && id !== state.me.id && !state.friends.includes(id);
+  // A friend request: mine waiting for their answer, or theirs waiting for mine.
+  const requestSent = (id) => Boolean(state.friend_requests_sent?.includes(id));
+  const requestReceived = (id) => Boolean(state.friend_requests?.includes(id));
+  // Ask `id` to be friends; resolves to "requested", or "friends" if they had already asked me.
   const addFriendById = async (id) => {
-    await postJson("/api/friends", { account: accountOf(id) });
+    const { status } = await postJson("/api/friends", { account: accountOf(id) });
+    await load();
+    return status;
+  };
+  const answerFriendRequest = async (id, action) => {
+    await postJson(`/api/friends/requests/${id}/${action}`);
     await load();
   };
 
   // Small "+ Přítel" button for a history row; an error replaces it for a moment.
+  // A pending request shows "Odesláno" instead, and one they sent me is accepted with "Přijmout".
   function befriendButton(id) {
-    const btn = button("befriend-btn", "+ Přítel");
+    if (requestSent(id)) {
+      const sent = button("befriend-btn", "Odesláno");
+      sent.disabled = true;
+      return sent;
+    }
+    const accepting = requestReceived(id);
+    const btn = button("befriend-btn", accepting ? "Přijmout" : "+ Přítel");
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       btn.disabled = true;
       try {
-        await addFriendById(id);
+        if (accepting) await answerFriendRequest(id, "accept");
+        else await addFriendById(id);
       } catch (err) {
         const note = el("span", "befriend-err", errText(err, false));
         btn.replaceWith(note);
@@ -721,24 +738,69 @@
     }
   }
 
-  // The Friends list: only people I've befriended (everyone if the server doesn't say).
+  // The Friends list: people I've befriended (everyone if the server doesn't say), plus my pending
+  // requests greyed out; incoming requests get their own section above with Odmítnout / Přijmout.
   function renderFriends() {
     const { me, people, friends } = state;
-    const shown = people.filter((p) => p.id !== me.id && (!friends || friends.includes(p.id)));
-    if (shown.length === 0) {
-      ui.friendList.replaceChildren(el("div", "empty", "Zatím žádní přátelé – přidej je podle čísla účtu."));
-      return;
+    const sent = state.friend_requests_sent || [];
+    const incoming = people.filter((p) => (state.friend_requests || []).includes(p.id));
+    const shown = people.filter((p) => p.id !== me.id && (!friends || friends.includes(p.id) || sent.includes(p.id)));
+    const nodes = [];
+    if (incoming.length) {
+      const list = el("div", "card-list friend-requests");
+      for (const p of incoming) {
+        const who = el("span", "contact-who");
+        who.append(el("span", "contact-name", p.name), el("span", "contact-account", p.account || ""));
+        const decline = button("req-btn decline", "Odmítnout");
+        const accept = button("req-btn pay", "Přijmout");
+        const msg = el("div", "form-msg error");
+        const answer = (action) => async () => {
+          decline.disabled = accept.disabled = true;
+          try {
+            await answerFriendRequest(p.id, action);
+          } catch (err) {
+            msg.textContent = errText(err);
+            decline.disabled = accept.disabled = false;
+          }
+        };
+        decline.addEventListener("click", answer("decline"));
+        accept.addEventListener("click", answer("accept"));
+        const top = el("div", "req-top");
+        top.append(avatar(p), who);
+        const actions = el("div", "req-actions");
+        actions.append(decline, accept);
+        const row = el("div", "req");
+        row.append(top, actions, msg);
+        list.append(row);
+      }
+      nodes.push(el("h3", "topay-section", "Žádosti o přátelství"), list);
     }
-    ui.friendList.replaceChildren(...shown.map((p) => {
-      const who = el("span", "contact-who");
-      who.append(el("span", "contact-name", p.name), el("span", "contact-account", p.account || ""));
-      const row = button("contact", avatar(p), who, icon("chevron", "chev"));
-      row.addEventListener("click", () => openPay(p.id));
-      return row;
-    }));
+    if (shown.length === 0) {
+      const empty = el("div", "card-list");
+      empty.append(el("div", "empty", "Zatím žádní přátelé – přidej je podle čísla účtu."));
+      nodes.push(empty);
+    } else {
+      const list = el("div", "card-list");
+      list.append(...shown.map((p) => {
+        const who = el("span", "contact-who");
+        who.append(el("span", "contact-name", p.name));
+        if (sent.includes(p.id)) {
+          who.append(el("span", "contact-account", "čeká na potvrzení"));
+          const row = el("div", "contact pending");
+          row.append(avatar(p), who);
+          return row;
+        }
+        who.append(el("span", "contact-account", p.account || ""));
+        const row = button("contact", avatar(p), who, icon("chevron", "chev"));
+        row.addEventListener("click", () => openPay(p.id));
+        return row;
+      }));
+      nodes.push(list);
+    }
+    ui.friendList.replaceChildren(...nodes);
   }
 
-  // "Přidat přítele": connect by account number; the friend gets a notification.
+  // "Přidat přítele": send a request by account number; the other person gets a notification to confirm.
   function showAddFriendPopup() {
     const input = el("input", "field");
     Object.assign(input, { type: "text", maxLength: 30, autocomplete: "off", placeholder: "2222222222/0800" });
@@ -758,9 +820,11 @@
       go.disabled = true;
       msg.textContent = "";
       try {
-        await postJson("/api/friends", { account: input.value });
-        close();
+        const { status } = await postJson("/api/friends", { account: input.value });
+        msg.className = "form-msg";
+        msg.textContent = status === "friends" ? "Jste přátelé ✓" : "Žádost odeslána";
         await load();
+        setTimeout(close, 900);
       } catch (err) {
         msg.textContent = errText(err);
         go.disabled = false;
@@ -1608,9 +1672,9 @@
       const sender = event.payment.sender;
       Phone.notify({
         title: event.from, body: event.text + note, color: Phone.colors[sender],
-        // A Geoff user I haven't befriended yet can be added right here.
-        actions: canbefriend(sender)
-          ? [{ label: "Přidat do přátel", onClick: async () => { await addFriendById(sender); return "Přidáno ✓"; } }]
+        // A Geoff user I haven't befriended (or asked) yet can be added right here.
+        actions: canbefriend(sender) && !requestSent(sender)
+          ? [{ label: "Přidat do přátel", onClick: async () => (await addFriendById(sender)) === "friends" ? "Přidáno ✓" : "Žádost odeslána" }]
           : undefined,
       });
       load();
@@ -1705,8 +1769,21 @@
     } else if (event.type === "group_added") {
       Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.group.creator] });
       load();
-    } else if (event.type === "friend_added") {
-      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.from_id ?? state.people.find((p) => p.name === event.from)?.id] });
+    } else if (event.type === "friend_request") {
+      const answer = (action, done) => async () => {
+        await answerFriendRequest(event.from_id, action);
+        return done;
+      };
+      Phone.notify({
+        title: event.from, body: event.text, color: Phone.colors[event.from_id],
+        actions: [
+          { label: "Odmítnout", secondary: true, onClick: answer("decline", "Odmítnuto") },
+          { label: "Přijmout", onClick: answer("accept", "Přidáno ✓") },
+        ],
+      });
+      load();
+    } else if (event.type === "friend_accepted") {
+      Phone.notify({ title: event.from, body: event.text, color: Phone.colors[event.from_id] });
       load();
     } else if (["friends_changed", "payment_sent", "request_sent", "requests_changed", "group_changed", "recording_changed", "connected"].includes(event.type)) {
       load();
