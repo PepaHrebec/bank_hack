@@ -23,6 +23,7 @@
   let mode = "payment"; // "payment" | "request" on the pay screen
   let openGroupId = null; // group shown on the group screen
   let currentView = null;
+  let accountForm = null; // {account, msg} of the "Zaplatit" view
   let startExpense = null; // {amount, note} a new group starts with (from a card payment), or null
 
   const ICONS = {
@@ -118,7 +119,9 @@
     contactsBtn.addEventListener("click", () => show("contacts"));
     const qrBtn = button("big-btn", icon("qr", "big-btn-icon qr-tile-icon"), el("span", null, "QR kód"));
     qrBtn.addEventListener("click", () => show("qr"));
-    tiles.append(contactsBtn, qrBtn);
+    const payAccountBtn = button("big-btn", icon("card", "big-btn-icon"), el("span", null, "Zaplatit"));
+    payAccountBtn.addEventListener("click", () => openAccountPay());
+    tiles.append(contactsBtn, qrBtn, payAccountBtn);
     const chat = buildChat();
     const recToggle = button("rec-toggle");
     recToggle.addEventListener("click", toggleRecording);
@@ -281,6 +284,8 @@
     qr.append(header("QR kód", "main"), qrCard, qrForm);
     views.qr = qr;
 
+    views.accountPay = buildAccountPay();
+
     root.replaceChildren(...Object.values(views));
 
     // home-screen widget
@@ -310,6 +315,52 @@
       expenseList, approveBox, pickBox,
     };
     show("main");
+  }
+
+  // "Zaplatit": pay to a Czech bank account number; the server decides whether it is valid.
+  function buildAccountPay() {
+    const view = el("section", "view");
+    const account = el("input", "field");
+    Object.assign(account, { type: "text", maxLength: 30, inputMode: "text", autocomplete: "off", placeholder: "123456-1234567890/0100" });
+    const amount = el("input", "field");
+    Object.assign(amount, { type: "number", min: "1", step: "1", inputMode: "numeric", placeholder: "Částka (Kč)" });
+    const note = el("input", "field");
+    Object.assign(note, { type: "text", maxLength: 80, placeholder: "Zpráva pro příjemce (volitelné)" });
+    const btn = el("button", "send-btn", "Zaplatit");
+    btn.type = "submit";
+    const msg = el("div", "form-msg");
+    const form = el("form", "pay-form");
+    form.append(el("label", "form-label", "Číslo účtu"), account, amount, note, btn, msg);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.className = "form-msg";
+      msg.textContent = "";
+      btn.disabled = true;
+      try {
+        const p = await postJson("/api/account-payments", {
+          account: account.value, amount: amount.value === "" ? null : Number(amount.value), note: note.value,
+        });
+        account.value = amount.value = note.value = "";
+        msg.className = "form-msg ok";
+        msg.textContent = `Zaplaceno ${czk(p.amount)} na účet ${p.account}`;
+        await load();
+      } catch (err) {
+        msg.className = "form-msg error";
+        msg.textContent = err instanceof TypeError ? "Banku se nepodařilo zastihnout. Zkus to znovu." : err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    view.append(header("Zaplatit", "main"), form);
+    accountForm = { account, msg };
+    return view;
+  }
+
+  function openAccountPay() {
+    accountForm.msg.className = "form-msg";
+    accountForm.msg.textContent = "";
+    show("accountPay");
+    accountForm.account.focus();
   }
 
   function show(name) {
@@ -343,7 +394,8 @@
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const rows = state.history.slice(0, 3).map((p) => {
       const incoming = p.kind === "income" || (p.kind === "transfer" && p.recipient === state.me.id);
-      const label = p.kind === "card" ? (p.note || "Platba kartou")
+      const label = p.kind === "account" ? `Na účet ${p.account}`
+        : p.kind === "card" ? (p.note || "Platba kartou")
         : p.kind === "income" ? (p.note || "Příchozí platba")
         : `${incoming ? "Od" : "Pro"} ${nameOf(incoming ? p.sender : p.recipient)}`;
       const when = p.created_at.slice(0, 10) === today ? p.created_at.slice(11, 16) : stamp(p.created_at).split(" ")[0];
@@ -367,6 +419,15 @@
     const rows = [];
     if (history.length === 0) rows.push(el("div", "empty", "Zatím žádné platby"));
     for (const p of history) {
+      if (p.kind === "account") {
+        const row = el("div", "tx");
+        const info = el("div", "tx-info");
+        const when = stamp(p.created_at);
+        info.append(el("div", "tx-name", `Na účet ${p.account}`), el("div", "tx-meta", p.note ? `${p.note} · ${when}` : when));
+        row.append(icon("card", "avatar card-avatar"), info, el("div", "tx-amount out", `−${czk(p.amount)}`));
+        rows.push(row);
+        continue;
+      }
       if (p.kind === "card") {
         const row = el("div", "tx");
         const info = el("div", "tx-info");
