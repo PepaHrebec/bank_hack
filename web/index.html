@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/static/fillers.css">
   <link rel="stylesheet" href="/static/whatsapp.css">
   <link rel="stylesheet" href="/static/surfers.css">
+  <link rel="stylesheet" href="/static/klipy.css">
   <link rel="stylesheet" href="/static/safari.css">
 </head>
 <body>
@@ -23,7 +24,7 @@
       <div class="home" id="home">
         <div class="widget" id="widget" data-opens="app"></div>
         <div class="icon-grid">
-          <button class="icon" type="button"><img src="/static/icons/instagram.png" alt=""><span>Instagram</span></button>
+          <button class="icon" type="button" data-opens="reels"><img src="/static/icons/klipy.svg" alt=""><span>Klipy</span></button>
           <button class="icon" type="button" data-opens="surfers"><img src="/static/icons/surfers.svg" alt=""><span>Surfers</span></button>
         </div>
         <div class="dock">
@@ -39,6 +40,7 @@
 
       <section id="whatsapp" class="app-window" data-statusbar="light"></section>
       <section id="surfers" class="app-window" data-statusbar="light"></section>
+      <section id="reels" class="app-window" data-statusbar="light"></section>
       <section id="safari" class="app-window">
         <div class="sa-bar"><div class="sa-url">davidvobecky.com</div></div>
         <iframe src="https://www.davidvobecky.com/" title="davidvobecky.com" loading="lazy"></iframe>
@@ -80,6 +82,7 @@
   <script src="/static/fillers.js"></script>
   <script src="/static/whatsapp.js"></script>
   <script src="/static/surfers.js"></script>
+  <script src="/static/klipy.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
